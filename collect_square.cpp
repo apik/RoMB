@@ -156,7 +156,7 @@ std::pair<lst,lst> collect_square(ex& F,lst x)
 	  ex ltm = xm.mul(ex_to<matrix>(lst_to_matrix(matrix_lst))).trace();
 	  //cout<<" LTM: "<<ltm<<endl;
 	  BOOST_ASSERT_MSG((ltm - out_sq).expand() == 0,"FULL SQUARE EXPANDED INEQUAL");
-	  F_out -= out_sq.expand();
+	  F_out -= (x_coeff_key*out_sq).expand();
 	}
     }
     F=F_out;

@@ -42,6 +42,7 @@
 
 #include "romb_excompiler.h"
 #include "collect_square.h"
+#include "fm.h"
 #include <cuba.h>
 using namespace GiNaC;
 using namespace boost;
@@ -188,6 +189,89 @@ std::pair<ex,double>  hyper_cube(lst pole_list,lst w_list)
 }
 
 
+
+// return value for 1st variable
+std::pair<ex,double>  hyper_cube_den(lst pole_list,lst w_list, ex den)
+{
+    using namespace lemon;
+    Lp lp;
+    exhashmap<LpBase::Col> col_map;
+    for(lst::const_iterator wi = w_list.begin();wi!=w_list.end();++wi)
+      {
+        col_map[*wi] = lp.addCol();
+      }
+    for(lst::const_iterator pit = pole_list.begin();pit!= pole_list.end();++pit)
+      {
+        ex tmp_expr = *pit;
+        // cout<<"Expr: "<<*pit<<" subexprs:"<<endl;
+        Lp::Expr constr_expr;
+        for(lst::const_iterator wi = w_list.begin();wi!=w_list.end();++wi)
+          {
+            // cout<<*wi<<"  coeff "<<tmp_expr.coeff(*wi)<<endl;
+            ex wi_coeff = tmp_expr.coeff(*wi);
+            tmp_expr-=(*wi)*wi_coeff;
+            if(is_a<numeric>(wi_coeff))
+              {
+                constr_expr+=ex_to<numeric>(wi_coeff).to_double()*col_map[*wi];
+                //                cout<<ex_to<numeric>(wi_coeff).to_double()<<endl; 
+              }
+            else throw std::logic_error("Non numeric coefficient in pole term. ");
+          }
+        //constr_expr+=
+        //cout<<"Ostatok "<<tmp_expr<<endl;
+        if(is_a<numeric>(tmp_expr))
+          lp.addRow(-ex_to<numeric>(tmp_expr).to_double(),constr_expr,Lp::INF);
+        else throw std::logic_error("Lower bound is not a numeric");
+      }
+
+    double l_bound,r_bound;
+    cout<<"Hyper cube"<<endl;
+    //   for(lst::const_iterator wi = w_list.begin();wi!=w_list.end();++wi)
+      
+        lp.min();
+        lp.obj(col_map[*w_list.begin()]);
+        // Solve the problem using the underlying LP solver
+        lp.solve();
+        if (lp.primalType() == Lp::OPTIMAL) 
+          {
+            cout<<*w_list.begin()<<" = ("<<lp.primal()<<",";
+            l_bound = lp.primal();
+          }
+        else throw std::logic_error("Optimal solution not found.");
+        lp.max();
+        lp.obj(col_map[*w_list.begin()]);
+        // Solve the problem using the underlying LP solver
+        lp.solve();
+        if (lp.primalType() == Lp::OPTIMAL) 
+          {
+            cout<<lp.primal()<<")"<<endl;
+            r_bound = lp.primal();
+          }
+        else throw  std::logic_error("Optimal solution not found.");
+
+        //  boost::mt19937 rng;       
+        boost::uniform_real<> bounded_distribution(l_bound,r_bound);      // distribution that maps to 1..6
+        // see random number distributions
+        boost::variate_generator<boost::mt19937&, boost::uniform_real<> >
+          die(rng, bounded_distribution);             // glues randomness with mapping
+        //rng.seed(static_cast<unsigned char>(std::time(0)));
+
+        
+        double x   = die();                      // simulate rolling a die
+        // new edition in center of interval no random
+        double x_half = l_bound*(1- ex_to<numeric>(pow(den,-1)).to_double()) + r_bound*ex_to<numeric>(pow(den,-1)).to_double();
+        double real_half = (r_bound + l_bound)/2.0;
+        cout<<"Point "<<die()<<"   "<<x<<endl;
+        return std::make_pair(*w_list.begin(),x_half);
+        
+
+
+}
+
+
+
+
+
 // return value for all variables
 exmap  hyper_cube_all(lst pole_list,lst w_list)
 {
@@ -293,6 +377,41 @@ exmap start_point(lst pole_list,lst w_list)
   cout<<"START POINT SUBS  "<<subs_map<<endl;
   return subs_map;
 }
+// Start point with different countours
+exmap start_point_diff_w(lst pole_list,lst w_list)
+{
+  exset point_set;
+  exmap subs_map;
+  ex den = 2;
+    for(lst::const_iterator wi = w_list.begin();wi != w_list.end();++wi) 
+    {
+      lst tmp_pole_list;
+      lst tmp_w_list;
+      for(lst::const_iterator pit = pole_list.begin();pit!= pole_list.end();++pit)
+        if(!((*pit).subs(subs_map)>0))
+          tmp_pole_list.append((*pit).subs(subs_map));
+      cout<<"tmp_pole_list"<<tmp_pole_list<<endl;
+      for(lst::const_iterator wi2 = wi;wi2 != w_list.end();++wi2) 
+        tmp_w_list.append(*wi2);
+
+      std::pair<ex,double> ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,den);
+      if(point_set.count(ret_pair.second) > 0)
+	do
+	  {
+	    den +=1;
+	    ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,den);
+	  }
+	while(point_set.count(ret_pair.second) > 0);
+      subs_map[ret_pair.first] = ret_pair.second;
+      point_set.insert(ret_pair.second);
+      cout<<ret_pair.first<<" "<<ret_pair.second<<endl;
+    }
+  
+  cout<<"START POINT SUBS  "<<subs_map<<endl;
+  return subs_map;
+}
+
+
 
 struct compare_xterm_varieties : public std::binary_function<ex,ex,bool>
 {
@@ -422,7 +541,8 @@ public:
   {
     lst var_list(w_lst);
     var_list.append(get_symbol("eps"));
-    eps_w_current=start_point(get_pole_lst(),var_list);
+    eps_w_current=start_point_diff_w(get_pole_lst(),var_list);
+    //eps_w_current=findinstance(get_pole_lst(),var_list);
     for(lst::const_iterator it = w_lst.begin();it!=w_lst.end();++it)
       w_current[*it] = it->subs(eps_w_current);
     eps_current = (get_symbol("eps")==eps_w_current[get_symbol("eps")]);
@@ -714,7 +834,7 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
         // cout<<"xsumm "<<delta_subs.lhs()<<" == "<<delta_subs.rhs()<<endl;
         
         //ex F = fusion::at_key<UFX::F>(fx_in).collect(x_lst,true);///< distributed polynom factorizing X(i)X(j)*(...)
-        ex F = factor(fusion::at_key<UFX::F>(fx_in), factor_options::all);///< distributed polynom factorizing X(i)X(j)*(...)
+        ex F = (fusion::at_key<UFX::F>(fx_in)).expand();///< distributed polynom factorizing X(i)X(j)*(...)
         //F=F.subs(delta_subs);//applying delta function relation on F-polynom
         //x_lst.remove_last();
 
@@ -736,7 +856,9 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
         	cout<<">>> Found "<<coe_l.nops()<<" full squares in F polynomial"<<endl;
         	cout<< coe_l<<" * "<<xsq_l<<endl;
         	cout<<" F qad " <<F<<endl;
-	assert(false);
+        	
+        	F = F.collect(x_lst,true);
+		//	assert(false);
 
         //lst gamma_lst; //Gamma with poles left of contour
         //    lst w_lst;
@@ -749,6 +871,7 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
 
         cout<<"x_map_start "<<x_power_map<<endl;
 
+		
         //    ex coeff = 1;                             // numerical coeeficient independent of X(j)
         ex coeff =tgamma(F_pow)* pow(exp(get_symbol("eps")*Euler),l);///pow(I*pow(Pi,2 - get_symbol("eps")),l);
         // important if power = 0????
@@ -756,8 +879,87 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
           coeff/=tgamma(*nui);
         coeff/=tgamma(F_pow);
         //    ex out_ex = 1;///pow(2*Pi*I,U.nops()-1)/tgamma(al_pow)/pow(2*Pi*I,F.nops()-1)/tgamma(al_pow); //need review
+
         //working with F-term \Gamma(\nu-L*D/2) contractedx
         ex w_sum = 0;  //F-term generates only integrations in W
+
+	//--------------------------------
+	//      MB for full squares
+	//--------------------------------
+	size_t z_idx = 0;
+	if(F.nops() == 0 && xsq_l.nops() == 1)
+	{
+	/*
+	 F is a full square
+	*/
+	F_pow *=2;
+	F = xsq_l.op(0);
+	coeff /= coe_l.op(0);
+	}
+	else if(F.nops() == 0 && xsq_l.nops() > 1)
+	{
+	/*
+	 F is a summ of full squares
+	 */
+	 throw std::logic_error(std::string("F = (xs1)^2+ ..(xsn)^2; not realized "));
+	}
+	else
+	  {
+	    for(int i = 0; i < xsq_l.nops(); i++)
+	      {
+		string str = "w_"+boost::lexical_cast<string>(displacement);
+		displacement++;
+                //symbol w(str);
+		ex w_i = get_symbol(str);
+                w_lst.append(w_i);
+                coeff*=tgamma(-w_i)*pow(coe_l.op(i),w_i)/(2*Pi*I);
+                
+                cout<<"w_i_power "<<w_i<<endl;
+                gamma_poles.append(-w_i); //!!!! review
+                w_sum+=w_i;
+
+		// subMB construction
+		ex sq_lst(xsq_l.op(i));
+		cout<<"SQLST : "<<sq_lst<<endl;
+		coeff /= (pow(2*Pi*I,sq_lst.nops()-1)*tgamma(-2*w_i));
+		gamma_poles.append(-2*w_i);
+		ex z_sum = 0;
+		for(const_iterator x_it = sq_lst.begin(); x_it != sq_lst.end(); ++x_it)
+		  {
+		    ex a_power;
+		    if(sq_lst.end() == boost::next(x_it)) // X_k expr
+		      {
+			coeff *= tgamma(-2*w_i + z_sum);
+			a_power = 2*w_i - z_sum;
+			gamma_poles.append(-2*w_i + z_sum);
+		      }
+		    else // ordinary exprs
+		      {
+			string z_str = "z_"+boost::lexical_cast<string>(z_idx);
+			z_idx++;
+			ex z_i = get_symbol(z_str);
+			cout << z_i<<endl;
+			w_lst.append(z_i);
+			coeff*=tgamma(-z_i);
+			a_power = z_i;
+			gamma_poles.append(-z_i); //!!!! review
+			z_sum += a_power;
+		      } 
+		    
+		    // add x-part with it's coefficient
+		    for(lst::const_iterator it1=x_lst.begin();it1!=x_lst.end();++it1)
+		      {
+			if(x_it->has(*it1))
+			  {
+			    // simple expression x_i or -x_i, x_it->degree(x) == 1
+			    BOOST_ASSERT_MSG(x_it->degree(*it1) == 1,"Not a simple expression in square");
+			    x_power_map[*it1]+=(a_power);
+			    coeff *=pow(x_it->lcoeff(*it1),a_power);
+			  }
+		      }
+		  }
+	      }
+	  }
         lst F_to_lst;
         if(is_a<add>(F))
           for(const_iterator it = F.begin();it!=F.end();++it)
@@ -772,7 +974,7 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
         //std::sort(F_to_lst.begin(),F_to_lst.end(),F_term_comparator);
         //F_to_lst = bubble_sort_lexi(F_to_lst,x_lst);
 
-
+	cout<<"displace:  "<<displacement<<endl;
         cout<<"FTLST" <<F_to_lst<<endl;
         for(lst::const_iterator it = F_to_lst.begin();it!=F_to_lst.end();++it)
           {
@@ -1509,7 +1711,7 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order = 
         }
       else // expanding only
         {
-          out_ex = series_to_poly( int_in.get_expr().series(get_symbol("eps"),expansion_order) );
+          out_ex = series_to_poly( int_in.get_expr().series(get_symbol("eps"),expansion_order) ).subs(num_subs);
         }
       cout<<endl<<"gp "<<out_ex<<endl;
       return out_ex;
@@ -1631,7 +1833,12 @@ public:
             cout<<" PWKlst "<<P_with_k_lst<<endl;
 
             // uf and then MB represenatation construction
-            UFXmap inUFmap = UF(lst(*kit),P_with_k_lst,subs_lst,displacement_x);
+            // subs only in F for last momentum
+            UFXmap inUFmap;
+           if(boost::next(kit) == k_lst.end())
+            inUFmap = UF(lst(*kit),P_with_k_lst,subs_lst,displacement_x);
+           else
+            inUFmap = UF(lst(*kit),P_with_k_lst,lst(),displacement_x); // no substitution!!!
             displacement_x +=fusion::at_key<UFX::xlst>(inUFmap).nops(); 
 
             lst nu_into;
@@ -1727,11 +1934,11 @@ public:
         throw std::logic_error(std::string("In function \"RoMB\":\n |___> ")+p.what());
       }
   }
-  void integrate(lst number_subs_list)
+  void integrate(lst number_subs_list, int exp_order = 1)
   {
     ex int_expr_out = 0;
     for(MBlst::iterator it = int_lst.begin();it!= int_lst.end();++it)
-      int_expr_out+=expand_and_integrate(*it, number_subs_list, 1);
+      int_expr_out+=expand_and_integrate(*it, number_subs_list, exp_order);
     cout<<" FRESULT for parameters: "<<number_subs_list<<endl<<endl;
     cout<<" FRESULT anl : "<<"          = "<<int_expr_out.expand().collect(get_symbol( "eps" ))<<endl;
     cout<<" FRESULT num: "<<"          = "<<evalf(int_expr_out.expand().collect(get_symbol( "eps" )))<<endl;
@@ -1743,7 +1950,7 @@ int main()
 {
 try
   {
-    symbol k("k"),q("q"),p("p"),p1("p1"),p2("p2"),p3("p3"),ms("m^2"),l("l"),s("s");
+    symbol k("k"),q("q"),p("p"),p1("p1"),p2("p2"),p3("p3"),ms("ms"),l("l"),s("s");
   symbol l1("l1"),l2("l2"),l3("l3"),l4("l4");
   // oneloop box
   //      UFXmap l45 = UF(lst(k),lst(pow(k,2),pow(k+p1,2),pow(k+p1+p2,2),pow(k+p1+p2+p3,2)),lst(pow(p1,2)==0,pow(p2,2)==0));
@@ -1780,19 +1987,25 @@ try
 
 
   // works!!!
-//      RoMB_loop_by_loop sunset(lst(k,l), lst(pow(k,2)-1,pow(p-k-l,2)-4,pow(l,2)-5),lst(pow(p,2)==1),lst(1,1,1));
-
-  //    RoMB_loop_by_loop t2loop(lst(k,l), lst(pow(k,2),pow(p+k,2),pow(p+k+l,2),pow(k+l,2),pow(l,2)),lst(pow(p,2)==1),lst(1,1,1,1,1));
+//      RoMB_loop_by_loop sunset(lst(k,l), lst(pow(k,2)-1,pow(p-k-l,2)-4,pow(l,2)-5),lst(pow(p,2)==s),lst(1,1,1));
+//      RoMB_loop_by_loop sunset(lst(k,l), lst(pow(k,2),pow(p-k-l,2),pow(l,2)),lst(pow(p,2)==s),lst(1,1,1));
+//      sunset.integrate(lst(s==1));
+      
+      RoMB_loop_by_loop t2loop(lst(k,l), lst(pow(k,2),pow(p+k,2),pow(p+k+l,2),pow(k+l,2),pow(l,2)),lst(pow(p,2)==s),lst(1,1,1,1,1));
+      t2loop.integrate(lst(s==1));
   
 /*        RoMB_loop_by_loop bubble_five_loop(lst(k,l1,l2,l3,l4), 
         lst(pow(k,2)-ms,pow(l1,2)-ms,pow(l2,2)-ms,pow(l3,2)-ms,pow(l4,2)-ms,pow(k+l1,2)-ms,pow(k+l1+l2,2)-ms,pow(k+l1+l2+l3,2)-ms,pow(k+l1+l2+l3+l4,2)-ms,pow(k+l1+l2+l3,2)-ms,pow(k+l1+l2,2)-ms,pow(k+l1,2)-ms),
         lst(ms==1),
-        lst(1,1,1,1,1,1,1,1,1,1,1,1));*/
+        lst(1,1,1,1,1,1,1,1,1,1,1,1));
+*/
 
   // works!!!
 //             RoMB_loop_by_loop B0_1loop_lbl(lst(k),lst(pow(k,2)-2-ms,pow(p+k,2)-ms),lst(ms==0,pow(p,2)==1),lst(2,1));
-             RoMB_loop_by_loop B0_1loop_lbl(lst(k),lst(pow(k,2)-ms,pow(p+k,2)-ms),lst(ms==1,pow(p,2)==s),lst(1,1));
-	     B0_1loop_lbl.integrate(lst(s==-1));
+
+//    RoMB_loop_by_loop B0_1loop_lbl(lst(k),lst(pow(k,2)-ms,pow(p+k,2)-ms),lst(pow(p,2)==s,ms==0),lst(1,1));
+//	     B0_1loop_lbl.integrate(lst(s==-1));
+
   //MB works???
 //    RoMB_loop_by_loop C0_1loop_lbl(lst(k),lst(pow(k,2),pow(k+p1,2)-ms,pow(k-p2,2)-ms),lst(ms==1,pow(p1,2)==1,pow(p2,2)==1,p1*p2==-50-1),lst(1,1,1));
 

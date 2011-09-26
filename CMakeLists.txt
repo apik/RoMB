@@ -4,6 +4,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 SET(PROJECT_NAME "RoMB")
 
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O3")
+
 ## Change 'hg-tip' to the current version number of your project if you wish.
 ## Optionally, you can leave it as is and set PROJECT_VERSION from
 ## the cmake-gui when you make a release.
@@ -70,7 +72,7 @@ INCLUDE_DIRECTORIES(
 
 LINK_DIRECTORIES( ${LINK_DIRECTORIES} ./cuba/ )
 
-ADD_EXECUTABLE(romb RoMB.cpp collect_square.cpp romb_excompiler.cpp)
+ADD_EXECUTABLE(romb RoMB.cpp collect_square.cpp fm.cpp romb_excompiler.cpp)
 TARGET_LINK_LIBRARIES(romb cuba ginac glpk ${LEMON_LIBRARIES})
 
 ## This tells cmake to install 'lemon-project' to $PREFIX/bin when
