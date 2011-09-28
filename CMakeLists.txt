@@ -61,7 +61,7 @@ INCLUDE_DIRECTORIES(
   ${PROJECT_SOURCE_DIR}
   ${PROJECT_BINARY_DIR}
   ${LEMON_INCLUDE_DIRS}
-  ${PROJECT_SOURCE_DIR}/cuba
+##  ${PROJECT_SOURCE_DIR}/cuba
 )
 
 ## Here we define an executable target. Its name is 'lemon-project' and
@@ -70,7 +70,7 @@ INCLUDE_DIRECTORIES(
 ## executables, simple repeat (and edit) the following ADD_EXECUTABLE and
 ## TARGET_LINK_LIBRARIES statements.
 
-LINK_DIRECTORIES( ${LINK_DIRECTORIES} ./cuba/ )
+#LINK_DIRECTORIES( ${LINK_DIRECTORIES} ./cuba/ )
 
 ADD_EXECUTABLE(romb RoMB.cpp collect_square.cpp fm.cpp romb_excompiler.cpp)
 TARGET_LINK_LIBRARIES(romb cuba ginac glpk ${LEMON_LIBRARIES})
