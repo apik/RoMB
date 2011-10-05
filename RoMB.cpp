@@ -40,9 +40,12 @@
 #include <iterator>
 #include <functional>
 
+#include <gmpxx.h>
+
 #include "romb_excompiler.h"
 #include "collect_square.h"
 #include "fm.h"
+//#include "sim.h"
 #include <cuba.h>
 using namespace GiNaC;
 using namespace boost;
@@ -106,6 +109,315 @@ exset lst2set(const lst & l) {
     ++it;
   }
   return s;
+}
+
+ex  d2r(double startx, long maxden = 500)
+{
+
+    long m[2][2];
+    double x = startx;
+    long ai;
+
+
+    /* initialize matrix */
+    m[0][0] = m[1][1] = 1;
+    m[0][1] = m[1][0] = 0;
+
+    /* loop finding terms until denom gets too big */
+    while (m[1][0] *  ( ai = (long)x ) + m[1][1] <= maxden) {
+        long t;
+        t = m[0][0] * ai + m[0][1];
+        m[0][1] = m[0][0];
+        m[0][0] = t;
+        t = m[1][0] * ai + m[1][1];
+        m[1][1] = m[1][0];
+        m[1][0] = t;
+        if(x==(double)ai) break;     // AF: division by zero
+        x = 1/(x - (double) ai);
+        if(x>(double)0x7FFFFFFF) break;  // AF: representation failure
+    } 
+
+    /* now remaining x is between 0 and 1/ai */
+    /* approx as either 0 or 1/m where m is max that will fit in maxden */
+    /* first try zero */
+    //    printf("%ld/%ld, error = %e\n", m[0][0], m[1][0],
+    //      startx - ((double) m[0][0] / (double) m[1][0]));
+
+    /* now try other possibility */
+    // ai = (maxden - m[1][1]) / m[1][0];
+    // m[0][0] = m[0][0] * ai + m[0][1];
+    // m[1][0] = m[1][0] * ai + m[1][1];
+    // printf("%ld/%ld, error = %e\n", m[0][0], m[1][0],
+    //       startx - ((double) m[0][0] / (double) m[1][0]));
+    return numeric(m[0][0],m[1][0]);
+}
+
+
+
+/***********************************************************************
+ *  NAME
+ *
+ *  fp2rat - convert floating-point number to rational number
+ *
+ *  SYNOPSIS
+ *
+ *  #include "glplib.h"
+ *  int fp2rat(double x, double eps, double *p, double *q);
+ *
+ *  DESCRIPTION
+ *
+ *  Given a floating-point number 0 <= x < 1 the routine fp2rat finds
+ *  its "best" rational approximation p / q, where p >= 0 and q > 0 are
+ *  integer numbers, such that |x - p / q| <= eps.
+ *
+ *  RETURNS
+ *
+ *  The routine fp2rat returns the number of iterations used to achieve
+ *  the specified precision eps.
+ *
+ *  EXAMPLES
+ *
+ *  For x = sqrt(2) - 1 = 0.414213562373095 and eps = 1e-6 the routine
+ *  gives p = 408 and q = 985, where 408 / 985 = 0.414213197969543.
+ *
+ *  BACKGROUND
+ *
+ *  It is well known that every positive real number x can be expressed
+ *  as the following continued fraction:
+ *
+ *     x = b[0] + a[1]
+ *                ------------------------
+ *                b[1] + a[2]
+ *                       -----------------
+ *                       b[2] + a[3]
+ *                              ----------
+ *                              b[3] + ...
+ *
+ *  where:
+ *
+ *     a[k] = 1,                  k = 0, 1, 2, ...
+ *
+ *     b[k] = floor(x[k]),        k = 0, 1, 2, ...
+ *
+ *     x[0] = x,
+ *
+ *     x[k] = 1 / frac(x[k-1]),   k = 1, 2, 3, ...
+ *
+ *  To find the "best" rational approximation of x the routine computes
+ *  partial fractions f[k] by dropping after k terms as follows:
+ *
+ *     f[k] = A[k] / B[k],
+ *
+ *  where:
+ *
+ *     A[-1] = 1,   A[0] = b[0],   B[-1] = 0,   B[0] = 1,
+ *
+ *     A[k] = b[k] * A[k-1] + a[k] * A[k-2],
+ *
+ *     B[k] = b[k] * B[k-1] + a[k] * B[k-2].
+ *
+ *  Once the condition
+ *
+ *     |x - f[k]| <= eps
+ *
+ *  has been satisfied, the routine reports p = A[k] and q = B[k] as the
+ *  final answer.
+ *
+ *  In the table below here is some statistics obtained for one million
+ *  random numbers uniformly distributed in the range [0, 1).
+ *
+ *      eps      max p   mean p      max q    mean q  max k   mean k
+ *     -------------------------------------------------------------
+ *     1e-1          8      1.6          9       3.2    3      1.4
+ *     1e-2         98      6.2         99      12.4    5      2.4
+ *     1e-3        997     20.7        998      41.5    8      3.4
+ *     1e-4       9959     66.6       9960     133.5   10      4.4
+ *     1e-5      97403    211.7      97404     424.2   13      5.3
+ *     1e-6     479669    669.9     479670    1342.9   15      6.3
+ *     1e-7    1579030   2127.3    3962146    4257.8   16      7.3
+ *     1e-8   26188823   6749.4   26188824   13503.4   19      8.2
+ *
+ *  REFERENCES
+ *
+ *  W. B. Jones and W. J. Thron, "Continued Fractions: Analytic Theory
+ *  and Applications," Encyclopedia on Mathematics and Its Applications,
+ *  Addison-Wesley, 1980. */
+
+int fp2rat(double x, double eps, double *p, double *q)
+{     int k;
+  double xk, Akm1, Ak, Bkm1, Bk, ak, bk, fk, temp;
+//  if (!(0.0 <= x && x < 1.0))
+    //    xfault("fp2rat: x = %g; number out of range", x);
+  for (k = 0; k<=100 ; k++)
+    {  assert(k <= 100);
+      if (k == 0)
+        {  /* x[0] = x */
+          xk = x;
+          /* A[-1] = 1 */
+          Akm1 = 1.0;
+          /* A[0] = b[0] = floor(x[0]) = 0 */
+          Ak = 0.0;
+          /* B[-1] = 0 */
+          Bkm1 = 0.0;
+          /* B[0] = 1 */
+          Bk = 1.0;
+        }
+      else
+        {  /* x[k] = 1 / frac(x[k-1]) */
+          temp = xk - floor(xk);
+          assert(temp != 0.0);
+          xk = 1.0 / temp;
+          /* a[k] = 1 */
+          ak = 1.0;
+          /* b[k] = floor(x[k]) */
+          bk = floor(xk);
+          /* A[k] = b[k] * A[k-1] + a[k] * A[k-2] */
+          temp = bk * Ak + ak * Akm1;
+          Akm1 = Ak, Ak = temp;
+          /* B[k] = b[k] * B[k-1] + a[k] * B[k-2] */
+          temp = bk * Bk + ak * Bkm1;
+          Bkm1 = Bk, Bk = temp;
+        }
+      /* f[k] = A[k] / B[k] */
+      fk = Ak / Bk;
+#if 0
+      printf("%.*g / %.*g = %.*g", DBL_DIG, Ak, DBL_DIG, Bk, DBL_DIG,
+            fk);
+#endif
+      if (fabs(x - fk) <= eps) break;
+    }
+  *p = Ak;
+  *q = Bk;
+  return k;
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                       
+                                                                                                                                                                                                                                                                                                                                                                                                                                       
+
+/***********************************************************************
+ *  NAME
+ *
+ *  glp_exact - solve LP problem in exact arithmetic
+ *
+ *  SYNOPSIS
+ *
+ *  int glp_exact(glp_prob *lp, const glp_smcp *parm);
+ *
+ *  DESCRIPTION
+ *
+ *  The routine glp_exact is a tentative implementation of the primal
+ *  two-phase simplex method based on exact (rational) arithmetic. It is
+ *  similar to the routine glp_simplex, however, for all internal
+ *  computations it uses arithmetic of rational numbers, which is exact
+ *  in mathematical sense, i.e. free of round-off errors unlike floating
+ *  point arithmetic.
+ *
+ *  Note that the routine glp_exact uses inly two control parameters
+ *  passed in the structure glp_smcp, namely, it_lim and tm_lim.
+ *
+ *  RETURNS
+ *
+ *  0  The LP problem instance has been successfully solved. This code
+ *     does not necessarily mean that the solver has found optimal
+ *     solution. It only means that the solution process was successful.
+ *
+ *  GLP_EBADB
+ *     Unable to start the search, because the initial basis specified
+ *     in the problem object is invalid--the number of basic (auxiliary
+ *     and structural) variables is not the same as the number of rows in
+ *     the problem object.
+ *
+ *  GLP_ESING
+ *     Unable to start the search, because the basis matrix correspodning
+ *     to the initial basis is exactly singular.
+ *
+ *  GLP_EBOUND
+ *     Unable to start the search, because some double-bounded variables
+ *     have incorrect bounds.
+ *
+ *  GLP_EFAIL
+ *     The problem has no rows/columns.
+ *
+ *  GLP_EITLIM
+ *     The search was prematurely terminated, because the simplex
+ *     iteration limit has been exceeded.
+ *
+ *  GLP_ETMLIM
+ *     The search was prematurely terminated, because the time limit has
+ *     been exceeded. */
+
+mpq_class set_d_eps(double val)
+{     /* convert double val to rational x obtaining a more adequate
+         fraction than provided by mpq_set_d due to allowing a small
+         approximation error specified by a given relative tolerance;
+         for example, mpq_set_d would give the following
+         1/3 ~= 0.333333333333333314829616256247391... ->
+         -> 6004799503160661/18014398509481984
+         while this routine gives exactly 1/3 */
+  int s, n, j;
+  double f, p, q, eps = 1e-9;
+//  mpq_class temp;
+  assert(-DBL_MAX <= val && val <= +DBL_MAX);
+#if 1 /* 30/VII-2008 */
+  if (val == floor(val))
+    {  /* if val is integral, do not approximate */
+     // mpq_set_d(x, val);
+      mpq_class ret_int(val);
+      return ret_int;
+    }
+#endif
+  if (val > 0.0)
+    s = +1;
+  else if (val < 0.0)
+    s = -1;
+  else
+    {  
+      mpq_class ret_zero(0);
+      return ret_zero;
+    }
+  f = frexp(fabs(val), &n);
+  /* |val| = f * 2^n, where 0.5 <= f < 1.0 */
+  fp2rat(f, 0.1 * eps, &p, &q);
+  /* f ~= p / q, where p and q are integers */
+ // mpq_init(temp);
+ mpq_class temp(q);
+  mpq_class x(p);
+//  mpq_set_d(x, p);
+//  mpq_set_d(temp, q);
+//  mpq_div(x, x, temp);
+  
+  x /= temp;
+  
+//  mpq_set_si(temp, 1, 1);
+  temp = mpq_class(1);
+  
+  for (j = 1; j <= abs(n); j++)
+    //mpq_add(temp, temp, temp);
+    temp +=temp;
+  if (n > 0)
+//    mpq_mul(x, x, temp);
+x *= temp;
+  else if (n < 0)
+//    mpq_div(x, x, temp);
+    x /= temp;
+//  mpq_clear(temp);
+  if (s < 0) x *=(-1);
+  /* check that the desired tolerance has been attained */
+  assert(fabs(val - x.get_d()) <= eps * (1.0 + fabs(val)));
+ return x;
+}
+                                                                                                                                                                                                  
+ex ginac_set_d(double val)
+{
+  mpq_class out_mpq(set_d_eps(val));
+  return numeric(out_mpq.get_num().get_si(),out_mpq.get_den().get_si());
+}
+
+lst has_w(ex gamma_arg,lst w_list)
+{
+  lst out_list;
+  for(lst::const_iterator wi = w_list.begin();wi!=w_list.end();++wi)
+    if(gamma_arg.has(*wi))out_list.append(*wi);
+  return out_list;
 }
 
 
@@ -191,7 +503,7 @@ std::pair<ex,double>  hyper_cube(lst pole_list,lst w_list)
 
 
 // return value for 1st variable
-std::pair<ex,double>  hyper_cube_den(lst pole_list,lst w_list, ex den)
+std::pair<ex,ex>  hyper_cube_den(lst pole_list,lst w_list, ex den)
 {
     using namespace lemon;
     Lp lp;
@@ -249,6 +561,11 @@ std::pair<ex,double>  hyper_cube_den(lst pole_list,lst w_list, ex den)
           }
         else throw  std::logic_error("Optimal solution not found.");
 
+        cout<<"Simplex : "<<endl;
+        ex lbs,ubs;
+        bool founds;
+        //        tie(lbs,ubs,founds) = simplex_ara(pole_list,w_list,*w_list.begin());
+        // cout<<"lbs: "<<lbs<<" ubs: "<<ubs<<endl;
         //  boost::mt19937 rng;       
         boost::uniform_real<> bounded_distribution(l_bound,r_bound);      // distribution that maps to 1..6
         // see random number distributions
@@ -259,14 +576,39 @@ std::pair<ex,double>  hyper_cube_den(lst pole_list,lst w_list, ex den)
         
         double x   = die();                      // simulate rolling a die
         // new edition in center of interval no random
-        double x_half = l_bound*(1- ex_to<numeric>(pow(den,-1)).to_double()) + r_bound*ex_to<numeric>(pow(den,-1)).to_double();
+        //if((l_bound - trunc(l_bound)) < 10e-8) lbs = trunc(l_bound);
+        lbs = ginac_set_d(l_bound);
+        //if((r_bound - trunc(r_bound)) < 10e-8) ubs = trunc(r_bound);
+         ubs = ginac_set_d(r_bound);
+        cout<<"ginac_set_d "<<ginac_set_d(l_bound)<<" "<<ginac_set_d(r_bound)<<endl;
+        ex x_half = lbs*(1- pow(den,-1)) + ubs*pow(den,-1);
         double real_half = (r_bound + l_bound)/2.0;
-        cout<<"Point "<<die()<<"   "<<x<<endl;
+        //        cout<<"Point "<<die()<<"   "<<x<<endl;
         return std::make_pair(*w_list.begin(),x_half);
         
 
 
 }
+
+
+// return value for 1st variable
+std::pair<ex,ex>  simplex_den(lst pole_list,lst w_list, ex den)
+{
+  ex l_bound,r_bound;
+  bool found;
+  //  tie(l_bound,r_bound,found) = simplex_ara(pole_list,w_list,(*w_list.begin()));
+  cout<< found<<endl;
+  BOOST_ASSERT_MSG(found,"Optimal not found");
+
+        // new edition in center of interval no random
+        ex x_half = l_bound*(1- pow(den,-1)) + r_bound*pow(den,-1);
+         return std::make_pair(*w_list.begin(),x_half);
+        
+
+
+}
+
+
 
 
 
@@ -346,7 +688,7 @@ exmap  hyper_cube_all(lst pole_list,lst w_list)
         // new edition in center of interval no random
         double x_half = (r_bound + l_bound+2.0*x)/4.0;
         double real_half = (r_bound + l_bound)/2.0;
-        cout<<"Point "<<die()<<"   "<<x<<endl;
+        //cout<<"Point "<<die()<<"   "<<x<<endl;
         whmap[*lit] = real_half;
       }
     return whmap;
@@ -354,6 +696,64 @@ exmap  hyper_cube_all(lst pole_list,lst w_list)
 
 
 }
+
+
+
+
+
+
+exhashmap<std::pair<ex,ex> >  simplex_all(lst pole_list,lst w_list)
+{
+  exhashmap<std::pair<ex,ex> > out_map;
+
+  for(lst::const_iterator it = w_list.begin(); it != w_list.end(); ++ it)
+    {
+      bool found;
+      ex l_bound,r_bound;
+      //      tie(l_bound,r_bound,found) = simplex_ara(pole_list,w_list,*it);
+      if(found)
+        {
+          cout<<l_bound<<" < "<<*it<<" < "<<r_bound<<endl;
+          out_map[*it] = std::make_pair(l_bound, r_bound);
+        }
+      else throw  std::logic_error("Optimal solution not found.");  
+    }
+  
+
+    return out_map;
+        
+
+
+}
+
+
+exhashmap<std::pair<ex,ex> >  simplex_zero(lst pole_list,lst w_list)
+{
+  exhashmap<std::pair<ex,ex> > out_map;
+
+      bool found;
+      ex l_bound,r_bound;
+      //      tie(l_bound,r_bound,found) = simplex_ara(pole_list,w_list,0);
+      if(found)
+        {
+          cout<<l_bound<<" < "<<"0"<<" < "<<r_bound<<endl;
+          //          out_map[*it] = std::make_pair(l_bound, r_bound);
+        }
+      else throw  std::logic_error("Optimal solution not found.");  
+
+  
+
+    return out_map;
+        
+
+
+}
+
+
+
+
+
+
 
 
 exmap start_point(lst pole_list,lst w_list)
@@ -369,7 +769,8 @@ exmap start_point(lst pole_list,lst w_list)
       cout<<"tmp_pole_list"<<tmp_pole_list<<endl;
       for(lst::const_iterator wi2 = wi;wi2 != w_list.end();++wi2) 
         tmp_w_list.append(*wi2);
-      std::pair<ex,double> ret_pair = hyper_cube(tmp_pole_list,tmp_w_list);
+          std::pair<ex,double> ret_pair = hyper_cube(tmp_pole_list,tmp_w_list);
+
       subs_map[ret_pair.first] = ret_pair.second;
       cout<<ret_pair.first<<" "<<ret_pair.second<<endl;
     }
@@ -394,7 +795,14 @@ exmap start_point_diff_w(lst pole_list,lst w_list)
       for(lst::const_iterator wi2 = wi;wi2 != w_list.end();++wi2) 
         tmp_w_list.append(*wi2);
 
-      std::pair<ex,double> ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,den);
+      //      std::pair<ex,double> ret_pair = 
+      cout<<" Hyper test   "<<hyper_cube_den(tmp_pole_list,tmp_w_list,den).second;
+      cout<<"Simplex called for:"<<endl;
+      cout<<"w set: "<<tmp_w_list<<endl;
+      cout<<"Poles set: "<<tmp_pole_list<<endl;
+      //simplex_zero(tmp_pole_list,tmp_w_list);
+      // assert(false);
+      std::pair<ex,ex> ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,den);
       if(point_set.count(ret_pair.second) > 0)
 	do
 	  {
@@ -410,6 +818,72 @@ exmap start_point_diff_w(lst pole_list,lst w_list)
   cout<<"START POINT SUBS  "<<subs_map<<endl;
   return subs_map;
 }
+
+// function test exmap is suitable solution of system of inequalities
+bool interior_point(lst ineq_lst, exmap subs_map)
+{
+  for(lst::const_iterator it = ineq_lst.begin(); it != ineq_lst.end(); ++it)
+    {
+      //cout<<"int point: "<<it->subs(subs_map)<<endl;
+       if((it->subs(subs_map) <0)) return false;
+    }
+  return true;
+}
+
+
+
+// interior point of convex polytope
+exmap start_point_convex(lst pole_list,lst w_list)
+{
+  exset point_set;
+  exmap subs_map;
+
+  exhashmap<std::pair<ex,ex> > bounds_map (simplex_all(pole_list,w_list));
+  exmap point_map;
+  for(lst::const_iterator it = w_list.begin(); it != w_list.end(); ++it)
+    point_map[*it] = (bounds_map[*it].first + bounds_map[*it].second)/2;
+  cout<< point_map<<endl;
+  cout<<"Int: "<<  interior_point(pole_list,point_map)<<endl;
+  hyper_cube_all(pole_list,w_list);
+  assert(false);
+
+  ex den = 25;
+    for(lst::const_iterator wi = w_list.begin();wi != w_list.end();++wi) 
+    {
+      lst tmp_pole_list;
+      lst tmp_w_list;
+      for(lst::const_iterator pit = pole_list.begin();pit!= pole_list.end();++pit)
+        if(!((*pit).subs(subs_map)>0))
+          tmp_pole_list.append((*pit).subs(subs_map));
+      cout<<"tmp_pole_list"<<tmp_pole_list<<endl;
+      for(lst::const_iterator wi2 = wi;wi2 != w_list.end();++wi2) 
+        tmp_w_list.append(*wi2);
+
+      //      std::pair<ex,double> ret_pair = 
+      cout<<" Hyper test   "<<hyper_cube_den(tmp_pole_list,tmp_w_list,den).second;
+      cout<<"Simplex called for:"<<endl;
+      cout<<"w set: "<<tmp_w_list<<endl;
+      cout<<"Poles set: "<<tmp_pole_list<<endl;
+      simplex_all(tmp_pole_list,tmp_w_list);
+      assert(false);
+      std::pair<ex,ex> ret_pair = simplex_den(tmp_pole_list,tmp_w_list,den);
+      if(point_set.count(ret_pair.second) > 0)
+	do
+	  {
+	    den +=1;
+	    ret_pair = simplex_den(tmp_pole_list,tmp_w_list,den);
+	  }
+	while(point_set.count(ret_pair.second) > 0);
+      subs_map[ret_pair.first] = ret_pair.second;
+      point_set.insert(ret_pair.second);
+      cout<<ret_pair.first<<" "<<ret_pair.second<<endl;
+    }
+  
+  cout<<"START POINT SUBS  "<<subs_map<<endl;
+  return subs_map;
+}
+
+
 
 
 
@@ -517,6 +991,13 @@ public:
   {
     return std::make_pair(gamma_poles.begin(),gamma_poles.end());
   }
+  lst gamma_args_with_eps()
+  {
+    lst lst_with_eps;
+    for(lst::const_iterator it = gamma_poles.begin(); it != gamma_poles.end(); ++it)
+      if(it->has(get_symbol("eps"))) lst_with_eps.append(*it);
+    return lst_with_eps;
+  }
   int get_level()
   {
     return tree_level;
@@ -541,7 +1022,10 @@ public:
   {
     lst var_list(w_lst);
     var_list.append(get_symbol("eps"));
-    eps_w_current=start_point_diff_w(get_pole_lst(),var_list);
+        eps_w_current=start_point_diff_w(get_pole_lst(),var_list);
+        cout<<"Int: "<<  interior_point(get_pole_lst(),eps_w_current)<<endl;
+        BOOST_ASSERT_MSG(interior_point(get_pole_lst(),eps_w_current),"Not a convex polyhedron interior point");
+        //eps_w_current = start_point_convex(get_pole_lst(),var_list);
     //eps_w_current=findinstance(get_pole_lst(),var_list);
     for(lst::const_iterator it = w_lst.begin();it!=w_lst.end();++it)
       w_current[*it] = it->subs(eps_w_current);
@@ -565,16 +1049,19 @@ public:
   {
     try
       {
-        lst new_w_lst;
-        for(lst::const_iterator it = w_lst.begin();it!=w_lst.end();++it)
-          if(*it != w_relation.lhs()) new_w_lst.append(*it);
-        //    std::remove_copy(w_lst.begin(),w_lst.end(),new_w_lst.begin(),w_relation.lhs());
-        cout<<"removed "<<w_relation.lhs()<<"  in list "<<new_w_lst<<endl;
+        // remove W-residue from w-list
+        exvector cut_w_vec(w_lst.nops()-1);
+        std::remove_copy(w_lst.begin(),w_lst.end(),cut_w_vec.begin(),w_relation.lhs());
+        cout<<"removed "<<w_relation.lhs()<<"  in list "<<lst(cut_w_vec.begin(),cut_w_vec.end())<<endl;
+
         lst new_gamma_pole_list;
         for(lst::const_iterator it = gamma_poles.begin();it!=gamma_poles.end();++it)
-          if(*it != pole) new_gamma_pole_list.append(it->subs(w_relation));
+          if(*it != pole && has_w(it->subs(w_relation),w_lst).nops() > 0) new_gamma_pole_list.append(it->subs(w_relation));
         cout<<"removed pole list  "<<pole.subs(w_relation)<<"  in list "<<new_gamma_pole_list<<endl;
         // !!! IMPORTANT!!! no 2*pi*i multiplication and no sign multiplication 
+
+        if(full_int_expr.denom().has(tgamma(pole))) assert(false);
+        cout<<"  TAKING RES ON:  "<<full_int_expr<<endl;
         ex new_no_gamma_part = (full_int_expr.subs(tgamma(pole)==pow(-1,-pole.subs(w_relation))/factorial(-pole.subs(w_relation)))).subs(w_relation);
         // new_no_gamma_part  = pow(-1,pole.subs(w_relation))/factorial(pole.subs(w_relation))*full_int_expr.subs(w_relation);
         cout<< new_no_gamma_part<<endl;
@@ -582,7 +1069,8 @@ public:
         cout<<" Not modif:  "<<new_w_current<<endl;
         new_w_current.erase(w_relation.lhs());
         cout<<" modif:  "<<new_w_current<<endl;
-        MBintegral resINT(new_w_lst,new_gamma_pole_list,new_no_gamma_part,new_w_current,new_eps);
+        cout<<"CHECK:  "<<new_gamma_pole_list<<endl;
+        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),new_gamma_pole_list,new_no_gamma_part,new_w_current,new_eps);
         return resINT;
       }catch(std::exception &p)
       {
@@ -626,7 +1114,7 @@ public:
   {
     exmap match_map;
     if( full_int_expr.match(wild(5)*tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wild(3)-wild())*tgamma(wild(4)-wild()),match_map))
-          cout<<"BARNES1 MATCHES with coeff:  "<<match_map<<endl;
+      cout<<"BARNES1 MATCHES with coeff:  "<<match_map[wild()]<<endl;
     if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wild(3)-wild())*tgamma(wild(4)-wild()),match_map))                    
           cout<<"BARNES1 MATCHES wo coeff:  "<<match_map<<endl;
   }
@@ -709,7 +1197,7 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
               }
             else
               {
-                string str = "w_"+boost::lexical_cast<string>(w_index);
+                string str = "w"+boost::lexical_cast<string>(w_index);
                 //symbol w(str);
                 w_lst.append(get_symbol(str));
                 coeff*=tgamma(-get_symbol(str));
@@ -907,7 +1395,7 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
 	  {
 	    for(int i = 0; i < xsq_l.nops(); i++)
 	      {
-		string str = "w_"+boost::lexical_cast<string>(displacement);
+		string str = "w"+boost::lexical_cast<string>(displacement);
 		displacement++;
                 //symbol w(str);
 		ex w_i = get_symbol(str);
@@ -991,7 +1479,7 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
               }
             else
               {
-                string str = "w_"+boost::lexical_cast<string>(displacement + w_index);
+                string str = "w"+boost::lexical_cast<string>(displacement + w_index);
                 //symbol w(str);
                 w_lst.append(get_symbol(str));
                 coeff*=tgamma(-get_symbol(str));
@@ -1053,13 +1541,6 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
 };
 
 
-lst has_w(ex gamma_arg,lst w_list)
-{
-  lst out_list;
-  for(lst::const_iterator wi = w_list.begin();wi!=w_list.end();++wi)
-    if(gamma_arg.has(*wi))out_list.append(*wi);
-  return out_list;
-}
 
 
 void hit_pole(lst pole_list,lst w_list,exmap subs_map)
@@ -1287,7 +1768,7 @@ UFXmap UF(lst k_lst,lst p_lst,lst subs_lst, unsigned int displacement = 0)
   //  cout<<"Q: "<<Q<<endl;
   sDtmp = sDtmp.expand();
   ex minusJ = sDtmp;
-  // cout<<"-J: "<<minusJ<<endl;
+   cout<<"-J: "<<minusJ<<endl;
   ex U = M.determinant();
   ex F = expand(M.determinant()*(minusJ+Q.transpose().mul(M.inverse()).mul(Q)(0,0)));
   lst lp;
@@ -1347,7 +1828,7 @@ ex MB_lst(pair<lst,lst> UF_x_lst,lst nu,numeric l,relational D_subs=D==4-2*get_s
         }
       else
         {
-          string str = "w_"+boost::lexical_cast<string>(w_index);
+          string str = "w"+boost::lexical_cast<string>(w_index);
           //symbol w(str);
           w_lst.append(get_symbol(str));
           //  out_ex*=pow(*it,w)*tgamma(-w);
@@ -1440,7 +1921,7 @@ return out_ex*coeff;
 
 typedef std::list<MBintegral> MBlst;
 
-MBlst MBcontinue(MBintegral rootint,double eps0 = 0)
+MBlst MBcontinue(MBintegral rootint,ex eps0 = 0)
 {
 try
   {
@@ -1456,7 +1937,7 @@ try
       MBlst R;
       for(MBlst::iterator it = O.begin();it!=O.end();++it)
         {
-          cout<<std::setw(15+it->get_level())<<std::right<<"shifted on "<<it->get_level()<<endl;
+          //   cout<<std::setw(15+it->get_level())<<std::right<<"shifted on "<<it->get_level()<<endl;
           C.push_back(*it);//need review, multiple entries C=C U I
           MBintegral::pole_iterator pit,pit_end;
           ex eps_i = get_symbol("eps");
@@ -1464,49 +1945,54 @@ try
           eps_i = eps_i.subs(it->get_eps());
 
           cout<<"eps_i = "<<eps_i<<endl;
-          for(tie(pit,pit_end) = it->gamma_args();pit!=pit_end;++pit) // loop over gamma arguments
+
+          // Iterate over gamma arguments with eps dependence only!!!!!!!
+          lst with_eps_lst(it->gamma_args_with_eps());
+          for(lst::const_iterator pit  = with_eps_lst.begin(); pit != with_eps_lst.end(); ++pit)
             {
-              cout<<"F(eps_i) "<<pit->subs(it->get_w()).subs(it->get_eps())<<"F(eps=0) "<<pit->subs(it->get_w()).subs(get_symbol("eps")==eps0)<<"   min  "<<std::min(pit->subs(it->get_w()).subs(it->get_eps()),pit->subs(it->get_w()).subs(get_symbol("eps")==eps0))<<endl;
+              //   cout<<"F(eps_i) "<<pit->subs(it->get_w()).subs(it->get_eps())<<"F(eps=0) "<<pit->subs(it->get_w()).subs(get_symbol("eps")==eps0)<<"   min  "<<std::min(pit->subs(it->get_w()).subs(it->get_eps()),pit->subs(it->get_w()).subs(get_symbol("eps")==eps0))<<endl;
              
-              numeric F_eps0 = ex_to<numeric> ( pit->subs( it->get_w() ).subs( get_symbol("eps") == eps0) );
-              numeric F_epsi = ex_to<numeric> ( pit->subs( it->get_w() ).subs( it->get_eps() ) );
+              ex F_eps0 = pit->subs( it->get_w() ).subs( get_symbol("eps") == eps0) ;
+              ex F_epsi =  pit->subs( it->get_w() ).subs( it->get_eps() ) ;
+
               if(F_eps0==F_epsi) 
-                cout<<"FFFF"<<std::min(F_eps0,F_epsi)<<endl;
+                cout<<"Terminating eps=0 achieved  "<<std::min(F_eps0,F_epsi)<<endl;
 
               for(int n = 0;n>std::min(F_eps0,F_epsi);n--)
                 {
-                  cout<<pit->subs(it->get_w()) <<endl;
+                  // cout<<pit->subs(it->get_w()) <<endl;
                   // test on epsilon existance
                   if(pit->subs(it->get_w()).has(get_symbol("eps")))
                     {
                       ex eps_prime = lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") );
-                      cout<<"solve"<<endl;
-                      cout<<"F= "<<*pit<<endl;
-                      cout<<"eps_i: "<<lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") )<<endl;
-                      cout<<" Poles of Gamma on eps_i: "<<it->get_pole_lst().subs(it->get_w()).subs(get_symbol("eps")==eps_prime)<<endl;
+                      //       cout<<"solve"<<endl;
+                      // cout<<"F= "<<*pit<<endl;
+                      // cout<<"eps_i: "<<lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") )<<endl;
+                      // cout<<" Poles of Gamma on eps_i: "<<it->get_pole_lst().subs(it->get_w()).subs(get_symbol("eps")==eps_prime)<<endl;
                       lst w_in_F  = has_w(*pit,it->get_w_lst());
                       if(w_in_F.nops()>0)
                         {
-                          cout<<lsolve(*pit==n,w_in_F.op(0))<<endl;
-                          cout<<"sign(z) = "<<csgn(pit->coeff(w_in_F.op(0)))<<"     sign(F_i-F_0) = "<<csgn(F_epsi-F_eps0)<<endl;
+                          // cout<<lsolve(*pit==n,w_in_F.op(0))<<endl;
+                          //   cout<<"sign(z) = "<<csgn(pit->coeff(w_in_F.op(0)))<<"     sign(F_i-F_0) = "<<csgn(F_epsi-F_eps0)<<endl;
                       
                           //MBintegral newi(it->get_w_lst(),it->get_pole_lst(),it->get_expr(),it->get_w(),it->get_eps());
                           //      cout<<"NEW INT: "<< newi.get_expr()<<endl;
-                          cout<<"debug fepsi"
-                              <<"1: "<<lsolve(*pit==n,w_in_F.op(0))<<endl
-                              <<"2: "
-                              <<endl;
+                          // cout<<"debug fepsi"
+                          //   <<"1: "<<lsolve(*pit==n,w_in_F.op(0))<<endl
+                          //   <<"2: "
+                          //   <<endl;
                           MBintegral res_int = it->res(w_in_F.op(0)==lsolve(*pit==n,w_in_F.op(0)),*pit,get_symbol("eps")==eps_prime);
                           res_int.set_level(1+it->get_level());
-                          cout<<"Storing RES_INT with eps_prime = " <<eps_prime<<"  "<<res_int.get_eps().rhs()<<endl;
+                          //  cout<<"Storing RES_INT with eps_prime = " <<eps_prime<<"  "<<res_int.get_eps().rhs()<<endl;
                           res_int*=(2*Pi*I*csgn(pit->coeff(w_in_F.op(0)))*csgn(F_epsi-F_eps0));
-                          cout<<"RES EXPR:  "<<res_int.get_expr()<<endl;
+                          // cout<<"RES EXPR:  "<<res_int.get_expr()<<endl;
                           res_int.barnes1();
                           res_int.barnes2();
                           R.push_back(res_int);
                         }
+                      // else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no W dependence in pole");
                     }
-                  else BOOST_ASSERT_MSG("EEEEEERRRRRRRROOOORR: no W dependence in pole",false);
+                  else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no eps dependence in pole");
                          //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
                 }
 
@@ -1666,6 +2152,7 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order = 
                 printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
                        integral_real[comp], error[comp], prob[comp]);
                        
+                /*   TEMPORARY no IMAGE PART
                        	      Vegas(NDIM, NCOMP, fp_imag, USERDATA,
 		    EPSREL, EPSABS, VERBOSE, SEED,
                     MINEVAL, MAXEVAL, 
@@ -1674,7 +2161,7 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order = 
 		                  for( comp = 0; comp < NCOMP; ++comp )
                 printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
                        integral_imag[comp], error[comp], prob[comp]);
-
+                */
 
             
               /*
@@ -1705,7 +2192,7 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order = 
                                    
              
               // ----------------------------------- Vegas integration-------------------------              
-              vegas_ex+=pow(get_symbol("eps"),i)*(integral_real[0]+I*integral_imag[0]);
+                                  vegas_ex+=pow(get_symbol("eps"),i)*(integral_real[0]);//+I*integral_imag[0]);
             }
           out_ex = vegas_ex;
         }
@@ -1891,14 +2378,16 @@ public:
         cout<<"Poles: "<<MBlbl_int.get_pole_lst()<<endl;
         cout<<"W's : "<<MBlbl_int.get_w_lst()<<endl;
         cout<<"Expr : "<<MBlbl_int.get_expr()<<endl;
-        
+
         cout<< endl<<" Ready for MBcontinue?  [Y/n]: ";
         char in_ch;
         std::cin>>in_ch;
         if(in_ch=='n')  exit(0);//assert(false);
+        MBlbl_int.new_point();        
+
 
         //                assert(false);
-        MBlbl_int.new_point();
+
 	//        MBlst int_lst = MBcontinue(MBlbl_int);
 	int_lst = MBcontinue(MBlbl_int);
         /*
@@ -1950,8 +2439,8 @@ int main()
 {
 try
   {
-    symbol k("k"),q("q"),p("p"),p1("p1"),p2("p2"),p3("p3"),ms("ms"),l("l"),s("s");
-  symbol l1("l1"),l2("l2"),l3("l3"),l4("l4");
+    symbol k("k"),q("q"),p("p"),p1("p1"),p2("p2"),p3("p3"),ms("ms"),l("l"),s("s"),m1s("m1s"),m2s("m2s");
+    symbol l1("l1"),l2("l2"),l3("l3"),l4("l4"),t("t"),p4("p4");
   // oneloop box
   //      UFXmap l45 = UF(lst(k),lst(pow(k,2),pow(k+p1,2),pow(k+p1+p2,2),pow(k+p1+p2+p3,2)),lst(pow(p1,2)==0,pow(p2,2)==0));
   // MBintegral root_int(l45,lst(1,1,1,1),1);
@@ -1987,12 +2476,12 @@ try
 
 
   // works!!!
-//      RoMB_loop_by_loop sunset(lst(k,l), lst(pow(k,2)-1,pow(p-k-l,2)-4,pow(l,2)-5),lst(pow(p,2)==s),lst(1,1,1));
-//      RoMB_loop_by_loop sunset(lst(k,l), lst(pow(k,2),pow(p-k-l,2),pow(l,2)),lst(pow(p,2)==s),lst(1,1,1));
-//      sunset.integrate(lst(s==1));
+  //        RoMB_loop_by_loop sunset(lst(k,l), lst(pow(k,2)-1,pow(p-k-l,2)-4,pow(l,2)-5),lst(pow(p,2)==s),lst(1,1,1));
+  //      RoMB_loop_by_loop sunset(lst(k,l), lst(pow(k,2)-ms,pow(p-k-l,2),pow(l,2)),lst(pow(p,2)==ms),lst(1,1,1));
+  //    sunset.integrate(lst(ms==1));
       
-      RoMB_loop_by_loop t2loop(lst(k,l), lst(pow(k,2),pow(p+k,2),pow(p+k+l,2),pow(k+l,2),pow(l,2)),lst(pow(p,2)==s),lst(1,1,1,1,1));
-      t2loop.integrate(lst(s==1));
+//       RoMB_loop_by_loop t2loop(lst(k,l), lst(pow(k,2),pow(p+k,2),pow(p+k+l,2),pow(k+l,2),pow(l,2)),lst(pow(p,2)==s),lst(1,1,1,1,1));
+//    t2loop.integrate(lst(s==1));
   
 /*        RoMB_loop_by_loop bubble_five_loop(lst(k,l1,l2,l3,l4), 
         lst(pow(k,2)-ms,pow(l1,2)-ms,pow(l2,2)-ms,pow(l3,2)-ms,pow(l4,2)-ms,pow(k+l1,2)-ms,pow(k+l1+l2,2)-ms,pow(k+l1+l2+l3,2)-ms,pow(k+l1+l2+l3+l4,2)-ms,pow(k+l1+l2+l3,2)-ms,pow(k+l1+l2,2)-ms,pow(k+l1,2)-ms),
@@ -2003,14 +2492,28 @@ try
   // works!!!
 //             RoMB_loop_by_loop B0_1loop_lbl(lst(k),lst(pow(k,2)-2-ms,pow(p+k,2)-ms),lst(ms==0,pow(p,2)==1),lst(2,1));
 
-//    RoMB_loop_by_loop B0_1loop_lbl(lst(k),lst(pow(k,2)-ms,pow(p+k,2)-ms),lst(pow(p,2)==s,ms==0),lst(1,1));
-//	     B0_1loop_lbl.integrate(lst(s==-1));
+  //RoMB_loop_by_loop B0_1loop_lbl(lst(k),lst(pow(k,2)-m1s,pow(p+k,2)-m2s),lst(pow(p,2)==s),lst(1,1));
+  //B0_1loop_lbl.integrate(lst(s==0,m1s==1,m2s==1));
 
   //MB works???
-//    RoMB_loop_by_loop C0_1loop_lbl(lst(k),lst(pow(k,2),pow(k+p1,2)-ms,pow(k-p2,2)-ms),lst(ms==1,pow(p1,2)==1,pow(p2,2)==1,p1*p2==-50-1),lst(1,1,1));
+             RoMB_loop_by_loop C0_1loop_lbl(lst(k),lst(pow(k,2),pow(k+p1,2)-m1s,pow(k-p2,2)-m2s),lst(ms==1,pow(p1,2)==m1s,pow(p2,2)==m2s,p1*p2==(s-m1s-m2s)/2),lst(1,1,1));
+      C0_1loop_lbl.integrate(lst(m1s==1,m2s==1,s==-100));
+
 
   //MB works???
-  //RoMB_loop_by_loop box1looplbl(lst(k),lst(pow(k,2)-ms,pow(k+p1,2)-ms,pow(k+p1+p2,2)-ms,pow(k+p1+p2+p3,2)-ms),lst(pow(p1,2)==0,pow(p2,2)==0,pow(p3,2)==0,p1==0,p2==0,p3==0,ms==1),lst(1,1,1,1));
+   
+    /*  RoMB_loop_by_loop box1looplbl(lst(k),lst(-pow(k,2),-pow(k+p1,2),-pow(k+p1+p2,2),-pow(k+p1+p4,2)),
+lst(pow(p1,2)==0,pow(p2,2)==0,pow(p4,2)==0,
+    p1*p2==-s/2,//
+
+    p1*p4==s/2+t/2,//
+
+    p2*p4==-t/2 //
+),
+lst(1,1,1,1));
+  box1looplbl.integrate(lst(ms==1,s==-3,t==1));
+
+    */
   }
   catch(std::exception &p)
     {
