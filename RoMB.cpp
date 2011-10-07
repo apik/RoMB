@@ -42,6 +42,8 @@
 
 #include <gmpxx.h>
 
+#include <ginacra/ginacra.h>
+
 #include "romb_excompiler.h"
 #include "collect_square.h"
 #include "fm.h"
@@ -110,6 +112,36 @@ exset lst2set(const lst & l) {
   }
   return s;
 }
+
+typedef std::list<ex> exlist;
+
+
+template <typename T>
+std::ostream & operator<<(std::ostream & os, const std::list<T>& e)
+ {
+     typename std::list<T>::const_iterator i = e.begin();
+     typename std::list<T>::const_iterator vend = e.end();
+ 
+     if (i==vend) {
+         os << "()";
+         return os;
+     }
+ 
+     os << "(";
+     while (true) {
+       os<<*(i);
+         ++i;
+         if (i==vend)
+             break;
+         os << ",";
+     }
+     os << ")";
+ 
+     return os;
+ }
+
+
+
 
 ex  d2r(double startx, long maxden = 500)
 {
@@ -1448,28 +1480,51 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
 		  }
 	      }
 	  }
-        lst F_to_lst;
-        if(is_a<add>(F))
+        // x_lst -> to list<symbol> for comparision
+        std::list<symbol> x_sym_list;
+        for(lst::const_iterator sit = x_lst.begin(); sit != x_lst.end(); ++sit)
+          if(is_a<symbol>(*sit)) x_sym_list.push_back(ex_to<symbol>(*sit));
+       
+        ex_is_lesseq_degrevlex F_comp(x_sym_list);
+
+
+        exlist Fl(F.begin(),F.end());
+        //   cout<<"FEX "<<Fex<<endl;
+
+        // sorting lexicographicaly
+        Fl.sort(F_comp);
+        cout<<"FEX "<<Fl<<endl;
+
+
+
+        /*        if(is_a<add>(F))
           for(const_iterator it = F.begin();it!=F.end();++it)
             F_to_lst.append(*it);
         else 
           F_to_lst.append(F);
        
-       
+        
           //        F_to_lst.sort();
         
         //        comp_ex_xpow F_term_comparator(x_lst);
         //std::sort(F_to_lst.begin(),F_to_lst.end(),F_term_comparator);
-        //F_to_lst = bubble_sort_lexi(F_to_lst,x_lst);
-
+        F_to_lst = bubble_sort_lexi(F_to_lst,x_lst);
+        */
 	cout<<"displace:  "<<displacement<<endl;
-        cout<<"FTLST" <<F_to_lst<<endl;
-        for(lst::const_iterator it = F_to_lst.begin();it!=F_to_lst.end();++it)
+
+
+        //        for(lst::const_iterator it = F_to_lst.begin();it!=F_to_lst.end();++it)
+
+        // for_each term F_term in sorted Fl
+        size_t w_index = 0;
+        BOOST_FOREACH(ex F_term, Fl)
           {
-            cout<<"F_term : "<<(*it)<<endl;
-            int w_index = std::distance(F_to_lst.begin(),it);
+            cout<<"F_term : "<<F_term<<endl;
+            //            int w_index = std::distance(F_to_lst.begin(),it);
+            
             ex x_power;
-            if(F_to_lst.end()==boost::next(it)) 
+            //            if(Fl.end()==boost::next(it)) 
+            if(Fl.back() == F_term)
               {
                 coeff*=tgamma(F_pow+w_sum);
                 x_power = -F_pow-w_sum;
@@ -1490,7 +1545,7 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
                 cout<<"ok run"<<endl;
               }
             // filling map of X(j) powers
-            ex tmp_expr = (*it);
+            ex tmp_expr = F_term;
             for(lst::const_iterator it1=x_lst.begin();it1!=x_lst.end();++it1)
               {
                 if(tmp_expr.has(*it1))
@@ -1503,6 +1558,8 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
               }
             //     cout<<"after subs "<<tmp_expr<<endl;
              coeff *=pow(tmp_expr,x_power);
+             //increment W index
+             w_index++;
           }
     
         //working with U-term, only if (U_pow>0)
@@ -2096,13 +2153,13 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order = 
                int  NDIM  = int_in.get_w_lst().nops();
               //#define NCOMP 1
 #define USERDATA NULL
-#define EPSREL 1e-4
-#define EPSABS 1e-12
+#define EPSREL 1e-3
+#define EPSABS 1e-9
 #define VERBOSE 0
 #define LAST 4
 #define SEED 0
 #define MINEVAL 0
-#define MAXEVAL 1000000
+#define MAXEVAL 100000
 
 #define NSTART 1000
 #define NINCREASE 500
@@ -2293,8 +2350,12 @@ public:
     try
       {
         MBintegral MBlbl_int(lst(),lst(),1);
-        exset input_prop_set( p_lst.begin(),p_lst.end());
-        lst new_prop_lst;
+        //        exset input_prop_set( p_lst.begin(),p_lst.end());
+        exlist input_prop_set( p_lst.begin(),p_lst.end());
+
+
+
+
         exmap prop_pow_map;
         for(lst::const_iterator Pit = p_lst.begin(); Pit != p_lst.end(); ++Pit)
           {
@@ -2305,16 +2366,17 @@ public:
         for(lst::const_iterator kit = k_lst.begin(); kit != k_lst.end(); ++kit)
           {
             cout<<"PROP_POW_MAP "<<prop_pow_map<<endl;
-            lst tmp_p_lst=set2lst(input_prop_set);
-            for(lst::const_iterator Pit = new_prop_lst.begin(); Pit != new_prop_lst.end(); ++Pit)
-              tmp_p_lst.append(*Pit);
-            new_prop_lst.remove_all();
+            //            lst tmp_p_lst=set2lst(input_prop_set);
+            lst tmp_p_lst(p_lst);
+
+
             lst P_with_k_lst;
             for(lst::const_iterator Pit = tmp_p_lst.begin(); Pit != tmp_p_lst.end(); ++Pit)
               if(Pit->has(*kit))
                 {
                   P_with_k_lst.append(*Pit);
-                  input_prop_set.erase(*Pit);
+                  //                  input_prop_set.erase(*Pit);
+                  input_prop_set.remove(*Pit);
                 }
             cout<< "Set wo k_i "<<input_prop_set<<endl;
             cout<<" PWKlst "<<P_with_k_lst<<endl;
@@ -2360,7 +2422,7 @@ public:
                             cout<<"before subs kex : "<<expr_k_to_subs_1<<endl;
                             expr_k_to_subs_1 = expr_k_to_subs_1.subs(propex == 1);
                               cout<<"after subs kex : "<<expr_k_to_subs_1<<endl;
-                            new_prop_lst.append(ex_to<power>(propex).op(0));
+                              //                            new_prop_lst.append(ex_to<power>(propex).op(0));
                             prop_pow_lst.append(ex_to<power>(propex).op(1));
                             prop_pow_map[ex_to<power>(propex).op(0)] = (-1)*ex_to<power>(propex).op(1);
                           }
@@ -2496,13 +2558,13 @@ try
   //B0_1loop_lbl.integrate(lst(s==0,m1s==1,m2s==1));
 
   //MB works???
-             RoMB_loop_by_loop C0_1loop_lbl(lst(k),lst(pow(k,2),pow(k+p1,2)-m1s,pow(k-p2,2)-m2s),lst(ms==1,pow(p1,2)==m1s,pow(p2,2)==m2s,p1*p2==(s-m1s-m2s)/2),lst(1,1,1));
+                     RoMB_loop_by_loop C0_1loop_lbl(lst(k),lst(pow(k,2),pow(k+p1,2)-m1s,pow(k-p2,2)-m2s),lst(ms==1,pow(p1,2)==m1s,pow(p2,2)==m2s,p1*p2==(s-m1s-m2s)/2),lst(1,1,1));
       C0_1loop_lbl.integrate(lst(m1s==1,m2s==1,s==-100));
 
 
   //MB works???
    
-    /*  RoMB_loop_by_loop box1looplbl(lst(k),lst(-pow(k,2),-pow(k+p1,2),-pow(k+p1+p2,2),-pow(k+p1+p4,2)),
+    /*          RoMB_loop_by_loop box1looplbl(lst(k),lst(-pow(k,2),-pow(k+p1,2),-pow(k+p1+p2,2),-pow(k+p1+p4,2)),
 lst(pow(p1,2)==0,pow(p2,2)==0,pow(p4,2)==0,
     p1*p2==-s/2,//
 
@@ -2511,9 +2573,9 @@ lst(pow(p1,2)==0,pow(p2,2)==0,pow(p4,2)==0,
     p2*p4==-t/2 //
 ),
 lst(1,1,1,1));
-  box1looplbl.integrate(lst(ms==1,s==-3,t==1));
-
+  box1looplbl.integrate(lst(s==-3,t==1));
     */
+    
   }
   catch(std::exception &p)
     {

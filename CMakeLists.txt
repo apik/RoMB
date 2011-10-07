@@ -76,7 +76,7 @@ ADD_SUBDIRECTORY( ara )
 #INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/ara )
 
 ADD_EXECUTABLE(romb RoMB.cpp collect_square.cpp fm.cpp romb_excompiler.cpp )
-TARGET_LINK_LIBRARIES(romb cuba ginac glpk ${LEMON_LIBRARIES})
+TARGET_LINK_LIBRARIES(romb cuba ginac ginacra glpk ${LEMON_LIBRARIES})
 
 ## This tells cmake to install 'lemon-project' to $PREFIX/bin when
 ## 'make install' is executed. You can give more targets separated
