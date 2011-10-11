@@ -524,7 +524,7 @@ std::pair<ex,double>  hyper_cube(lst pole_list,lst w_list)
         double x   = die();                      // simulate rolling a die
         // new edition in center of interval no random
         double x_half = (r_bound + l_bound+2.0*x)/4.0;
-        double real_half = (r_bound + l_bound)/2.0;
+        //        double real_half = (r_bound + l_bound)/2.0;
         cout<<"Point "<<die()<<"   "<<x<<endl;
         return std::make_pair(*w_list.begin(),x_half);
         
@@ -595,7 +595,7 @@ std::pair<ex,ex>  hyper_cube_den(lst pole_list,lst w_list, ex den)
 
         cout<<"Simplex : "<<endl;
         ex lbs,ubs;
-        bool founds;
+        //        bool founds;
         //        tie(lbs,ubs,founds) = simplex_ara(pole_list,w_list,*w_list.begin());
         // cout<<"lbs: "<<lbs<<" ubs: "<<ubs<<endl;
         //  boost::mt19937 rng;       
@@ -606,7 +606,7 @@ std::pair<ex,ex>  hyper_cube_den(lst pole_list,lst w_list, ex den)
         //rng.seed(static_cast<unsigned char>(std::time(0)));
 
         
-        double x   = die();                      // simulate rolling a die
+        //        double x   = die();                      // simulate rolling a die
         // new edition in center of interval no random
         //if((l_bound - trunc(l_bound)) < 10e-8) lbs = trunc(l_bound);
         lbs = ginac_set_d(l_bound);
@@ -614,7 +614,7 @@ std::pair<ex,ex>  hyper_cube_den(lst pole_list,lst w_list, ex den)
          ubs = ginac_set_d(r_bound);
         cout<<"ginac_set_d "<<ginac_set_d(l_bound)<<" "<<ginac_set_d(r_bound)<<endl;
         ex x_half = lbs*(1- pow(den,-1)) + ubs*pow(den,-1);
-        double real_half = (r_bound + l_bound)/2.0;
+        //        double real_half = (r_bound + l_bound)/2.0;
         //        cout<<"Point "<<die()<<"   "<<x<<endl;
         return std::make_pair(*w_list.begin(),x_half);
         
@@ -627,10 +627,10 @@ std::pair<ex,ex>  hyper_cube_den(lst pole_list,lst w_list, ex den)
 std::pair<ex,ex>  simplex_den(lst pole_list,lst w_list, ex den)
 {
   ex l_bound,r_bound;
-  bool found;
+  //  bool found;
   //  tie(l_bound,r_bound,found) = simplex_ara(pole_list,w_list,(*w_list.begin()));
-  cout<< found<<endl;
-  BOOST_ASSERT_MSG(found,"Optimal not found");
+  //  cout<< found<<endl;
+  //  BOOST_ASSERT_MSG(found,"Optimal not found");
 
         // new edition in center of interval no random
         ex x_half = l_bound*(1- pow(den,-1)) + r_bound*pow(den,-1);
@@ -716,9 +716,9 @@ exmap  hyper_cube_all(lst pole_list,lst w_list)
         //rng.seed(static_cast<unsigned char>(std::time(0)));
 
         
-        double x   = die();                      // simulate rolling a die
+        //        double x   = die();                      // simulate rolling a die
         // new edition in center of interval no random
-        double x_half = (r_bound + l_bound+2.0*x)/4.0;
+        //        double x_half = (r_bound + l_bound+2.0*x)/4.0;
         double real_half = (r_bound + l_bound)/2.0;
         //cout<<"Point "<<die()<<"   "<<x<<endl;
         whmap[*lit] = real_half;
@@ -740,15 +740,15 @@ exhashmap<std::pair<ex,ex> >  simplex_all(lst pole_list,lst w_list)
 
   for(lst::const_iterator it = w_list.begin(); it != w_list.end(); ++ it)
     {
-      bool found;
+      //      bool found;
       ex l_bound,r_bound;
       //      tie(l_bound,r_bound,found) = simplex_ara(pole_list,w_list,*it);
-      if(found)
+      //if(found)
         {
           cout<<l_bound<<" < "<<*it<<" < "<<r_bound<<endl;
           out_map[*it] = std::make_pair(l_bound, r_bound);
         }
-      else throw  std::logic_error("Optimal solution not found.");  
+        //else throw  std::logic_error("Optimal solution not found.");  
     }
   
 
@@ -763,15 +763,15 @@ exhashmap<std::pair<ex,ex> >  simplex_zero(lst pole_list,lst w_list)
 {
   exhashmap<std::pair<ex,ex> > out_map;
 
-      bool found;
+  //bool found;
       ex l_bound,r_bound;
       //      tie(l_bound,r_bound,found) = simplex_ara(pole_list,w_list,0);
-      if(found)
+      //if(found)
         {
           cout<<l_bound<<" < "<<"0"<<" < "<<r_bound<<endl;
           //          out_map[*it] = std::make_pair(l_bound, r_bound);
         }
-      else throw  std::logic_error("Optimal solution not found.");  
+        //else throw  std::logic_error("Optimal solution not found.");  
 
   
 
@@ -957,8 +957,8 @@ struct comp_ex_xpow
     unsigned max_left,max_right;
     max_left = 0;
     max_right = 0;
-    unsigned op_l = 0,op_r = 0;  // overall power of monomial
-    unsigned mp_l,mp_r;// maximum power in monomial
+    //    unsigned op_l = 0,op_r = 0;  // overall power of monomial
+    //    unsigned mp_l,mp_r;// maximum power in monomial
     unsigned li_l = 0,li_r = 0;       // lexi index
     for(lst::const_iterator it = x_lst.begin(); it != x_lst.end(); ++it)
       {
@@ -988,7 +988,7 @@ lst bubble_sort_lexi(lst in_lst,lst x_lst)
   while(have_changes==true)
     {
       have_changes = false;
-      for(int cntr = 0; cntr<in_lst.nops(); ++cntr)
+      for(size_t cntr = 0; cntr<in_lst.nops(); ++cntr)
         {
           if(cntr+1<in_lst.nops())
             {
@@ -1009,13 +1009,15 @@ lst bubble_sort_lexi(lst in_lst,lst x_lst)
 
 class MBintegral
 {
-  int tree_level;
-  ex full_int_expr;
-  lst gamma_poles;
+
+
   lst w_lst;
+  lst gamma_poles;
+  ex full_int_expr;
   exmap eps_w_current;
   exmap w_current;
   relational eps_current;
+  int tree_level;
 public:
   typedef std::list<double>::iterator gamma_iterator;
   typedef lst::const_iterator pole_iterator;
@@ -1028,6 +1030,7 @@ public:
     lst lst_with_eps;
     for(lst::const_iterator it = gamma_poles.begin(); it != gamma_poles.end(); ++it)
       if(it->has(get_symbol("eps"))) lst_with_eps.append(*it);
+    lst_with_eps.unique();
     return lst_with_eps;
   }
   int get_level()
@@ -1094,15 +1097,25 @@ public:
 
         if(full_int_expr.denom().has(tgamma(pole))) assert(false);
         cout<<"  TAKING RES ON:  "<<full_int_expr<<endl;
+
+        cout<<"RES LORAN: "<< full_int_expr.series(w_relation,0).coeff(w_relation.lhs(),-1)<<endl;
+        /*
+          REsidue by Loran serties !!!!!
+         */
+        ex res_loran = full_int_expr.series(w_relation,0).coeff(w_relation.lhs(),-1);
+
         ex new_no_gamma_part = (full_int_expr.subs(tgamma(pole)==pow(-1,-pole.subs(w_relation))/factorial(-pole.subs(w_relation)))).subs(w_relation);
         // new_no_gamma_part  = pow(-1,pole.subs(w_relation))/factorial(pole.subs(w_relation))*full_int_expr.subs(w_relation);
         cout<< new_no_gamma_part<<endl;
         exmap new_w_current(w_current);
         cout<<" Not modif:  "<<new_w_current<<endl;
+
         new_w_current.erase(w_relation.lhs());
         cout<<" modif:  "<<new_w_current<<endl;
         cout<<"CHECK:  "<<new_gamma_pole_list<<endl;
-        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),new_gamma_pole_list,new_no_gamma_part,new_w_current,new_eps);
+        //        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),new_gamma_pole_list,new_no_gamma_part,new_w_current,new_eps);
+
+        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),new_gamma_pole_list,res_loran,new_w_current,new_eps);
         return resINT;
       }catch(std::exception &p)
       {
@@ -1425,7 +1438,7 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
 	}
 	else
 	  {
-	    for(int i = 0; i < xsq_l.nops(); i++)
+	    for(size_t i = 0; i < xsq_l.nops(); i++)
 	      {
 		string str = "w"+boost::lexical_cast<string>(displacement);
 		displacement++;
@@ -1637,7 +1650,7 @@ void hit_pole(lst pole_list,lst w_list,exmap subs_map)
           cout<<U_w_list<<endl;
           std::vector<double> delta_vector;
           double min_delta = 1000;
-          int U_min;
+          int U_min = 0;
           for(lst::const_iterator wi=U_w_list.begin();wi!=U_w_list.end();++wi)
             if(std::abs(ex_to<numeric>((*wi).subs(subs_map)).to_double() - boost::math::iround(ex_to<numeric>((*wi).subs(subs_map)).to_double()))<min_delta) 
               {
@@ -2001,7 +2014,7 @@ try
           //          cout<<"after barness lemas "<<it->get_eps()<<endl;
           eps_i = eps_i.subs(it->get_eps());
 
-          cout<<"eps_i = "<<eps_i<<endl;
+          cout<<endl<<"Epsilon continue from eps_i = "<<eps_i<<endl<<endl;
 
           // Iterate over gamma arguments with eps dependence only!!!!!!!
           lst with_eps_lst(it->gamma_args_with_eps());
@@ -2038,10 +2051,15 @@ try
                           //   <<"1: "<<lsolve(*pit==n,w_in_F.op(0))<<endl
                           //   <<"2: "
                           //   <<endl;
-                          MBintegral res_int = it->res(w_in_F.op(0)==lsolve(*pit==n,w_in_F.op(0)),*pit,get_symbol("eps")==eps_prime);
+                          cout<<"BEFORE RESIDUE!: "<<it->get_w_lst()<<endl
+                              <<it->get_expr()<<endl;
+                          MBintegral res_int = it->res(w_in_F.op(w_in_F.nops()-1)==lsolve(*pit==n,w_in_F.op(w_in_F.nops()-1)),*pit,get_symbol("eps")==eps_prime);
                           res_int.set_level(1+it->get_level());
+                          cout<<"after RESIDUE!: "<<res_int.get_w_lst()<<endl
+                              <<res_int.get_expr()<<endl;
+
                           //  cout<<"Storing RES_INT with eps_prime = " <<eps_prime<<"  "<<res_int.get_eps().rhs()<<endl;
-                          res_int*=(2*Pi*I*csgn(pit->coeff(w_in_F.op(0)))*csgn(F_epsi-F_eps0));
+                          res_int*=(2*Pi*I*csgn(pit->coeff(w_in_F.op(w_in_F.nops()-1)))*csgn(F_epsi-F_eps0));
                           // cout<<"RES EXPR:  "<<res_int.get_expr()<<endl;
                           res_int.barnes1();
                           res_int.barnes2();
@@ -2131,7 +2149,8 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order = 
         {
           int_in.barnes1();
           int_in.barnes2();
-          out_ex = series_to_poly( int_in.get_expr().series(get_symbol("eps"),expansion_order) ).subs(num_subs);
+                    out_ex = series_to_poly( int_in.get_expr().series(get_symbol("eps"),expansion_order) ).subs(num_subs);
+                    //out_ex = series_to_poly( int_in.get_expr().series(int_in.get_eps(),expansion_order) ).subs(num_subs);
           // loop over W_i, converting integration contour
           for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
             {
@@ -2349,37 +2368,55 @@ public:
   {
     try
       {
+        /* 
+           empty integral
+         */
         MBintegral MBlbl_int(lst(),lst(),1);
-        //        exset input_prop_set( p_lst.begin(),p_lst.end());
+        /* 
+           Full set of unused propagators, will change 
+         */
         exlist input_prop_set( p_lst.begin(),p_lst.end());
+        cout<<"INPSET: "<<input_prop_set<<endl;
 
-
-
-
+        /* 
+           map for propagator powers
+         */
         exmap prop_pow_map;
         for(lst::const_iterator Pit = p_lst.begin(); Pit != p_lst.end(); ++Pit)
           {
             prop_pow_map[*Pit] = nu.op(std::distance(p_lst.begin(),Pit));
           }
+        /* 
+           Iterate over momentums k1,k2,k3,etc.
+         */
         unsigned int displacement_x = 0;
         unsigned int displacement_w = 0;
         for(lst::const_iterator kit = k_lst.begin(); kit != k_lst.end(); ++kit)
           {
             cout<<"PROP_POW_MAP "<<prop_pow_map<<endl;
-            //            lst tmp_p_lst=set2lst(input_prop_set);
-            lst tmp_p_lst(p_lst);
-
-
+            /*
+              temporary set of propagators, with all momentum,except deleted
+             */
+            exlist tmp_p_lst(input_prop_set.begin(), input_prop_set.end()); 
+            /*
+              temporary set of propagators, with KIT momentum
+             */
             lst P_with_k_lst;
-            for(lst::const_iterator Pit = tmp_p_lst.begin(); Pit != tmp_p_lst.end(); ++Pit)
-              if(Pit->has(*kit))
-                {
-                  P_with_k_lst.append(*Pit);
-                  //                  input_prop_set.erase(*Pit);
-                  input_prop_set.remove(*Pit);
-                }
+            BOOST_FOREACH(ex prop_tmp, tmp_p_lst)
+              {
+                if(prop_tmp.has(*kit))
+                  {
+                    P_with_k_lst.append(prop_tmp);
+                    input_prop_set.remove(prop_tmp);
+                  }
+              }
+            
             cout<< "Set wo k_i "<<input_prop_set<<endl;
             cout<<" PWKlst "<<P_with_k_lst<<endl;
+            /*
+              lexi sort of input prop list, and it's modification
+             */            
+ 
 
             // uf and then MB represenatation construction
             // subs only in F for last momentum
@@ -2387,7 +2424,7 @@ public:
            if(boost::next(kit) == k_lst.end())
             inUFmap = UF(lst(*kit),P_with_k_lst,subs_lst,displacement_x);
            else
-            inUFmap = UF(lst(*kit),P_with_k_lst,lst(),displacement_x); // no substitution!!!
+            inUFmap = UF(lst(*kit),P_with_k_lst,subs_lst,displacement_x); // no substitution!!!
             displacement_x +=fusion::at_key<UFX::xlst>(inUFmap).nops(); 
 
             lst nu_into;
@@ -2401,16 +2438,20 @@ public:
             displacement_w+=Uint.get_w_lst().nops();
             cout<<"ui9nt eps : "<<Uint.get_expr()<<endl;
 
-            //expression to mul root integral
+            /*
+              expression to mul root integral
+              where to subs prop(k_prev)==1
+            */
             ex expr_k_to_subs_1= Uint.get_expr();
 
             ex mom_find = Uint.get_expr();
+            cout<< "where find props: "<<mom_find<<endl;
             if(is_a<mul>(mom_find))
               {
                 exset found_prop;
                 mom_find.find(pow(wild(1),wild(2)),found_prop);
                 cout<<" is a mul  "<<found_prop<<endl;
-                lst prop_pow_lst;
+                //                lst prop_pow_lst;
                 if(boost::next(kit)!=k_lst.end())
                   {
                     ex mom_to_find = *(boost::next(kit));
@@ -2421,13 +2462,38 @@ public:
                           {
                             cout<<"before subs kex : "<<expr_k_to_subs_1<<endl;
                             expr_k_to_subs_1 = expr_k_to_subs_1.subs(propex == 1);
-                              cout<<"after subs kex : "<<expr_k_to_subs_1<<endl;
-                              //                            new_prop_lst.append(ex_to<power>(propex).op(0));
-                            prop_pow_lst.append(ex_to<power>(propex).op(1));
-                            prop_pow_map[ex_to<power>(propex).op(0)] = (-1)*ex_to<power>(propex).op(1);
+                            cout<<"after subs kex : "<<expr_k_to_subs_1<<endl;
+                            /*
+                              Search for duplications in prop set
+                            */
+                            bool dupl_found = false;
+                            BOOST_FOREACH(ex pr, input_prop_set)
+                              {
+                                exmap repls;
+                                if((ex_to<power>(propex).op(0)).match(wild()*pr,repls))
+                                  {
+                                    cout<<"MATCH WILD "<<repls<<endl;
+                                    ex mul_ex = pow(wild(),ex_to<power>(propex).op(1)).subs(repls);
+                                    cout<<"MUL_EX: "<<mul_ex<<endl;
+                                    expr_k_to_subs_1*=mul_ex;
+                                    prop_pow_map[pr] += (-1)*ex_to<power>(propex).op(1);
+                                    dupl_found = true;
+                                  }
+                                if(ex_to<power>(propex).op(0).match(pr))
+                                  {
+                                    prop_pow_map[pr] += (-1)*ex_to<power>(propex).op(1);
+                                    dupl_found = true;
+                                  }
+                              }
+                            if(!dupl_found)
+                              {
+                                input_prop_set.push_back(ex_to<power>(propex).op(0));
+                                //prop_pow_lst.append(ex_to<power>(propex).op(1));
+                                prop_pow_map[ex_to<power>(propex).op(0)] = (-1)*ex_to<power>(propex).op(1);
+                              }
                           }
                       }
-                    cout<<"needed props "<<prop_pow_lst<<endl;
+                    //cout<<"needed props "<<prop_pow_lst<<endl;
                   }
               }
             
@@ -2452,6 +2518,15 @@ public:
 
 	//        MBlst int_lst = MBcontinue(MBlbl_int);
 	int_lst = MBcontinue(MBlbl_int);
+        cout<<int_lst.size()<<endl;
+        BOOST_FOREACH(MBintegral mbint, int_lst)
+          {
+            cout<< "Integral:"<<endl
+                << mbint.get_expr()<<endl
+                <<"Point:"<<mbint.get_w()<<endl
+                <<"Wlst: "<<mbint.get_w_lst()<<endl
+                <<"EPS:"<<mbint.get_eps().rhs()<<endl;
+          }
         /*
 	ex int_expr_out = 0;
         for(MBlst::iterator it = int_lst.begin();it!= int_lst.end();++it)
@@ -2539,32 +2614,32 @@ try
 
   // works!!!
   //        RoMB_loop_by_loop sunset(lst(k,l), lst(pow(k,2)-1,pow(p-k-l,2)-4,pow(l,2)-5),lst(pow(p,2)==s),lst(1,1,1));
-  //      RoMB_loop_by_loop sunset(lst(k,l), lst(pow(k,2)-ms,pow(p-k-l,2),pow(l,2)),lst(pow(p,2)==ms),lst(1,1,1));
-  //    sunset.integrate(lst(ms==1));
+        RoMB_loop_by_loop sunset(lst(k,l), lst(pow(k,2)-ms,pow(p-k-l,2),pow(l,2)),lst(pow(p,2)==ms),lst(1,1,1));
+      sunset.integrate(lst(ms==1));
       
-//       RoMB_loop_by_loop t2loop(lst(k,l), lst(pow(k,2),pow(p+k,2),pow(p+k+l,2),pow(k+l,2),pow(l,2)),lst(pow(p,2)==s),lst(1,1,1,1,1));
-//    t2loop.integrate(lst(s==1));
-  
-/*        RoMB_loop_by_loop bubble_five_loop(lst(k,l1,l2,l3,l4), 
+    /*    RoMB_loop_by_loop t2loop(lst(k,l), lst(pow(k,2),pow(p+k,2),pow(p+k+l,2),pow(k+l,2),pow(l,2)),lst(pow(p,2)==s),lst(1,1,1,1,1));
+      t2loop.integrate(lst(s==1));
+    */
+    /*     RoMB_loop_by_loop bubble_five_loop(lst(k,l1,l2,l3,l4), 
         lst(pow(k,2)-ms,pow(l1,2)-ms,pow(l2,2)-ms,pow(l3,2)-ms,pow(l4,2)-ms,pow(k+l1,2)-ms,pow(k+l1+l2,2)-ms,pow(k+l1+l2+l3,2)-ms,pow(k+l1+l2+l3+l4,2)-ms,pow(k+l1+l2+l3,2)-ms,pow(k+l1+l2,2)-ms,pow(k+l1,2)-ms),
         lst(ms==1),
         lst(1,1,1,1,1,1,1,1,1,1,1,1));
-*/
+        */
 
   // works!!!
 //             RoMB_loop_by_loop B0_1loop_lbl(lst(k),lst(pow(k,2)-2-ms,pow(p+k,2)-ms),lst(ms==0,pow(p,2)==1),lst(2,1));
 
-  //RoMB_loop_by_loop B0_1loop_lbl(lst(k),lst(pow(k,2)-m1s,pow(p+k,2)-m2s),lst(pow(p,2)==s),lst(1,1));
-  //B0_1loop_lbl.integrate(lst(s==0,m1s==1,m2s==1));
+    // RoMB_loop_by_loop B0_1loop_lbl(lst(k),lst(pow(k,2)-m1s,pow(p+k,2)-m2s),lst(pow(p,2)==s),lst(1,1));
+    // B0_1loop_lbl.integrate(lst(s==-1,m1s==1,m2s==1));
 
   //MB works???
-                     RoMB_loop_by_loop C0_1loop_lbl(lst(k),lst(pow(k,2),pow(k+p1,2)-m1s,pow(k-p2,2)-m2s),lst(ms==1,pow(p1,2)==m1s,pow(p2,2)==m2s,p1*p2==(s-m1s-m2s)/2),lst(1,1,1));
-      C0_1loop_lbl.integrate(lst(m1s==1,m2s==1,s==-100));
+    //                         RoMB_loop_by_loop C0_1loop_lbl(lst(k),lst(pow(k,2),pow(k+p1,2)-m1s,pow(k-p2,2)-m2s),lst(ms==1,pow(p1,2)==m1s,pow(p2,2)==m2s,p1*p2==(s-m1s-m2s)/2),lst(1,1,1));
+    //  C0_1loop_lbl.integrate(lst(m1s==1,m2s==1,s==-100));
 
 
   //MB works???
    
-    /*          RoMB_loop_by_loop box1looplbl(lst(k),lst(-pow(k,2),-pow(k+p1,2),-pow(k+p1+p2,2),-pow(k+p1+p4,2)),
+    /*                     RoMB_loop_by_loop box1looplbl(lst(k),lst(-pow(k,2),-pow(k+p1,2),-pow(k+p1+p2,2),-pow(k+p1+p2+p4,2)),
 lst(pow(p1,2)==0,pow(p2,2)==0,pow(p4,2)==0,
     p1*p2==-s/2,//
 
@@ -2573,8 +2648,10 @@ lst(pow(p1,2)==0,pow(p2,2)==0,pow(p4,2)==0,
     p2*p4==-t/2 //
 ),
 lst(1,1,1,1));
-  box1looplbl.integrate(lst(s==-3,t==1));
+  box1looplbl.integrate(lst(s==3,t==1));
     */
+    
+    
     
   }
   catch(std::exception &p)
