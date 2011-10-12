@@ -109,5 +109,5 @@ ENABLE_TESTING()
 ## The auxiliary doxygen files (.dox) should be placed in the 'doc'
 ## subdirectory. The next line includes the CMAKE config of that directory.
 
-ADD_SUBDIRECTORY(doc)
+#ADD_SUBDIRECTORY(doc)
 
