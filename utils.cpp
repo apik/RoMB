@@ -331,10 +331,40 @@ std::pair<ex,ex>  hyper_cube_den(lst pole_list,lst w_list, ex den)
 
 exmap start_point_diff_w(lst pole_list,lst w_list)
 {
+  
+  /* 
+     test part x_0= (A'*A)^(-1)*A'*b 
+  
+  matrix A(pole_list.nops(),w_list.nops());
+  matrix B(pole_list.nops(),1);
+  size_t i,j;
+  i = 0;
+  j = 0;
+for(lst::const_iterator it = pole_list.begin(); it != pole_list.end(); ++it)
+    {
+      ex b = *it;
+      i = 0;
+      for(lst::const_iterator xit = w_list.begin(); xit != w_list.end(); ++xit)
+	{
+	  A(j,i) = (it->coeff(*xit,1));  // (row,col) 
+	  i++;
+	  b = b.coeff(*xit,0);
+	}
+      B(j,0) = b;
+      j++;
+    }
+ matrix x0 =  ex_to<matrix>( (pow(A.transpose()*A,-1)*A.transpose()*B).evalm());
+ cout<<"AB: "<<(pow(A.transpose()*A,-1)*A.transpose()*B).evalm()<<endl;
+ exmap x0_w;
+ for(size_t ct = 0; ct < x0.rows();ct++)
+   x0_w[w_list.op(ct)] = x0(ct,0);
+ cout<<x0_w<<"   int point  "<<interior_point(pole_list,x0_w)<<endl;
+  // end test
+*/
   exset point_set;
   exmap subs_map;
   ex den = 2;
-    for(lst::const_iterator wi = w_list.begin();wi != w_list.end();++wi) 
+    for(lst::const_reverse_iterator wi = w_list.rbegin();wi != w_list.rend();++wi) 
     {
       lst tmp_pole_list;
       lst tmp_w_list;
@@ -342,7 +372,7 @@ exmap start_point_diff_w(lst pole_list,lst w_list)
         if(!((*pit).subs(subs_map)>0))
           tmp_pole_list.append((*pit).subs(subs_map));
       cout<<"tmp_pole_list"<<tmp_pole_list<<endl;
-      for(lst::const_iterator wi2 = wi;wi2 != w_list.end();++wi2) 
+      for(lst::const_reverse_iterator wi2 = wi;wi2 != w_list.rend();++wi2) 
         tmp_w_list.append(*wi2);
 
       //      std::pair<ex,double> ret_pair = 
@@ -352,7 +382,12 @@ exmap start_point_diff_w(lst pole_list,lst w_list)
       cout<<"Poles set: "<<tmp_pole_list<<endl;
       //simplex_zero(tmp_pole_list,tmp_w_list);
       // assert(false);
-      std::pair<ex,ex> ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,den);
+      std::pair<ex,ex> ret_pair;
+      if(wi == w_list.rbegin())  //  epsilon minimum
+        ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,1000);
+      else  
+        ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,den);
+
       if(point_set.count(ret_pair.second) > 0)
 	do
 	  {

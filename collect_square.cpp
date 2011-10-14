@@ -128,6 +128,9 @@ std::pair<lst,lst> collect_square(ex& F,lst x)
 		  i++;
 		}
 	    }
+          if(!(xm.rows() < 2))
+            {
+         
 	  cout<<xm<<endl;
 	  /*
 	    Signum calculation
@@ -160,5 +163,7 @@ std::pair<lst,lst> collect_square(ex& F,lst x)
 	}
     }
     F=F_out;
+    }
   return std::make_pair(x_coeff_lst,x_sq_lst);
+   
 }

@@ -42,6 +42,7 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
         
         	lst coe_l,xsq_l;
         	tie(coe_l,xsq_l) = collect_square(F,x_lst);
+                
         	cout<<">>> Found "<<coe_l.nops()<<" full squares in F polynomial"<<endl;
         	cout<< coe_l<<" * "<<xsq_l<<endl;
         	cout<<" F qad " <<F<<endl;
@@ -100,18 +101,20 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
 		displacement++;
                 //symbol w(str);
 		ex w_i = get_symbol(str);
-                w_lst.append(w_i);
+                //     w_lst.append(w_i);
+                insert_w(w_i);
                 coeff*=tgamma(-w_i)*pow(coe_l.op(i),w_i)/(2*Pi*I);
                 
                 cout<<"w_i_power "<<w_i<<endl;
-                gamma_poles.append(-w_i); //!!!! review
+                //                gamma_poles.append(-w_i); //!!!! review
+                insert_pole(-w_i); //!!!! review
                 w_sum+=w_i;
 
 		// subMB construction
 		ex sq_lst(xsq_l.op(i));
 		cout<<"SQLST : "<<sq_lst<<endl;
 		coeff /= (pow(2*Pi*I,sq_lst.nops()-1)*tgamma(-2*w_i));
-		gamma_poles.append(-2*w_i);
+		insert_pole(-2*w_i);
 		ex z_sum = 0;
 		for(const_iterator x_it = sq_lst.begin(); x_it != sq_lst.end(); ++x_it)
 		  {
@@ -120,7 +123,7 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
 		      {
 			coeff *= tgamma(-2*w_i + z_sum);
 			a_power = 2*w_i - z_sum;
-			gamma_poles.append(-2*w_i + z_sum);
+			insert_pole(-2*w_i + z_sum);
 		      }
 		    else // ordinary exprs
 		      {
@@ -128,10 +131,11 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
 			z_idx++;
 			ex z_i = get_symbol(z_str);
 			cout << z_i<<endl;
-			w_lst.append(z_i);
+                        insert_w(z_i);
+                        //			w_lst.append(z_i);
 			coeff*=tgamma(-z_i);
 			a_power = z_i;
-			gamma_poles.append(-z_i); //!!!! review
+			insert_pole(-z_i); //!!!! review
 			z_sum += a_power;
 		      } 
 		    
@@ -198,18 +202,19 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
                 coeff*=tgamma(F_pow+w_sum);
                 x_power = -F_pow-w_sum;
                 cout<<"x_power last term "<<x_power<<"  w_sum "<<w_sum<<endl;
-                gamma_poles.append(F_pow+w_sum);
+                insert_pole(F_pow+w_sum);
                 cout<<"end achieved"<<endl;
               }
             else
               {
                 string str = "w"+boost::lexical_cast<string>(displacement + w_index);
                 //symbol w(str);
-                w_lst.append(get_symbol(str));
+                //                w_lst.append(get_symbol(str));
+                insert_w(get_symbol(str));
                 coeff*=tgamma(-get_symbol(str));
                 x_power = get_symbol(str);
                 cout<<"x_power "<<x_power<<endl;
-                gamma_poles.append(-x_power); //!!!! review
+                insert_pole(-x_power); //!!!! review
                 w_sum+=x_power;
                 cout<<"ok run"<<endl;
               }
@@ -235,7 +240,7 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
         
        
         //cout<<x_power_map<<endl;
-        cout<<"Gammas after MB: "<<endl<<gamma_poles<<endl;
+        //        cout<<"Gammas after MB: "<<endl<<get_gamma_poles()<<endl;
         cout<<"X powers list:"<<"  "<<x_power_map<<endl;
         //!!!!!!!!!!!!!!!!!!
         //        assert(false);
@@ -244,18 +249,23 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
         for(exmap::const_iterator mi = x_power_map.begin();mi!=x_power_map.end();++mi)
           {
             cout<<(*mi).first<<" "<<(*mi).second<<endl;
-            gamma_poles.append((*mi).second+1);
+            insert_pole((*mi).second+1);
             coeff*=tgamma((*mi).second+1);
             gamma_den+=((*mi).second+1);
           }
         cout<<"GAMMA_DEN: "<<gamma_den<<endl;
+        /*
         bool gamma_den_has_w = false;
+
         for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
           if(gamma_den.has(*wit))gamma_den_has_w = true;
-        if(gamma_den_has_w) gamma_poles.append(gamma_den);
+         if(gamma_den_has_w) 
+        */  
+          insert_pole(gamma_den);
+
         coeff/=tgamma(gamma_den);
-        coeff/=(pow(2*Pi*I,w_lst.nops()));
-        cout<<"New gamma list:"<<endl<<gamma_poles<<endl;
+        coeff/=(pow(2*Pi*I,w_lst.size()));
+        //        cout<<"New gamma list:"<<endl<<get_gamma_poles()<<endl;
         full_int_expr = coeff;
         cout<<w_lst<<endl;
       }catch(std::exception &p)
@@ -265,43 +275,66 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
 
   }
 
+/*
+lst MBintegral::get_pole_lst()
+  {
+
+    cout<<"get_pole_lst called and ret "<<get_gamma_poles()<<endl;
+
+    //update_poles_from_ex();
+    exset gammaset,psiset,psi2set;
+
+    full_int_expr.find(tgamma(wild()),gammaset);
+    full_int_expr.find(psi(wild()),psiset);
+    full_int_expr.find(psi(wild(),wild(1)),psi2set);
+    cout<<" but must gamma "<<gammaset<<endl;
+    cout<<" but must psi(ex) "<<psiset<<endl;
+    cout<<" but must psi(int,ex) "<<psi2set<<endl;
+    
+    return get_gamma_poles();
+  }
+*/
+
 
 MBintegral MBintegral::res(relational w_relation,ex pole,relational new_eps)
   {
     try
       {
         // remove W-residue from w-list
-        exvector cut_w_vec(w_lst.nops()-1);
+        exvector cut_w_vec(w_lst.size()-1);
         std::remove_copy(w_lst.begin(),w_lst.end(),cut_w_vec.begin(),w_relation.lhs());
-        cout<<"removed "<<w_relation.lhs()<<"  in list "<<lst(cut_w_vec.begin(),cut_w_vec.end())<<endl;
-
+        //        cout<<"removed "<<w_relation.lhs()<<"  in list "<<lst(cut_w_vec.begin(),cut_w_vec.end())<<endl;
+        /*
         lst new_gamma_pole_list;
-        for(lst::const_iterator it = gamma_poles.begin();it!=gamma_poles.end();++it)
+        for(exset::iterator it = gamma_poles.begin();it!=gamma_poles.end();++it)
           if(*it != pole && has_w(it->subs(w_relation),w_lst).nops() > 0) new_gamma_pole_list.append(it->subs(w_relation));
         cout<<"removed pole list  "<<pole.subs(w_relation)<<"  in list "<<new_gamma_pole_list<<endl;
         // !!! IMPORTANT!!! no 2*pi*i multiplication and no sign multiplication 
+        */
+        
+        //        if(full_int_expr.denom().has(tgamma(pole))) assert(false);
+        // cout<<"  TAKING RES ON:  "<<full_int_expr<<endl;
 
-        if(full_int_expr.denom().has(tgamma(pole))) assert(false);
-        cout<<"  TAKING RES ON:  "<<full_int_expr<<endl;
-
-        cout<<"RES LORAN: "<< full_int_expr.series(w_relation,0).coeff(w_relation.lhs(),-1)<<endl;
+        //        cout<<"RES LORAN: "<< full_int_expr.series(w_relation,0).coeff(w_relation.lhs(),-1)<<endl;
         /*
           REsidue by Loran serties !!!!!
          */
         ex res_loran = full_int_expr.series(w_relation,0).coeff(w_relation.lhs(),-1);
-
+        /*
         ex new_no_gamma_part = (full_int_expr.subs(tgamma(pole)==pow(-1,-pole.subs(w_relation))/factorial(-pole.subs(w_relation)))).subs(w_relation);
-        // new_no_gamma_part  = pow(-1,pole.subs(w_relation))/factorial(pole.subs(w_relation))*full_int_expr.subs(w_relation);
+        // new_no_gamma_part  = pow(-1,pole.subs(w_relation))/factorial(pole.subs(w_relation))*full_int_expr.subs(w_relation)
         cout<< new_no_gamma_part<<endl;
+        */
         exmap new_w_current(w_current);
-        cout<<" Not modif:  "<<new_w_current<<endl;
+        //   cout<<" Not modif:  "<<new_w_current<<endl;
 
         new_w_current.erase(w_relation.lhs());
-        cout<<" modif:  "<<new_w_current<<endl;
-        cout<<"CHECK:  "<<new_gamma_pole_list<<endl;
+        // cout<<" modif:  "<<new_w_current<<endl;
+        //        cout<<"CHECK:  "<<new_gamma_pole_list<<endl;
         //        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),new_gamma_pole_list,new_no_gamma_part,new_w_current,new_eps);
 
-        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),new_gamma_pole_list,res_loran,new_w_current,new_eps);
+        //        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),new_gamma_pole_list,res_loran,new_w_current,new_eps);
+        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),res_loran,new_w_current,new_eps,tree_level+1);
         return resINT;
       }catch(std::exception &p)
       {
@@ -309,16 +342,59 @@ MBintegral MBintegral::res(relational w_relation,ex pole,relational new_eps)
       }
   }
 
-lst MBintegral::gamma_args_with_eps()
+lst MBintegral::poles_with_eps()
   {
     lst lst_with_eps;
-    for(lst::const_iterator it = gamma_poles.begin(); it != gamma_poles.end(); ++it)
+    for(exset::iterator it = gamma_poles.begin(); it != gamma_poles.end(); ++it)
       if(it->has(get_symbol("eps"))) lst_with_eps.append(*it);
     lst_with_eps.unique();
     return lst_with_eps;
   }
+/*
+lst MBintegral::get_gamma_poles()
+{
+  update_poles_from_ex();
+  return set2lst(gamma_poles);
+}
+*/
+exset MBintegral::poles_from_ex(ex ie)
+{
+    exset gammaset,psiset,psi2set;
+    full_int_expr.find(tgamma(wild()),gammaset);
+    full_int_expr.find(psi(wild()),psiset);
+    full_int_expr.find(psi(wild(),wild(1)),psi2set);
 
-
+    exset poles_set;
+    BOOST_FOREACH(ex gex,gammaset)
+      {
+        exmap repls;
+        if(gex.match(tgamma(wild()), repls))
+          {
+            ex gpole = repls[wild()];
+            if(has_w(gpole,set2lst(w_lst)).nops() > 0) poles_set.insert(gpole);
+          }
+      }
+    BOOST_FOREACH(ex psiex,psiset)
+      {
+        exmap repls;
+        if(psiex.match(psi(wild()), repls))
+          {
+            ex psipole = repls[wild()];
+            if(has_w(psipole,set2lst(w_lst)).nops() > 0) poles_set.insert(psipole);
+          }
+      }
+    BOOST_FOREACH(ex psi2ex,psi2set)
+      {
+        exmap repls;
+        if(psi2ex.match(psi(wild(),wild(1)), repls))
+          {
+            ex psipole = repls[wild(1)];
+            if(has_w(psipole,set2lst(w_lst)).nops() > 0) poles_set.insert(psipole);
+          }
+      }    
+    return poles_set;
+}
+/*
 void MBintegral::update_poles_from_ex()
   {
     exset gammaset,psiset,psi2set;
@@ -354,20 +430,19 @@ void MBintegral::update_poles_from_ex()
             if(has_w(psipole,w_lst).nops() > 0) poles_set.insert(psipole);
           }
       }    
-    gamma_poles = set2lst(poles_set);
+    gamma_poles = poles_set;
         cout<<"Update poles "<<poles_set<<endl;
   }
-
+*/
   exmap MBintegral::new_point()
   {
-    lst var_list(w_lst);
+    lst var_list(set2lst(w_lst));
     var_list.append(get_symbol("eps"));
-    eps_w_current=start_point_diff_w(get_pole_lst(),var_list);
-    cout<<"Int: "<<  interior_point(get_pole_lst(),eps_w_current)<<endl;
-    BOOST_ASSERT_MSG(interior_point(get_pole_lst(),eps_w_current),"Not a convex polyhedron interior point");
-    //eps_w_current = start_point_convex(get_pole_lst(),var_list);
-    //eps_w_current=findinstance(get_pole_lst(),var_list);
-    for(lst::const_iterator it = w_lst.begin();it!=w_lst.end();++it)
+    eps_w_current=start_point_diff_w(set2lst(get_poles_set()),var_list);
+    // cout<<"Int: "<<  interior_point(set2lst(get_poles_set()),eps_w_current)<<endl;
+    BOOST_ASSERT_MSG(interior_point(set2lst(get_poles_set()),eps_w_current),"Not a convex polyhedron interior point");
+    
+    for(exset::iterator it = w_lst.begin();it!=w_lst.end();++it)
       w_current[*it] = it->subs(eps_w_current);
     eps_current = (get_symbol("eps")==eps_w_current[get_symbol("eps")]);
     return eps_w_current;
@@ -400,13 +475,15 @@ try
           //          cout<<"after barness lemas "<<it->get_eps()<<endl;
           eps_i = eps_i.subs(it->get_eps());
 
-          cout<<endl<<"Epsilon continue from eps_i = "<<eps_i<<endl<<endl;
+
 
           // Iterate over gamma arguments with eps dependence only!!!!!!!
-          lst with_eps_lst(it->gamma_args_with_eps());
+          lst with_eps_lst(it->poles_with_eps());
           for(lst::const_iterator pit  = with_eps_lst.begin(); pit != with_eps_lst.end(); ++pit)
             {
-              //   cout<<"F(eps_i) "<<pit->subs(it->get_w()).subs(it->get_eps())<<"F(eps=0) "<<pit->subs(it->get_w()).subs(get_symbol("eps")==eps0)<<"   min  "<<std::min(pit->subs(it->get_w()).subs(it->get_eps()),pit->subs(it->get_w()).subs(get_symbol("eps")==eps0))<<endl;
+              cout<<*pit<<endl;
+                 cout<<"F(eps_i) "<<pit->subs(it->get_w()).subs(it->get_eps())<<"F(eps=0) "<<pit->subs(it->get_w()).subs(get_symbol("eps")==eps0)<<"   min  "<<std::min(pit->subs(it->get_w()).subs(it->get_eps()),pit->subs(it->get_w()).subs(get_symbol("eps")==eps0))<<endl;
+                 
              
               ex F_eps0 = pit->subs( it->get_w() ).subs( get_symbol("eps") == eps0) ;
               ex F_epsi =  pit->subs( it->get_w() ).subs( it->get_eps() ) ;
@@ -414,13 +491,31 @@ try
               if(F_eps0==F_epsi) 
                 cout<<"Terminating eps=0 achieved  "<<std::min(F_eps0,F_epsi)<<endl;
 
-              for(int n = 0;n>std::min(F_eps0,F_epsi);n--)
+              ex dir__ = csgn(F_eps0 - F_epsi);
+              int dir = int( ex_to<numeric>(dir__).to_double());
+
+              //              for(int n =0;n>std::min(F_eps0,F_epsi);n--)
+
+              int pole;
+              
+              if(dir > 0)
+                pole = int(ceil(ex_to<numeric>(F_epsi).to_double())); 
+              else if(F_epsi < 0)
+                     pole = int(floor(ex_to<numeric>(F_epsi).to_double())); 
+              else
+                pole = 0;
+
+              for(int n = pole; dir*(F_eps0 - n) >= 0 && n <= 0; n += dir)
                 {
+                  //        if( n < std::max(F_eps0,F_epsi))
+                    {
+                  
                   // cout<<pit->subs(it->get_w()) <<endl;
                   // test on epsilon existance
                   if(pit->subs(it->get_w()).has(get_symbol("eps")))
                     {
                       ex eps_prime = lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") );
+                      //                      BOOST_ASSERT_MSG( F_eps0 < F_epsi," Wrong direction");
                       //       cout<<"solve"<<endl;
                       // cout<<"F= "<<*pit<<endl;
                       // cout<<"eps_i: "<<lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") )<<endl;
@@ -428,6 +523,8 @@ try
                       lst w_in_F  = has_w(*pit,it->get_w_lst());
                       if(w_in_F.nops()>0)
                         {
+                      cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
+                      BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
                           // cout<<lsolve(*pit==n,w_in_F.op(0))<<endl;
                           //   cout<<"sign(z) = "<<csgn(pit->coeff(w_in_F.op(0)))<<"     sign(F_i-F_0) = "<<csgn(F_epsi-F_eps0)<<endl;
                       
@@ -437,13 +534,13 @@ try
                           //   <<"1: "<<lsolve(*pit==n,w_in_F.op(0))<<endl
                           //   <<"2: "
                           //   <<endl;
-                          cout<<"BEFORE RESIDUE!: "<<it->get_w_lst()<<endl
-                              <<it->get_expr()<<endl;
+                          // cout<<"BEFORE RESIDUE!: "<<it->get_w_lst()<<endl
+                          //    <<it->get_expr()<<endl;
                           MBintegral res_int = it->res(w_in_F.op(w_in_F.nops()-1)==lsolve(*pit==n,w_in_F.op(w_in_F.nops()-1)),*pit,get_symbol("eps")==eps_prime);
                           res_int.set_level(1+it->get_level());
-                          cout<<"after RESIDUE!: "<<res_int.get_w_lst()<<endl
-                              <<res_int.get_expr()<<endl;
-                          res_int.update_poles_from_ex();
+                          //        cout<<"after RESIDUE!: "<<res_int.get_w_lst()<<endl
+                          //   <<res_int.get_expr()<<endl;
+                          //res_int.update_poles_from_ex();
 
                           //  cout<<"Storing RES_INT with eps_prime = " <<eps_prime<<"  "<<res_int.get_eps().rhs()<<endl;
                           res_int*=(2*Pi*I*csgn(pit->coeff(w_in_F.op(w_in_F.nops()-1)))*csgn(F_epsi-F_eps0));
@@ -456,6 +553,7 @@ try
                     }
                   else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no eps dependence in pole");
                          //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
+                }// if n>max
                 }
 
             }
@@ -463,11 +561,7 @@ try
       O = R;
     }
   cout<<"Continue get "<<C.size()<<" integrals"<<endl;
-  cout<< endl<<" Next step?  [Y/n]: ";
   
-  char in_ch;
-  std::cin>>in_ch;
-  if(in_ch=='n')  exit(0);//assert(false);
 
   for(MBlst::iterator it = C.begin();it!= C.end();++it)
     {

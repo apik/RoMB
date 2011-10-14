@@ -50,8 +50,11 @@
 #include "collect_square.h"
 //#include "sim.h"
 #include <cuba.h>
+// binder
+#include <boost/mem_fn.hpp>
+#include <boost/bind.hpp>
 
-//#include "utils.h"
+#include "utils.h"
 #include "uf.h"
 using namespace GiNaC;
 using namespace boost;
@@ -70,8 +73,8 @@ class MBintegral
 {
 
 
-  lst w_lst;
-  lst gamma_poles;
+  exset w_lst;
+  exset gamma_poles;
   ex full_int_expr;
   exmap eps_w_current;
   exmap w_current;
@@ -79,12 +82,20 @@ class MBintegral
   int tree_level;
 public:
   typedef std::list<double>::iterator gamma_iterator;
-  typedef lst::const_iterator pole_iterator;
-  std::pair<pole_iterator,pole_iterator> gamma_args()
+  //  typedef lst::const_iterator pole_iterator;
+  typedef exset::iterator pole_iterator;
+  typedef exset::iterator w_iterator;
+
+  std::pair<pole_iterator,pole_iterator> gamma_iters()
   {
     return std::make_pair(gamma_poles.begin(),gamma_poles.end());
   }
-  lst gamma_args_with_eps();
+  std::pair<w_iterator,w_iterator> w_iters()
+  {
+    return std::make_pair(w_lst.begin(),w_lst.end());
+  }
+
+  lst poles_with_eps();
  
   int get_level()
   {
@@ -98,30 +109,28 @@ public:
   {
     tree_level = lev;
   }
-  lst get_pole_lst()
+ 
+  // lst get_pole_lst();
+
+  //void update_poles_from_ex();
+  exset poles_from_ex(ex);
+
+  lst get_poles();
+
+  exset  get_poles_set()
   {
-
-    cout<<"get_pole_lst called and ret "<<gamma_poles<<endl;
-
-    //update_poles_from_ex();
-    exset gammaset,psiset,psi2set;
-
-    full_int_expr.find(tgamma(wild()),gammaset);
-    full_int_expr.find(psi(wild()),psiset);
-    full_int_expr.find(psi(wild(),wild(1)),psi2set);
-    cout<<" but must gamma "<<gammaset<<endl;
-    cout<<" but must psi(ex) "<<psiset<<endl;
-    cout<<" but must psi(int,ex) "<<psi2set<<endl;
-    
     return gamma_poles;
   }
-
-  void update_poles_from_ex();
  
   lst get_w_lst()
   {
+    return set2lst(w_lst);
+  }
+  exset get_w_set()
+  {
     return w_lst;
   }
+
   exmap new_point();
 
   exmap get_point()
@@ -136,6 +145,7 @@ public:
   {
     return eps_current;
   }
+
   MBintegral res(relational,ex,relational);
  
 
@@ -150,19 +160,59 @@ public:
     return full_int_expr;
   }
 
-  // add terms to w_lst  
-  void add_w_lst(lst w_to_add)
+ void operator+=(MBintegral& to_add)
   {
-    for(lst::const_iterator wtit  = w_to_add.begin();wtit != w_to_add.end(); ++wtit)
-      w_lst.append(*wtit);
-  }
-  // add terms to gamma_poles_lst  
-  void add_poles_lst(lst poles_to_add)
-  {
-    for(lst::const_iterator wtit  = poles_to_add.begin();wtit != poles_to_add.end(); ++wtit)
-      gamma_poles.append(*wtit);
+
+    
+    w_lst.insert(to_add.w_iters().first,to_add.w_iters().second);
+    cout<<"in add"<<endl;
+    gamma_poles.insert(to_add.gamma_iters().first,to_add.gamma_iters().second);
   }
 
+
+  // add terms to w_lst  
+  /*void insert_w_lst(lst w_to_add)
+  {
+    for(lst::const_iterator wtit  = w_to_add.begin();wtit != w_to_add.end(); ++wtit)
+      w_lst.insert(*wtit);
+      }
+  */
+  void insert_w(ex w)
+  {
+    w_lst.insert(w);
+  }
+  /*
+  // add terms to gamma_poles_lst  
+  void insert_pole_lst(lst poles_to_add)
+  {
+    for(lst::const_iterator wtit  = poles_to_add.begin();wtit != poles_to_add.end(); ++wtit)
+      gamma_poles.insert(*wtit);
+  }
+  */
+  // good
+  
+  bool pole_has(ex ex_has,ex cex)
+  {
+    return ex_has.has(cex);
+  }
+  
+
+  void insert_pole(ex pole)
+  {
+    //ex tmp_pole(pole);
+    //const ex a;
+    //    cout<<bind(&MBintegral::pole_has,ref(this),pole,_1)(a);
+    //    std::for_each(w_lst.begin(),w_lst.end(), bind(&ex::has, ref(pole), _1));
+    //    std::for_each(w_lst.begin(),w_lst.end(), boost::mem_fn(&ex::has));
+    //    bind(&ex::has, ref(ex), _1)(i);
+    // w_lst
+
+    //inserting only poles with W, and exists in expr
+    if (0 < std::count_if(w_lst.begin(),w_lst.end(), bind(&MBintegral::pole_has,ref(this),pole,_1)))
+      //        && (full_int_expr.has(tgamma(pole)) || full_int_expr.has(psi(pole)) || full_int_expr.has(psi(wild(),pole)) ) )
+      gamma_poles.insert(pole);
+  }
+  
   void barnes1()
   {
     exmap match_map;
@@ -180,15 +230,28 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
       cout<<"BARNES2 MATCHES:wo coeff  "<<match_map<<endl;
 
   }
+  /*
   // Constructor for Residue
   MBintegral(lst w_lst_in,lst pole_lst_in,ex full_int_expr_in,exmap w_current_in,relational eps_in):w_lst(w_lst_in),gamma_poles(pole_lst_in),full_int_expr(full_int_expr_in),w_current(w_current_in),eps_current(eps_in),tree_level(0)
   {
  
   }
-  // constructor for two MBintegrals concatination
-  MBintegral(lst w_lst_in,lst pole_lst_in,ex full_int_expr_in):w_lst(w_lst_in),gamma_poles(pole_lst_in),full_int_expr(full_int_expr_in),tree_level(0)
+*/
+
+  // Constructor for Residue
+ MBintegral(lst w_lst_in,ex full_int_expr_in,exmap w_current_in,relational eps_in,size_t tree_lvl):full_int_expr(full_int_expr_in),w_current(w_current_in),eps_current(eps_in),tree_level(tree_lvl)
   {
- 
+    w_lst = lst2set(w_lst_in);
+    //update_poles_from_ex();
+    gamma_poles = poles_from_ex(full_int_expr_in);
+    
+  }
+  
+  // constructor for two MBintegrals concatination
+  MBintegral(lst w_lst_in,lst pole_lst_in,ex full_int_expr_in):full_int_expr(full_int_expr_in),tree_level(0)
+  {
+    w_lst = lst2set(w_lst_in);
+    gamma_poles = lst2set(pole_lst_in);
   }
  
 

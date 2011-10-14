@@ -111,37 +111,49 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
                     ex mom_to_find = *(boost::next(kit));
                     BOOST_FOREACH(ex propex,found_prop)
                       {
-                        cout<<"kit "<<mom_to_find<<" propex "<<propex<<endl;
+                        cout<<"kit "<<mom_to_find<<" propex "<<propex.has(mom_to_find)<<endl;                        
+                        
                         if(propex.has(mom_to_find))
                           {
+
                             cout<<"before subs kex : "<<expr_k_to_subs_1<<endl;
                             expr_k_to_subs_1 = expr_k_to_subs_1.subs(propex == 1);
                             cout<<"after subs kex : "<<expr_k_to_subs_1<<endl;
                             /*
                               Search for duplications in prop set
                             */
+                            cout<<"where to find props: "<<input_prop_set<<endl;
                             bool dupl_found = false;
+                            cout<< input_prop_set.size()<<endl;
                             BOOST_FOREACH(ex pr, input_prop_set)
                               {
                                 exmap repls;
+                                if(is_a<power>(propex))
+                                  {
                                 if((ex_to<power>(propex).op(0)).match(wild()*pr,repls))
                                   {
                                     cout<<"MATCH WILD "<<repls<<endl;
                                     ex mul_ex = pow(wild(),ex_to<power>(propex).op(1)).subs(repls);
                                     cout<<"MUL_EX: "<<mul_ex<<endl;
                                     expr_k_to_subs_1*=mul_ex;
+
                                     prop_pow_map[pr] += (-1)*ex_to<power>(propex).op(1);
                                     dupl_found = true;
                                   }
                                 if(ex_to<power>(propex).op(0).match(pr))
                                   {
+                                    cout<<"add"<<endl;
                                     prop_pow_map[pr] += (-1)*ex_to<power>(propex).op(1);
                                     dupl_found = true;
                                   }
+                                  }
+                                else  throw std::logic_error(string("incompitible power"));
                               }
                             if(!dupl_found)
                               {
-                                input_prop_set.push_back(ex_to<power>(propex).op(0));
+                                if(is_a<power>(propex))
+                                  input_prop_set.push_back(ex_to<power>(propex).op(0));
+                                else throw std::logic_error(string("incompitible power"));
                                 //prop_pow_lst.append(ex_to<power>(propex).op(1));
                                 prop_pow_map[ex_to<power>(propex).op(0)] = (-1)*ex_to<power>(propex).op(1);
                               }
@@ -151,14 +163,20 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
                   }
               }
             
+
+
             MBlbl_int*=expr_k_to_subs_1;
-            MBlbl_int.add_w_lst(Uint.get_w_lst());
-            MBlbl_int.add_poles_lst(Uint.get_pole_lst());
+
+            MBlbl_int+=Uint;
+            cout<<"bad"<<endl;
+            //            MBlbl_int.insert_w_lst(Uint.get_w_lst());
+            // MBlbl_int.insert_pole_lst(Uint.get_pole_lst());
+            
             
           }
         cout<<"Constructed integral with:"<<endl;
-        cout<<"Poles: "<<MBlbl_int.get_pole_lst()<<endl;
-        cout<<"W's : "<<MBlbl_int.get_w_lst()<<endl;
+        cout<<"Poles: "<<MBlbl_int.get_poles_set()<<endl;
+        cout<<"W's : "<<MBlbl_int.get_w_set()<<endl;
         cout<<"Expr : "<<MBlbl_int.get_expr()<<endl;
 
         cout<< endl<<" Ready for MBcontinue?  [Y/n]: ";
@@ -179,8 +197,15 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
                 << mbint.get_expr()<<endl
                 <<"Point:"<<mbint.get_w()<<endl
                 <<"Wlst: "<<mbint.get_w_lst()<<endl
-                <<"EPS:"<<mbint.get_eps().rhs()<<endl;
+                <<"EPS:"<<mbint.get_eps().rhs()<<endl
+                <<"LEVEL: "<<mbint.get_level()<<endl<<endl;
           }
+        cout<<"Integrals "<<int_lst.size()<<endl;
+cout<< endl<<" Next step?  [Y/n]: ";
+  
+  in_ch;
+  std::cin>>in_ch;
+  if(in_ch=='n')  exit(0);//assert(false);
         /*
 	ex int_expr_out = 0;
         for(MBlst::iterator it = int_lst.begin();it!= int_lst.end();++it)
