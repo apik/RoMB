@@ -459,7 +459,7 @@ try
   rootint.barnes1();
   rootint.barnes2();
 
- 
+  
 
   MBlst O(1,rootint);
   MBlst C;
@@ -574,6 +574,139 @@ try
     throw std::logic_error(std::string("In function \"MBcontinue\":\n |___> ")+p.what());
   }
 }
+
+
+MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
+{
+  using namespace mbtree;
+try
+  {
+  rootint.barnes1();
+  rootint.barnes2();
+
+  
+
+  // tree root creation 
+  MBtree C;
+  MBtree::iterator last_child_it,root_it;
+  last_child_it=root_it = C.insert(C.begin(), rootint);
+  size_t children_added = 0;
+ do
+    {
+
+      //      for(;it!=same_depth_start_iter;next_at_same_depth (it))
+      MBtree::fixed_depth_iterator it,it_end;
+      it = C.begin_fixed (root_it, C.max_depth ());
+    
+      it_end = C.end_fixed (root_it, C.max_depth ());
+  cout<<"work"<<endl;
+      for(;it != it_end; ++it )
+        {
+          //   cout<<std::setw(15+it->get_level())<<std::right<<"shifted on "<<it->get_level()<<endl;
+          //C.push_back(*it);//need review, multiple entries C=C U I
+          MBintegral::pole_iterator pit,pit_end;
+          ex eps_i = get_symbol("eps");
+          //          cout<<"after barness lemas "<<it->get_eps()<<endl;
+          eps_i = eps_i.subs(it->get_eps());
+
+
+
+          // Iterate over gamma arguments with eps dependence only!!!!!!!
+          lst with_eps_lst(it->poles_with_eps());
+          for(lst::const_iterator pit  = with_eps_lst.begin(); pit != with_eps_lst.end(); ++pit)
+            {
+              cout<<*pit<<endl;
+                 cout<<"F(eps_i) "<<pit->subs(it->get_w()).subs(it->get_eps())<<"F(eps=0) "<<pit->subs(it->get_w()).subs(get_symbol("eps")==eps0)<<"   min  "<<std::min(pit->subs(it->get_w()).subs(it->get_eps()),pit->subs(it->get_w()).subs(get_symbol("eps")==eps0))<<endl;
+                 
+             
+              ex F_eps0 = pit->subs( it->get_w() ).subs( get_symbol("eps") == eps0) ;
+              ex F_epsi =  pit->subs( it->get_w() ).subs( it->get_eps() ) ;
+
+              if(F_eps0==F_epsi) 
+                cout<<"Terminating eps=0 achieved  "<<std::min(F_eps0,F_epsi)<<endl;
+
+              ex dir__ = csgn(F_eps0 - F_epsi);
+              int dir = int( ex_to<numeric>(dir__).to_double());
+
+              //              for(int n =0;n>std::min(F_eps0,F_epsi);n--)
+
+              int pole;
+              
+              if(dir > 0)
+                pole = int(ceil(ex_to<numeric>(F_epsi).to_double())); 
+              else if(F_epsi < 0)
+                     pole = int(floor(ex_to<numeric>(F_epsi).to_double())); 
+              else
+                pole = 0;
+
+              for(int n = pole; dir*(F_eps0 - n) >= 0 && n <= 0; n += dir)
+                {
+                  //        if( n < std::max(F_eps0,F_epsi))
+                    {
+                  
+                  // cout<<pit->subs(it->get_w()) <<endl;
+                  // test on epsilon existance
+                  if(pit->subs(it->get_w()).has(get_symbol("eps")))
+                    {
+                      ex eps_prime = lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") );
+                      //                      BOOST_ASSERT_MSG( F_eps0 < F_epsi," Wrong direction");
+                      //       cout<<"solve"<<endl;
+                      // cout<<"F= "<<*pit<<endl;
+                      // cout<<"eps_i: "<<lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") )<<endl;
+                      // cout<<" Poles of Gamma on eps_i: "<<it->get_pole_lst().subs(it->get_w()).subs(get_symbol("eps")==eps_prime)<<endl;
+                      lst w_in_F  = has_w(*pit,it->get_w_lst());
+                      if(w_in_F.nops()>0)
+                        {
+                      cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
+                      BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
+                          // cout<<lsolve(*pit==n,w_in_F.op(0))<<endl;
+                          //   cout<<"sign(z) = "<<csgn(pit->coeff(w_in_F.op(0)))<<"     sign(F_i-F_0) = "<<csgn(F_epsi-F_eps0)<<endl;
+                      
+                          //MBintegral newi(it->get_w_lst(),it->get_pole_lst(),it->get_expr(),it->get_w(),it->get_eps());
+                          //      cout<<"NEW INT: "<< newi.get_expr()<<endl;
+                          // cout<<"debug fepsi"
+                          //   <<"1: "<<lsolve(*pit==n,w_in_F.op(0))<<endl
+                          //   <<"2: "
+                          //   <<endl;
+                          // cout<<"BEFORE RESIDUE!: "<<it->get_w_lst()<<endl
+                          //    <<it->get_expr()<<endl;
+                          MBintegral res_int = it->res(w_in_F.op(w_in_F.nops()-1)==lsolve(*pit==n,w_in_F.op(w_in_F.nops()-1)),*pit,get_symbol("eps")==eps_prime);
+                          res_int.set_level(1+it->get_level());
+                          //        cout<<"after RESIDUE!: "<<res_int.get_w_lst()<<endl
+                          //   <<res_int.get_expr()<<endl;
+                          //res_int.update_poles_from_ex();
+
+                          //  cout<<"Storing RES_INT with eps_prime = " <<eps_prime<<"  "<<res_int.get_eps().rhs()<<endl;
+                          res_int*=(2*Pi*I*csgn(pit->coeff(w_in_F.op(w_in_F.nops()-1)))*csgn(F_epsi-F_eps0));
+                          // cout<<"RES EXPR:  "<<res_int.get_expr()<<endl;
+                          res_int.barnes1();
+                          res_int.barnes2();
+                          //R.push_back(res_int);
+                          last_child_it = C.append_child(it,res_int);
+                          children_added++;
+                        }
+                      // else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no W dependence in pole");
+                    }
+                  else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no eps dependence in pole");
+                         //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
+                }// if n>max
+                }
+
+            }
+        }
+      //      O = R;
+    }
+ while(children_added > 0);
+  cout<<"Continue get "<<C.size()<<" integrals"<<endl;
+  
+
+  return C;
+  }catch(std::exception &p)
+  {
+    throw std::logic_error(std::string("In function \"MBcontinue\":\n |___> ")+p.what());
+  }
+}
+
 
 ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order) // up to O(eps^1) 
 {

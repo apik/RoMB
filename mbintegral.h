@@ -56,6 +56,7 @@
 
 #include "utils.h"
 #include "uf.h"
+#include "tree.hh"
 using namespace GiNaC;
 using namespace boost;
 using std::cout;
@@ -238,6 +239,9 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
   }
 */
 
+  MBintegral()
+    {
+    }
   // Constructor for Residue
  MBintegral(lst w_lst_in,ex full_int_expr_in,exmap w_current_in,relational eps_in,size_t tree_lvl):full_int_expr(full_int_expr_in),w_current(w_current_in),eps_current(eps_in),tree_level(tree_lvl)
   {
@@ -259,8 +263,10 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
 };
 
 typedef std::list<MBintegral> MBlst;
+typedef mbtree::tree<MBintegral> MBtree;
 
 MBlst MBcontinue(MBintegral rootint,ex eps0 = 0);
+MBtree MBcontinue_tree(MBintegral rootint,ex eps0 = 0);
 
 ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order = 1); // up to O(eps^1) 
 

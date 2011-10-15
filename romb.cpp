@@ -189,6 +189,8 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
         //                assert(false);
 
 	//        MBlst int_lst = MBcontinue(MBlbl_int);
+        MBtree inttr = MBcontinue_tree(MBlbl_int);
+        assert(false);
 	int_lst = MBcontinue(MBlbl_int);
         cout<<int_lst.size()<<endl;
         BOOST_FOREACH(MBintegral mbint, int_lst)
