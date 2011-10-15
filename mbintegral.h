@@ -30,21 +30,20 @@
 
 
 
-#include <boost/icl/interval.hpp>
-#include <boost/icl/discrete_interval.hpp>
-#include <boost/icl/continuous_interval.hpp>
-#include <boost/icl/right_open_interval.hpp>
-#include <boost/icl/left_open_interval.hpp>
-#include <boost/icl/closed_interval.hpp>
-#include <boost/icl/open_interval.hpp>
-#include <boost/icl/functors.hpp>
+//#include <boost/icl/interval.hpp>
+//#include <boost/icl/discrete_interval.hpp>
+//#include <boost/icl/continuous_interval.hpp>
+//#include <boost/icl/right_open_interval.hpp>
+//#include <boost/icl/left_open_interval.hpp>
+//#include <boost/icl/closed_interval.hpp>
+//#include <boost/icl/open_interval.hpp>
+//#include <boost/icl/functors.hpp>
 
 #include <iterator>
 #include <functional>
 
 #include <gmpxx.h>
 
-#include <ginacra/ginacra.h>
 
 #include "romb_excompiler.h"
 #include "collect_square.h"
@@ -57,6 +56,7 @@
 #include "utils.h"
 #include "uf.h"
 #include "tree.hh"
+#include "compat.h"
 using namespace GiNaC;
 using namespace boost;
 using std::cout;

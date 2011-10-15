@@ -1,7 +1,7 @@
 #include <iostream>
 #include <ginac/ginac.h>
 #include <utility>
-
+#include "compat.h"
 using namespace GiNaC;
 using namespace std;
 

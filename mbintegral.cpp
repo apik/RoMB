@@ -1,3 +1,4 @@
+#include <boost/assert.hpp>
 #include "mbintegral.h"
 #include "utils.h"
 #include "constants.h"
@@ -590,18 +591,24 @@ try
   MBtree C;
   MBtree::iterator last_child_it,root_it;
   last_child_it=root_it = C.insert(C.begin(), rootint);
-  size_t children_added = 0;
+      size_t children_added = 0;  
  do
     {
-
+ children_added = 0;
       //      for(;it!=same_depth_start_iter;next_at_same_depth (it))
-      MBtree::fixed_depth_iterator it,it_end;
+      /* MBtree::fixed_depth_iterator it,it_end;
       it = C.begin_fixed (root_it, C.max_depth ());
     
-      it_end = C.end_fixed (root_it, C.max_depth ());
+      it_end = C.end_fixed (root_it, C.max_depth ());*/
+      MBtree::leaf_iterator it,it_end;
+      it = C.begin_leaf();
+      it_end = C.end_leaf();
   cout<<"work"<<endl;
       for(;it != it_end; ++it )
         {
+	  if(C.depth(it) == C.max_depth())
+	    {
+	  cout<<"Leaf depth "<<C.depth(it)<<" Max depth "<<C.max_depth()<<endl;
           //   cout<<std::setw(15+it->get_level())<<std::right<<"shifted on "<<it->get_level()<<endl;
           //C.push_back(*it);//need review, multiple entries C=C U I
           MBintegral::pole_iterator pit,pit_end;
@@ -693,6 +700,7 @@ try
                 }
 
             }
+	    }//same depth
         }
       //      O = R;
     }
