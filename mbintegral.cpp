@@ -9,445 +9,605 @@
  */
 
 MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):tree_level(0) // lst nu is a list of powers of propagators and l is a number of loops
-  {
-    try
-      {
-        eps_current = (get_symbol("eps")==0);
-        ex N = accumulate(nu.begin(),nu.end(),ex(0));
+{
+  try
+    {
+      eps_current = (get_symbol("eps")==0);
+      ex N = accumulate(nu.begin(),nu.end(),ex(0));
 
-        //    cout<<"N(nu)= "<<N<<endl;
-        lst  x_lst(fusion::at_key<UFX::xlst>(fx_in));
-        // summ of feynman parameters satisfying summ(X_i)=1
-        //        ex x_summ = accumulate(x_lst.begin(),x_lst.end(),ex(0));
+      //    cout<<"N(nu)= "<<N<<endl;
+      lst  x_lst(fusion::at_key<UFX::xlst>(fx_in));
+      // summ of feynman parameters satisfying summ(X_i)=1
+      //        ex x_summ = accumulate(x_lst.begin(),x_lst.end(),ex(0));
 
-        //relational delta_subs(x_lst.op(x_lst.nops()-1),lsolve(x_summ==1,x_lst.op(x_lst.nops()-1)));// relation delta function
-        // cout<<"xsumm "<<delta_subs.lhs()<<" == "<<delta_subs.rhs()<<endl;
+      //relational delta_subs(x_lst.op(x_lst.nops()-1),lsolve(x_summ==1,x_lst.op(x_lst.nops()-1)));// relation delta function
+      // cout<<"xsumm "<<delta_subs.lhs()<<" == "<<delta_subs.rhs()<<endl;
         
-        //ex F = fusion::at_key<UFX::F>(fx_in).collect(x_lst,true);///< distributed polynom factorizing X(i)X(j)*(...)
-        ex F = (fusion::at_key<UFX::F>(fx_in)).expand();///< distributed polynom factorizing X(i)X(j)*(...)
-        //F=F.subs(delta_subs);//applying delta function relation on F-polynom
-        //x_lst.remove_last();
+      //ex F = fusion::at_key<UFX::F>(fx_in).collect(x_lst,true);///< distributed polynom factorizing X(i)X(j)*(...)
+      ex F = (fusion::at_key<UFX::F>(fx_in)).expand();///< distributed polynom factorizing X(i)X(j)*(...)
+      //F=F.subs(delta_subs);//applying delta function relation on F-polynom
+      //x_lst.remove_last();
 
-        // assuming 1/(U^a*F^b)
+      // assuming 1/(U^a*F^b)
         
-        ex F_pow = (N-l*(2-get_symbol("eps")));
-	exset f_set;
-	if(F.find(wild(1)*wild(1)+2*wild(1)*wild(2)+wild(2)*wild(2), f_set))cout<< "HAVE square"<<endl;
-        cout<<setw(30)<<std::internal<<"+++INTEGRAL PARAMETERS+++"<<endl;
-        cout<<setw(30)<<std::left<<"** Number of loops L=   "<<std::internal<<l<<endl;
-        cout<<setw(30)<<std::left<<"** Summ of powers N=   "<<N<<endl;
-        //cout<<setw(35)<<std::left<<"** Dimension D=   "<<D.subs(D_subs)<<endl;
-        cout<<setw(35)<<std::left<<"** F =   "<<F<<endl;
-        cout<<setw(35)<<std::left<<"** F power=   "<<F_pow<<endl;
-        cout<<setw(30)<<std::internal<<"+++++++++++++++++++++++++"<<endl;
+      ex F_pow = (N-l*(2-get_symbol("eps")));
+      exset f_set;
+      if(F.find(wild(1)*wild(1)+2*wild(1)*wild(2)+wild(2)*wild(2), f_set))cout<< "HAVE square"<<endl;
+      cout<<setw(30)<<std::internal<<"+++INTEGRAL PARAMETERS+++"<<endl;
+      cout<<setw(30)<<std::left<<"** Number of loops L=   "<<std::internal<<l<<endl;
+      cout<<setw(30)<<std::left<<"** Summ of powers N=   "<<N<<endl;
+      //cout<<setw(35)<<std::left<<"** Dimension D=   "<<D.subs(D_subs)<<endl;
+      cout<<setw(35)<<std::left<<"** F =   "<<F<<endl;
+      cout<<setw(35)<<std::left<<"** F power=   "<<F_pow<<endl;
+      cout<<setw(30)<<std::internal<<"+++++++++++++++++++++++++"<<endl;
+
+      //	assert(false);
         
-        	lst coe_l,xsq_l;
-        	tie(coe_l,xsq_l) = collect_square(F,x_lst);
-                
-        	cout<<">>> Found "<<coe_l.nops()<<" full squares in F polynomial"<<endl;
-        	cout<< coe_l<<" * "<<xsq_l<<endl;
-        	cout<<" F qad " <<F<<endl;
-        	
-        	F = F.collect(x_lst,true);
-		//	assert(false);
+      //lst gamma_lst; //Gamma with poles left of contour
+      //    lst w_lst;
+      //  ex gamma_right; // and right of contour
+      exmap x_power_map; // map of X(j) powers
+      for(lst::const_iterator it1=x_lst.begin();it1!=x_lst.end();++it1)
+        {
+          x_power_map[*it1] = nu.op(std::distance(x_lst.begin(),it1))-1;
+        }
 
-        //lst gamma_lst; //Gamma with poles left of contour
-        //    lst w_lst;
-        //  ex gamma_right; // and right of contour
-        exmap x_power_map; // map of X(j) powers
-        for(lst::const_iterator it1=x_lst.begin();it1!=x_lst.end();++it1)
-          {
-            x_power_map[*it1] = nu.op(std::distance(x_lst.begin(),it1))-1;
-          }
-
-        cout<<"x_map_start "<<x_power_map<<endl;
+      cout<<"x_map_start "<<x_power_map<<endl;
 
 		
-        //    ex coeff = 1;                             // numerical coeeficient independent of X(j)
-        ex coeff =tgamma(F_pow)* pow(exp(get_symbol("eps")*Euler),l);///pow(I*pow(Pi,2 - get_symbol("eps")),l);
-        // important if power = 0????
-        for(lst::const_iterator nui = nu.begin();nui!=nu.end();++nui)
-          coeff/=tgamma(*nui);
-        coeff/=tgamma(F_pow);
-        //    ex out_ex = 1;///pow(2*Pi*I,U.nops()-1)/tgamma(al_pow)/pow(2*Pi*I,F.nops()-1)/tgamma(al_pow); //need review
-
-        //working with F-term \Gamma(\nu-L*D/2) contractedx
-        ex w_sum = 0;  //F-term generates only integrations in W
-
-	//--------------------------------
-	//      MB for full squares
-	//--------------------------------
-	size_t z_idx = 0;
-	if(F.nops() == 0 && xsq_l.nops() == 1)
-	{
-	/*
-	 F is a full square
-	*/
-	F_pow *=2;
-	F = xsq_l.op(0);
-	coeff /= coe_l.op(0);
-	}
-	else if(F.nops() == 0 && xsq_l.nops() > 1)
-	{
-	/*
-	 F is a summ of full squares
-	 */
-	 throw std::logic_error(std::string("F = (xs1)^2+ ..(xsn)^2; not realized "));
-	}
-	else
-	  {
-	    for(size_t i = 0; i < xsq_l.nops(); i++)
-	      {
-		string str = "w"+boost::lexical_cast<string>(displacement);
-		displacement++;
-                //symbol w(str);
-		ex w_i = get_symbol(str);
-                //     w_lst.append(w_i);
-                insert_w(w_i);
-                coeff*=tgamma(-w_i)*pow(coe_l.op(i),w_i)/(2*Pi*I);
-                
-                cout<<"w_i_power "<<w_i<<endl;
-                //                gamma_poles.append(-w_i); //!!!! review
-                insert_pole(-w_i); //!!!! review
-                w_sum+=w_i;
-
-		// subMB construction
-		ex sq_lst(xsq_l.op(i));
-		cout<<"SQLST : "<<sq_lst<<endl;
-		coeff /= (pow(2*Pi*I,sq_lst.nops()-1)*tgamma(-2*w_i));
-		insert_pole(-2*w_i);
-		ex z_sum = 0;
-		for(const_iterator x_it = sq_lst.begin(); x_it != sq_lst.end(); ++x_it)
-		  {
-		    ex a_power;
-		    if(sq_lst.end() == boost::next(x_it)) // X_k expr
-		      {
-			coeff *= tgamma(-2*w_i + z_sum);
-			a_power = 2*w_i - z_sum;
-			insert_pole(-2*w_i + z_sum);
-		      }
-		    else // ordinary exprs
-		      {
-			string z_str = "z_"+boost::lexical_cast<string>(z_idx);
-			z_idx++;
-			ex z_i = get_symbol(z_str);
-			cout << z_i<<endl;
-                        insert_w(z_i);
-                        //			w_lst.append(z_i);
-			coeff*=tgamma(-z_i);
-			a_power = z_i;
-			insert_pole(-z_i); //!!!! review
-			z_sum += a_power;
-		      } 
-		    
-		    // add x-part with it's coefficient
-		    for(lst::const_iterator it1=x_lst.begin();it1!=x_lst.end();++it1)
-		      {
-			if(x_it->has(*it1))
-			  {
-			    // simple expression x_i or -x_i, x_it->degree(x) == 1
-			    BOOST_ASSERT_MSG(x_it->degree(*it1) == 1,"Not a simple expression in square");
-			    x_power_map[*it1]+=(a_power);
-			    coeff *=pow(x_it->lcoeff(*it1),a_power);
-			  }
-		      }
-		  }
-	      }
-	  }
-        // x_lst -> to list<symbol> for comparision
-        std::list<symbol> x_sym_list;
-        for(lst::const_iterator sit = x_lst.begin(); sit != x_lst.end(); ++sit)
-          if(is_a<symbol>(*sit)) x_sym_list.push_back(ex_to<symbol>(*sit));
-       
-        ex_is_lesseq_degrevlex F_comp(x_sym_list);
+      //    ex coeff = 1;                             // numerical coeeficient independent of X(j)
+      ex coeff =tgamma(F_pow)* pow(exp(get_symbol("eps")*Euler),l);///pow(I*pow(Pi,2 - get_symbol("eps")),l);
+      // important if power = 0????
+      for(lst::const_iterator nui = nu.begin();nui!=nu.end();++nui)
+        coeff/=tgamma(*nui);
+      coeff/=tgamma(F_pow);
+      //    ex out_ex = 1;///pow(2*Pi*I,U.nops()-1)/tgamma(al_pow)/pow(2*Pi*I,F.nops()-1)/tgamma(al_pow); //need review
 
 
-        exlist Fl(F.begin(),F.end());
-        //   cout<<"FEX "<<Fex<<endl;
-
-        // sorting lexicographicaly
-        Fl.sort(F_comp);
-        cout<<"FEX "<<Fl<<endl;
-
-
-
-        /*        if(is_a<add>(F))
-          for(const_iterator it = F.begin();it!=F.end();++it)
-            F_to_lst.append(*it);
-        else 
-          F_to_lst.append(F);
-       
+      /* 
+         collecting squares only if it's efficient
+         number of terms in expanded F="n_0", in collected "n_c"
+         and length of square "s"
+         n_c > n_0 - C(s,2), where C is a binomial coefficient
+         for arbitrary number of squares
+         n_c > n_o - Summ_j( C(s_j,2) )
+      */        
+      size_t n_0 = F.expand().nops();
+      size_t n_c = F.collect(x_lst,true).nops();
+      // F_col_sq modified, for decision
+      ex F_col_sq = F;
+      lst coe_l,xsq_l;
+      tie(coe_l,xsq_l) = collect_square(F_col_sq,x_lst);
         
-          //        F_to_lst.sort();
+      cout<<">>> Found "<<coe_l.nops()<<" full squares in F polynomial"<<endl;
+      cout<< coe_l<<" * "<<xsq_l<<endl;
+      cout<<" F qad " <<F<<endl;
         
-        //        comp_ex_xpow F_term_comparator(x_lst);
-        //std::sort(F_to_lst.begin(),F_to_lst.end(),F_term_comparator);
-        F_to_lst = bubble_sort_lexi(F_to_lst,x_lst);
-        */
-	cout<<"displace:  "<<displacement<<endl;
+      //working with F-term \Gamma(\nu-L*D/2) contractedx
+      ex w_sum = 0;  //F-term generates only integrations in W
 
 
-        //        for(lst::const_iterator it = F_to_lst.begin();it!=F_to_lst.end();++it)
+      // decide to collect or not
+      // sumCj = sum_j(C(j,2))
+      ex sumCj(0);
+      for(lst::const_iterator cit = xsq_l.begin(); cit != xsq_l.end(); ++cit)
+        sumCj+=binomial(cit->nops(),2);
 
-        // for_each term F_term in sorted Fl
-        size_t w_index = 0;
-        BOOST_FOREACH(ex F_term, Fl)
-          {
-            cout<<"F_term : "<<F_term<<endl;
-            //            int w_index = std::distance(F_to_lst.begin(),it);
+      cout<<" n_c = "<<n_c<<" n_0("<<n_0<<") - sumCj("<<sumCj<<") =  "<< n_0 - sumCj<<endl;
+      /*********************************
+         COLLECT FULL SQARE PART
+      **********************************/
+      if(n_c > n_0 - sumCj) // collecting squares
+        {
+          cout<< ">>>  COLLECTING SQUARES!!!!!!!"<<endl;
+          F = F_col_sq;
+          F = F.collect(x_lst,true);
             
-            ex x_power;
-            //            if(Fl.end()==boost::next(it)) 
-            if(Fl.back() == F_term)
-              {
-                coeff*=tgamma(F_pow+w_sum);
-                x_power = -F_pow-w_sum;
-                cout<<"x_power last term "<<x_power<<"  w_sum "<<w_sum<<endl;
-                insert_pole(F_pow+w_sum);
-                cout<<"end achieved"<<endl;
-              }
-            else
-              {
-                string str = "w"+boost::lexical_cast<string>(displacement + w_index);
-                //symbol w(str);
-                //                w_lst.append(get_symbol(str));
-                insert_w(get_symbol(str));
-                coeff*=tgamma(-get_symbol(str));
-                x_power = get_symbol(str);
-                cout<<"x_power "<<x_power<<endl;
-                insert_pole(-x_power); //!!!! review
-                w_sum+=x_power;
-                cout<<"ok run"<<endl;
-              }
-            // filling map of X(j) powers
-            ex tmp_expr = F_term;
-            for(lst::const_iterator it1=x_lst.begin();it1!=x_lst.end();++it1)
-              {
-                if(tmp_expr.has(*it1))
-                  {
-                    x_power_map[*it1]+=(tmp_expr.degree(*it1)*x_power);
-                    cout<<"before subs "<<(*it1)<<"   "<<tmp_expr<<endl;
-                    tmp_expr = tmp_expr.subs((*it1)==1);
-                    //                    cout<<"after subs "<<tmp_expr<<endl;
-                  }
-              }
-            //     cout<<"after subs "<<tmp_expr<<endl;
-             coeff *=pow(tmp_expr,x_power);
-             //increment W index
-             w_index++;
-          }
+            
+            
+          //--------------------------------
+          //      MB for full squares
+          //--------------------------------
+          size_t z_idx = 0;
+          if(F.nops() == 0 && xsq_l.nops() == 1)
+            {
+              /*
+                F is a full square
+              */
+              F_pow *=2;
+              F = xsq_l.op(0);
+              coeff /= coe_l.op(0);
+            }
+          else if(F.nops() == 0 && xsq_l.nops() > 1)
+            {
+              /*
+                F is a summ of full squares
+              */
+              throw std::logic_error(std::string("F = (xs1)^2+ ..(xsn)^2; not realized "));
+            }
+          else
+            {
+              for(size_t i = 0; i < xsq_l.nops(); i++)
+                {
+                  string str = "w"+boost::lexical_cast<string>(displacement);
+                  displacement++;
+                  //symbol w(str);
+                  ex w_i = get_symbol(str);
+                  //     w_lst.append(w_i);
+                  insert_w(w_i);
+                  coeff*=tgamma(-w_i)*pow(coe_l.op(i),w_i)/(2*Pi*I);
+                
+                  cout<<"w_i_power "<<w_i<<endl;
+                  //                gamma_poles.append(-w_i); //!!!! review
+                  insert_pole(-w_i); //!!!! review
+                  w_sum+=w_i;
+
+                  // subMB construction
+                  ex sq_lst(xsq_l.op(i));
+                  cout<<"SQLST : "<<sq_lst<<endl;
+                  coeff /= (pow(2*Pi*I,sq_lst.nops()-1)*tgamma(-2*w_i));
+                  insert_pole(-2*w_i);
+                  ex z_sum = 0;
+                  for(const_iterator x_it = sq_lst.begin(); x_it != sq_lst.end(); ++x_it)
+                    {
+                      ex a_power;
+                      if(sq_lst.end() == boost::next(x_it)) // X_k expr
+                        {
+                          coeff *= tgamma(-2*w_i + z_sum);
+                          a_power = 2*w_i - z_sum;
+                          insert_pole(-2*w_i + z_sum);
+                        }
+                      else // ordinary exprs
+                        {
+                          string z_str = "z_"+boost::lexical_cast<string>(z_idx);
+                          z_idx++;
+                          ex z_i = get_symbol(z_str);
+                          cout << z_i<<endl;
+                          insert_w(z_i);
+                          //			w_lst.append(z_i);
+                          coeff*=tgamma(-z_i);
+                          a_power = z_i;
+                          insert_pole(-z_i); //!!!! review
+                          z_sum += a_power;
+                        } 
+		    
+                      // add x-part with it's coefficient
+                      for(lst::const_iterator it1=x_lst.begin();it1!=x_lst.end();++it1)
+                        {
+                          if(x_it->has(*it1))
+                            {
+                              // simple expression x_i or -x_i, x_it->degree(x) == 1
+                              BOOST_ASSERT_MSG(x_it->degree(*it1) == 1,"Not a simple expression in square");
+                              x_power_map[*it1]+=(a_power);
+                              coeff *=pow(x_it->lcoeff(*it1),a_power);
+                            }
+                        }
+                    }
+                }
+            }
+
     
-        //working with U-term, only if (U_pow>0)
+    
+          // x_lst -> to list<symbol> for comparision
+          std::list<symbol> x_sym_list;
+          for(lst::const_iterator sit = x_lst.begin(); sit != x_lst.end(); ++sit)
+            if(is_a<symbol>(*sit)) x_sym_list.push_back(ex_to<symbol>(*sit));
+       
+          ex_is_lesseq_degrevlex F_comp(x_sym_list);
+
+
+          exlist Fl(F.begin(),F.end());
+          //   cout<<"FEX "<<Fex<<endl;
+
+          // sorting lexicographicaly
+          Fl.sort(F_comp);
+          cout<<"FEX "<<Fl<<endl;
+
+
+
+          /*        if(is_a<add>(F))
+                    for(const_iterator it = F.begin();it!=F.end();++it)
+                    F_to_lst.append(*it);
+                    else 
+                    F_to_lst.append(F);
+       
+        
+                    //        F_to_lst.sort();
+        
+                    //        comp_ex_xpow F_term_comparator(x_lst);
+                    //std::sort(F_to_lst.begin(),F_to_lst.end(),F_term_comparator);
+                    F_to_lst = bubble_sort_lexi(F_to_lst,x_lst);
+          */
+          cout<<"displace:  "<<displacement<<endl;
+
+
+          //        for(lst::const_iterator it = F_to_lst.begin();it!=F_to_lst.end();++it)
+
+          // for_each term F_term in sorted Fl
+          size_t w_index = 0;
+          BOOST_FOREACH(ex F_term, Fl)
+            {
+              cout<<"F_term : "<<F_term<<endl;
+              //            int w_index = std::distance(F_to_lst.begin(),it);
+            
+              ex x_power;
+              //            if(Fl.end()==boost::next(it)) 
+              if(Fl.back() == F_term)
+                {
+                  coeff*=tgamma(F_pow+w_sum);
+                  x_power = -F_pow-w_sum;
+                  cout<<"x_power last term "<<x_power<<"  w_sum "<<w_sum<<endl;
+                  insert_pole(F_pow+w_sum);
+                  cout<<"end achieved"<<endl;
+                }
+              else
+                {
+                  string str = "w"+boost::lexical_cast<string>(displacement + w_index);
+                  //symbol w(str);
+                  //                w_lst.append(get_symbol(str));
+                  insert_w(get_symbol(str));
+                  coeff*=tgamma(-get_symbol(str));
+                  x_power = get_symbol(str);
+                  cout<<"x_power "<<x_power<<endl;
+                  insert_pole(-x_power); //!!!! review
+                  w_sum+=x_power;
+                  cout<<"ok run"<<endl;
+                }
+              // filling map of X(j) powers
+              ex tmp_expr = F_term;
+              for(lst::const_iterator it1=x_lst.begin();it1!=x_lst.end();++it1)
+                {
+                  if(tmp_expr.has(*it1))
+                    {
+                      x_power_map[*it1]+=(tmp_expr.degree(*it1)*x_power);
+                      cout<<"before subs "<<(*it1)<<"   "<<tmp_expr<<endl;
+                      tmp_expr = tmp_expr.subs((*it1)==1);
+                      //                    cout<<"after subs "<<tmp_expr<<endl;
+                    }
+                }
+              //     cout<<"after subs "<<tmp_expr<<endl;
+              coeff *=pow(tmp_expr,x_power);
+              //increment W index
+              w_index++;
+            }
+    
+          //working with U-term, only if (U_pow>0)
         
        
-        //cout<<x_power_map<<endl;
-        //        cout<<"Gammas after MB: "<<endl<<get_gamma_poles()<<endl;
-        cout<<"X powers list:"<<"  "<<x_power_map<<endl;
-        //!!!!!!!!!!!!!!!!!!
-        //        assert(false);
-        // applying X integration
-        ex gamma_den = 0; // gamma in denominator
-        for(exmap::const_iterator mi = x_power_map.begin();mi!=x_power_map.end();++mi)
-          {
-            cout<<(*mi).first<<" "<<(*mi).second<<endl;
-            insert_pole((*mi).second+1);
-            coeff*=tgamma((*mi).second+1);
-            gamma_den+=((*mi).second+1);
-          }
-        cout<<"GAMMA_DEN: "<<gamma_den<<endl;
-        /*
-        bool gamma_den_has_w = false;
+          //cout<<x_power_map<<endl;
+          //        cout<<"Gammas after MB: "<<endl<<get_gamma_poles()<<endl;
+          cout<<"X powers list:"<<"  "<<x_power_map<<endl;
+          //!!!!!!!!!!!!!!!!!!
+          //        assert(false);
+          // applying X integration
+          ex gamma_den = 0; // gamma in denominator
+          for(exmap::const_iterator mi = x_power_map.begin();mi!=x_power_map.end();++mi)
+            {
+              cout<<(*mi).first<<" "<<(*mi).second<<endl;
+              insert_pole((*mi).second+1);
+              coeff*=tgamma((*mi).second+1);
+              gamma_den+=((*mi).second+1);
+            }
+          cout<<"GAMMA_DEN: "<<gamma_den<<endl;
+          /*
+            bool gamma_den_has_w = false;
 
-        for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
-          if(gamma_den.has(*wit))gamma_den_has_w = true;
-         if(gamma_den_has_w) 
-        */  
-          insert_pole(gamma_den);
+            for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
+            if(gamma_den.has(*wit))gamma_den_has_w = true;
+            if(gamma_den_has_w) 
+          */  
+          //      insert_pole(gamma_den);
 
-        coeff/=tgamma(gamma_den);
-        coeff/=(pow(2*Pi*I,w_lst.size()));
-        //        cout<<"New gamma list:"<<endl<<get_gamma_poles()<<endl;
-        full_int_expr = coeff;
-        cout<<w_lst<<endl;
-      }catch(std::exception &p)
-      {
-        throw std::logic_error(std::string("In function \"MBintegral)UFX)\":\n |___> ")+p.what());
-      }
+          coeff/=tgamma(gamma_den);
+          coeff/=(pow(2*Pi*I,w_lst.size()));
+          //        cout<<"New gamma list:"<<endl<<get_gamma_poles()<<endl;
+          full_int_expr = coeff;
+          cout<<w_lst<<endl;
+        }
 
-  }
+      /*********************************
+         NO COLLECT FULL SQARE PART
+      **********************************/
+
+      else // no collect squares
+        {
+          F = F.collect(x_lst,true);
+          // x_lst -> to list<symbol> for comparision
+          std::list<symbol> x_sym_list;
+          for(lst::const_iterator sit = x_lst.begin(); sit != x_lst.end(); ++sit)
+            if(is_a<symbol>(*sit)) x_sym_list.push_back(ex_to<symbol>(*sit));
+       
+          ex_is_lesseq_degrevlex F_comp(x_sym_list);
+
+
+          exlist Fl(F.begin(),F.end());
+          //   cout<<"FEX "<<Fex<<endl;
+
+          // sorting lexicographicaly
+          Fl.sort(F_comp);
+          cout<<"FEX "<<Fl<<endl;
+
+
+
+          /*        if(is_a<add>(F))
+                    for(const_iterator it = F.begin();it!=F.end();++it)
+                    F_to_lst.append(*it);
+                    else 
+                    F_to_lst.append(F);
+       
+        
+                    //        F_to_lst.sort();
+        
+                    //        comp_ex_xpow F_term_comparator(x_lst);
+                    //std::sort(F_to_lst.begin(),F_to_lst.end(),F_term_comparator);
+                    F_to_lst = bubble_sort_lexi(F_to_lst,x_lst);
+          */
+          cout<<"displace:  "<<displacement<<endl;
+
+
+          //        for(lst::const_iterator it = F_to_lst.begin();it!=F_to_lst.end();++it)
+
+          // for_each term F_term in sorted Fl
+          size_t w_index = 0;
+          BOOST_FOREACH(ex F_term, Fl)
+            {
+              cout<<"F_term : "<<F_term<<endl;
+              //            int w_index = std::distance(F_to_lst.begin(),it);
+            
+              ex x_power;
+              //            if(Fl.end()==boost::next(it)) 
+              if(Fl.back() == F_term)
+                {
+                  coeff*=tgamma(F_pow+w_sum);
+                  x_power = -F_pow-w_sum;
+                  cout<<"x_power last term "<<x_power<<"  w_sum "<<w_sum<<endl;
+                  insert_pole(F_pow+w_sum);
+                  cout<<"end achieved"<<endl;
+                }
+              else
+                {
+                  string str = "w"+boost::lexical_cast<string>(displacement + w_index);
+                  //symbol w(str);
+                  //                w_lst.append(get_symbol(str));
+                  insert_w(get_symbol(str));
+                  coeff*=tgamma(-get_symbol(str));
+                  x_power = get_symbol(str);
+                  cout<<"x_power "<<x_power<<endl;
+                  insert_pole(-x_power); //!!!! review
+                  w_sum+=x_power;
+                  cout<<"ok run"<<endl;
+                }
+              // filling map of X(j) powers
+              ex tmp_expr = F_term;
+              for(lst::const_iterator it1=x_lst.begin();it1!=x_lst.end();++it1)
+                {
+                  if(tmp_expr.has(*it1))
+                    {
+                      x_power_map[*it1]+=(tmp_expr.degree(*it1)*x_power);
+                      cout<<"before subs "<<(*it1)<<"   "<<tmp_expr<<endl;
+                      tmp_expr = tmp_expr.subs((*it1)==1);
+                      //                    cout<<"after subs "<<tmp_expr<<endl;
+                    }
+                }
+              //     cout<<"after subs "<<tmp_expr<<endl;
+              coeff *=pow(tmp_expr,x_power);
+              //increment W index
+              w_index++;
+            }
+    
+          //working with U-term, only if (U_pow>0)
+        
+       
+          //cout<<x_power_map<<endl;
+          //        cout<<"Gammas after MB: "<<endl<<get_gamma_poles()<<endl;
+          cout<<"X powers list:"<<"  "<<x_power_map<<endl;
+          //!!!!!!!!!!!!!!!!!!
+          //        assert(false);
+          // applying X integration
+          ex gamma_den = 0; // gamma in denominator
+          for(exmap::const_iterator mi = x_power_map.begin();mi!=x_power_map.end();++mi)
+            {
+              cout<<(*mi).first<<" "<<(*mi).second<<endl;
+              insert_pole((*mi).second+1);
+              coeff*=tgamma((*mi).second+1);
+              gamma_den+=((*mi).second+1);
+            }
+          cout<<"GAMMA_DEN: "<<gamma_den<<endl;
+          /*
+            bool gamma_den_has_w = false;
+
+            for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
+            if(gamma_den.has(*wit))gamma_den_has_w = true;
+            if(gamma_den_has_w) 
+          */  
+          //      insert_pole(gamma_den);
+
+          coeff/=tgamma(gamma_den);
+          coeff/=(pow(2*Pi*I,w_lst.size()));
+          //        cout<<"New gamma list:"<<endl<<get_gamma_poles()<<endl;
+          full_int_expr = coeff;
+          cout<<w_lst<<endl;
+        }// no collect squares part           
+    }catch(std::exception &p)
+    {
+      throw std::logic_error(std::string("In function \"MBintegral)UFX)\":\n |___> ")+p.what());
+    }
+
+}
 
 /*
-lst MBintegral::get_pole_lst()
+  lst MBintegral::get_pole_lst()
   {
 
-    cout<<"get_pole_lst called and ret "<<get_gamma_poles()<<endl;
+  cout<<"get_pole_lst called and ret "<<get_gamma_poles()<<endl;
 
-    //update_poles_from_ex();
-    exset gammaset,psiset,psi2set;
+  //update_poles_from_ex();
+  exset gammaset,psiset,psi2set;
 
-    full_int_expr.find(tgamma(wild()),gammaset);
-    full_int_expr.find(psi(wild()),psiset);
-    full_int_expr.find(psi(wild(),wild(1)),psi2set);
-    cout<<" but must gamma "<<gammaset<<endl;
-    cout<<" but must psi(ex) "<<psiset<<endl;
-    cout<<" but must psi(int,ex) "<<psi2set<<endl;
+  full_int_expr.find(tgamma(wild()),gammaset);
+  full_int_expr.find(psi(wild()),psiset);
+  full_int_expr.find(psi(wild(),wild(1)),psi2set);
+  cout<<" but must gamma "<<gammaset<<endl;
+  cout<<" but must psi(ex) "<<psiset<<endl;
+  cout<<" but must psi(int,ex) "<<psi2set<<endl;
     
-    return get_gamma_poles();
+  return get_gamma_poles();
   }
 */
 
 
 MBintegral MBintegral::res(relational w_relation,ex pole,relational new_eps)
-  {
-    try
-      {
-        // remove W-residue from w-list
-        exvector cut_w_vec(w_lst.size()-1);
-        std::remove_copy(w_lst.begin(),w_lst.end(),cut_w_vec.begin(),w_relation.lhs());
-        //        cout<<"removed "<<w_relation.lhs()<<"  in list "<<lst(cut_w_vec.begin(),cut_w_vec.end())<<endl;
-        /*
+{
+  try
+    {
+      // remove W-residue from w-list
+      exvector cut_w_vec(w_lst.size()-1);
+      std::remove_copy(w_lst.begin(),w_lst.end(),cut_w_vec.begin(),w_relation.lhs());
+      //        cout<<"removed "<<w_relation.lhs()<<"  in list "<<lst(cut_w_vec.begin(),cut_w_vec.end())<<endl;
+      /*
         lst new_gamma_pole_list;
         for(exset::iterator it = gamma_poles.begin();it!=gamma_poles.end();++it)
-          if(*it != pole && has_w(it->subs(w_relation),w_lst).nops() > 0) new_gamma_pole_list.append(it->subs(w_relation));
+        if(*it != pole && has_w(it->subs(w_relation),w_lst).nops() > 0) new_gamma_pole_list.append(it->subs(w_relation));
         cout<<"removed pole list  "<<pole.subs(w_relation)<<"  in list "<<new_gamma_pole_list<<endl;
         // !!! IMPORTANT!!! no 2*pi*i multiplication and no sign multiplication 
         */
         
-        //        if(full_int_expr.denom().has(tgamma(pole))) assert(false);
-        // cout<<"  TAKING RES ON:  "<<full_int_expr<<endl;
+      //        if(full_int_expr.denom().has(tgamma(pole))) assert(false);
+      // cout<<"  TAKING RES ON:  "<<full_int_expr<<endl;
 
-        //        cout<<"RES LORAN: "<< full_int_expr.series(w_relation,0).coeff(w_relation.lhs(),-1)<<endl;
-        /*
-          REsidue by Loran serties !!!!!
-         */
-        ex res_loran = full_int_expr.series(w_relation,0).coeff(w_relation.lhs(),-1);
-        /*
+      //        cout<<"RES LORAN: "<< full_int_expr.series(w_relation,0).coeff(w_relation.lhs(),-1)<<endl;
+      /*
+        REsidue by Loran serties !!!!!
+      */
+      ex res_loran = full_int_expr.series(w_relation,0).coeff(w_relation.lhs(),-1);
+      /*
         ex new_no_gamma_part = (full_int_expr.subs(tgamma(pole)==pow(-1,-pole.subs(w_relation))/factorial(-pole.subs(w_relation)))).subs(w_relation);
         // new_no_gamma_part  = pow(-1,pole.subs(w_relation))/factorial(pole.subs(w_relation))*full_int_expr.subs(w_relation)
         cout<< new_no_gamma_part<<endl;
-        */
-        exmap new_w_current(w_current);
-        //   cout<<" Not modif:  "<<new_w_current<<endl;
+      */
+      exmap new_w_current(w_current);
+      //   cout<<" Not modif:  "<<new_w_current<<endl;
 
-        new_w_current.erase(w_relation.lhs());
-        // cout<<" modif:  "<<new_w_current<<endl;
-        //        cout<<"CHECK:  "<<new_gamma_pole_list<<endl;
-        //        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),new_gamma_pole_list,new_no_gamma_part,new_w_current,new_eps);
+      new_w_current.erase(w_relation.lhs());
+      // cout<<" modif:  "<<new_w_current<<endl;
+      //        cout<<"CHECK:  "<<new_gamma_pole_list<<endl;
+      //        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),new_gamma_pole_list,new_no_gamma_part,new_w_current,new_eps);
 
-        //        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),new_gamma_pole_list,res_loran,new_w_current,new_eps);
-        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),res_loran,new_w_current,new_eps,tree_level+1);
-        return resINT;
-      }catch(std::exception &p)
-      {
-        throw std::logic_error(std::string("In function \"MBintegral.res\":\n |___> ")+p.what());
-      }
-  }
+      //        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),new_gamma_pole_list,res_loran,new_w_current,new_eps);
+      MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),res_loran,new_w_current,new_eps,tree_level+1);
+      return resINT;
+    }catch(std::exception &p)
+    {
+      throw std::logic_error(std::string("In function \"MBintegral.res\":\n |___> ")+p.what());
+    }
+}
 
 lst MBintegral::poles_with_eps()
-  {
-    lst lst_with_eps;
-    for(exset::iterator it = gamma_poles.begin(); it != gamma_poles.end(); ++it)
-      if(it->has(get_symbol("eps"))) lst_with_eps.append(*it);
-    lst_with_eps.unique();
-    return lst_with_eps;
-  }
-/*
-lst MBintegral::get_gamma_poles()
 {
+  lst lst_with_eps;
+  for(exset::iterator it = gamma_poles.begin(); it != gamma_poles.end(); ++it)
+    if(it->has(get_symbol("eps"))) lst_with_eps.append(*it);
+  lst_with_eps.unique();
+  return lst_with_eps;
+}
+/*
+  lst MBintegral::get_gamma_poles()
+  {
   update_poles_from_ex();
   return set2lst(gamma_poles);
-}
+  }
 */
-exset MBintegral::poles_from_ex(ex ie)
+exset MBintegral::poles_from_ex(ex ie_)
 {
-    exset gammaset,psiset,psi2set;
-    full_int_expr.find(tgamma(wild()),gammaset);
-    full_int_expr.find(psi(wild()),psiset);
-    full_int_expr.find(psi(wild(),wild(1)),psi2set);
+  ex ie = ie_.numer();
+  exset gammaset,psiset,psi2set;
+  full_int_expr.find(tgamma(wild()),gammaset);
+  full_int_expr.find(psi(wild()),psiset);
+  full_int_expr.find(psi(wild(),wild(1)),psi2set);
 
-    exset poles_set;
-    BOOST_FOREACH(ex gex,gammaset)
-      {
-        exmap repls;
-        if(gex.match(tgamma(wild()), repls))
-          {
-            ex gpole = repls[wild()];
-            if(has_w(gpole,set2lst(w_lst)).nops() > 0) poles_set.insert(gpole);
-          }
-      }
-    BOOST_FOREACH(ex psiex,psiset)
-      {
-        exmap repls;
-        if(psiex.match(psi(wild()), repls))
-          {
-            ex psipole = repls[wild()];
-            if(has_w(psipole,set2lst(w_lst)).nops() > 0) poles_set.insert(psipole);
-          }
-      }
-    BOOST_FOREACH(ex psi2ex,psi2set)
-      {
-        exmap repls;
-        if(psi2ex.match(psi(wild(),wild(1)), repls))
-          {
-            ex psipole = repls[wild(1)];
-            if(has_w(psipole,set2lst(w_lst)).nops() > 0) poles_set.insert(psipole);
-          }
-      }    
-    return poles_set;
+  exset poles_set;
+  BOOST_FOREACH(ex gex,gammaset)
+    {
+      exmap repls;
+      if(gex.match(tgamma(wild()), repls))
+        {
+          ex gpole = repls[wild()];
+          if(has_w(gpole,set2lst(w_lst)).nops() > 0) poles_set.insert(gpole);
+        }
+    }
+  BOOST_FOREACH(ex psiex,psiset)
+    {
+      exmap repls;
+      if(psiex.match(psi(wild()), repls))
+        {
+          ex psipole = repls[wild()];
+          if(has_w(psipole,set2lst(w_lst)).nops() > 0) poles_set.insert(psipole);
+        }
+    }
+  BOOST_FOREACH(ex psi2ex,psi2set)
+    {
+      exmap repls;
+      if(psi2ex.match(psi(wild(),wild(1)), repls))
+        {
+          ex psipole = repls[wild(1)];
+          if(has_w(psipole,set2lst(w_lst)).nops() > 0) poles_set.insert(psipole);
+        }
+    }    
+  return poles_set;
 }
 /*
-void MBintegral::update_poles_from_ex()
+  void MBintegral::update_poles_from_ex()
   {
-    exset gammaset,psiset,psi2set;
-    full_int_expr.find(tgamma(wild()),gammaset);
-    full_int_expr.find(psi(wild()),psiset);
-    full_int_expr.find(psi(wild(),wild(1)),psi2set);
+  exset gammaset,psiset,psi2set;
+  full_int_expr.find(tgamma(wild()),gammaset);
+  full_int_expr.find(psi(wild()),psiset);
+  full_int_expr.find(psi(wild(),wild(1)),psi2set);
 
-    exset poles_set;
-    BOOST_FOREACH(ex gex,gammaset)
-      {
-        exmap repls;
-        if(gex.match(tgamma(wild()), repls))
-          {
-            ex gpole = repls[wild()];
-            if(has_w(gpole,w_lst).nops() > 0) poles_set.insert(gpole);
-          }
-      }
-    BOOST_FOREACH(ex psiex,psiset)
-      {
-        exmap repls;
-        if(psiex.match(psi(wild()), repls))
-          {
-            ex psipole = repls[wild()];
-            if(has_w(psipole,w_lst).nops() > 0) poles_set.insert(psipole);
-          }
-      }
-    BOOST_FOREACH(ex psi2ex,psi2set)
-      {
-        exmap repls;
-        if(psi2ex.match(psi(wild(),wild(1)), repls))
-          {
-            ex psipole = repls[wild(1)];
-            if(has_w(psipole,w_lst).nops() > 0) poles_set.insert(psipole);
-          }
-      }    
-    gamma_poles = poles_set;
-        cout<<"Update poles "<<poles_set<<endl;
+  exset poles_set;
+  BOOST_FOREACH(ex gex,gammaset)
+  {
+  exmap repls;
+  if(gex.match(tgamma(wild()), repls))
+  {
+  ex gpole = repls[wild()];
+  if(has_w(gpole,w_lst).nops() > 0) poles_set.insert(gpole);
+  }
+  }
+  BOOST_FOREACH(ex psiex,psiset)
+  {
+  exmap repls;
+  if(psiex.match(psi(wild()), repls))
+  {
+  ex psipole = repls[wild()];
+  if(has_w(psipole,w_lst).nops() > 0) poles_set.insert(psipole);
+  }
+  }
+  BOOST_FOREACH(ex psi2ex,psi2set)
+  {
+  exmap repls;
+  if(psi2ex.match(psi(wild(),wild(1)), repls))
+  {
+  ex psipole = repls[wild(1)];
+  if(has_w(psipole,w_lst).nops() > 0) poles_set.insert(psipole);
+  }
+  }    
+  gamma_poles = poles_set;
+  cout<<"Update poles "<<poles_set<<endl;
   }
 */
-  exmap MBintegral::new_point()
-  {
-    lst var_list(set2lst(w_lst));
-    var_list.append(get_symbol("eps"));
-    eps_w_current=start_point_diff_w(set2lst(get_poles_set()),var_list);
-    // cout<<"Int: "<<  interior_point(set2lst(get_poles_set()),eps_w_current)<<endl;
-    BOOST_ASSERT_MSG(interior_point(set2lst(get_poles_set()),eps_w_current),"Not a convex polyhedron interior point");
+exmap MBintegral::new_point()
+{
+  lst var_list(set2lst(w_lst));
+  var_list.append(get_symbol("eps"));
+  eps_w_current=start_point_diff_w(set2lst(get_poles_set()),var_list);
+  // cout<<"Int: "<<  interior_point(set2lst(get_poles_set()),eps_w_current)<<endl;
+  BOOST_ASSERT_MSG(interior_point(set2lst(get_poles_set()),eps_w_current),"Not a convex polyhedron interior point");
     
-    for(exset::iterator it = w_lst.begin();it!=w_lst.end();++it)
-      w_current[*it] = it->subs(eps_w_current);
-    eps_current = (get_symbol("eps")==eps_w_current[get_symbol("eps")]);
-    return eps_w_current;
-  }
+  for(exset::iterator it = w_lst.begin();it!=w_lst.end();++it)
+    w_current[*it] = it->subs(eps_w_current);
+  eps_current = (get_symbol("eps")==eps_w_current[get_symbol("eps")]);
+  return eps_w_current;
+}
 
 
 
@@ -455,264 +615,264 @@ void MBintegral::update_poles_from_ex()
 
 MBlst MBcontinue(MBintegral rootint,ex eps0)
 {
-try
-  {
-  rootint.barnes1();
-  rootint.barnes2();
+  try
+    {
+      rootint.barnes1();
+      rootint.barnes2();
 
   
 
-  MBlst O(1,rootint);
-  MBlst C;
-  while(O.size()>0)
-    {
-      MBlst R;
-      for(MBlst::iterator it = O.begin();it!=O.end();++it)
+      MBlst O(1,rootint);
+      MBlst C;
+      while(O.size()>0)
         {
-          //   cout<<std::setw(15+it->get_level())<<std::right<<"shifted on "<<it->get_level()<<endl;
-          C.push_back(*it);//need review, multiple entries C=C U I
-          MBintegral::pole_iterator pit,pit_end;
-          ex eps_i = get_symbol("eps");
-          //          cout<<"after barness lemas "<<it->get_eps()<<endl;
-          eps_i = eps_i.subs(it->get_eps());
-
-
-
-          // Iterate over gamma arguments with eps dependence only!!!!!!!
-          lst with_eps_lst(it->poles_with_eps());
-          for(lst::const_iterator pit  = with_eps_lst.begin(); pit != with_eps_lst.end(); ++pit)
+          MBlst R;
+          for(MBlst::iterator it = O.begin();it!=O.end();++it)
             {
-              cout<<*pit<<endl;
-                 cout<<"F(eps_i) "<<pit->subs(it->get_w()).subs(it->get_eps())<<"F(eps=0) "<<pit->subs(it->get_w()).subs(get_symbol("eps")==eps0)<<"   min  "<<std::min(pit->subs(it->get_w()).subs(it->get_eps()),pit->subs(it->get_w()).subs(get_symbol("eps")==eps0))<<endl;
+              //   cout<<std::setw(15+it->get_level())<<std::right<<"shifted on "<<it->get_level()<<endl;
+              C.push_back(*it);//need review, multiple entries C=C U I
+              MBintegral::pole_iterator pit,pit_end;
+              ex eps_i = get_symbol("eps");
+              //          cout<<"after barness lemas "<<it->get_eps()<<endl;
+              eps_i = eps_i.subs(it->get_eps());
+
+
+
+              // Iterate over gamma arguments with eps dependence only!!!!!!!
+              lst with_eps_lst(it->poles_with_eps());
+              for(lst::const_iterator pit  = with_eps_lst.begin(); pit != with_eps_lst.end(); ++pit)
+                {
+                  cout<<*pit<<endl;
+                  cout<<"F(eps_i) "<<pit->subs(it->get_w()).subs(it->get_eps())<<"F(eps=0) "<<pit->subs(it->get_w()).subs(get_symbol("eps")==eps0)<<"   min  "<<std::min(pit->subs(it->get_w()).subs(it->get_eps()),pit->subs(it->get_w()).subs(get_symbol("eps")==eps0))<<endl;
                  
              
-              ex F_eps0 = pit->subs( it->get_w() ).subs( get_symbol("eps") == eps0) ;
-              ex F_epsi =  pit->subs( it->get_w() ).subs( it->get_eps() ) ;
+                  ex F_eps0 = pit->subs( it->get_w() ).subs( get_symbol("eps") == eps0) ;
+                  ex F_epsi =  pit->subs( it->get_w() ).subs( it->get_eps() ) ;
 
-              if(F_eps0==F_epsi) 
-                cout<<"Terminating eps=0 achieved  "<<std::min(F_eps0,F_epsi)<<endl;
+                  if(F_eps0==F_epsi) 
+                    cout<<"Terminating eps=0 achieved  "<<std::min(F_eps0,F_epsi)<<endl;
 
-              ex dir__ = csgn(F_eps0 - F_epsi);
-              int dir = int( ex_to<numeric>(dir__).to_double());
+                  ex dir__ = csgn(F_eps0 - F_epsi);
+                  int dir = int( ex_to<numeric>(dir__).to_double());
 
-              //              for(int n =0;n>std::min(F_eps0,F_epsi);n--)
+                  //              for(int n =0;n>std::min(F_eps0,F_epsi);n--)
 
-              int pole;
+                  int pole;
               
-              if(dir > 0)
-                pole = int(ceil(ex_to<numeric>(F_epsi).to_double())); 
-              else if(F_epsi < 0)
-                     pole = int(floor(ex_to<numeric>(F_epsi).to_double())); 
-              else
-                pole = 0;
+                  if(dir > 0)
+                    pole = int(ceil(ex_to<numeric>(F_epsi).to_double())); 
+                  else if(F_epsi < 0)
+                    pole = int(floor(ex_to<numeric>(F_epsi).to_double())); 
+                  else
+                    pole = 0;
 
-              for(int n = pole; dir*(F_eps0 - n) >= 0 && n <= 0; n += dir)
-                {
-                  //        if( n < std::max(F_eps0,F_epsi))
+                  for(int n = pole; dir*(F_eps0 - n) >= 0 && n <= 0; n += dir)
                     {
+                      //        if( n < std::max(F_eps0,F_epsi))
+                      {
                   
-                  // cout<<pit->subs(it->get_w()) <<endl;
-                  // test on epsilon existance
-                  if(pit->subs(it->get_w()).has(get_symbol("eps")))
-                    {
-                      ex eps_prime = lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") );
-                      //                      BOOST_ASSERT_MSG( F_eps0 < F_epsi," Wrong direction");
-                      //       cout<<"solve"<<endl;
-                      // cout<<"F= "<<*pit<<endl;
-                      // cout<<"eps_i: "<<lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") )<<endl;
-                      // cout<<" Poles of Gamma on eps_i: "<<it->get_pole_lst().subs(it->get_w()).subs(get_symbol("eps")==eps_prime)<<endl;
-                      lst w_in_F  = has_w(*pit,it->get_w_lst());
-                      if(w_in_F.nops()>0)
-                        {
-                      cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
-                      BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
-                          // cout<<lsolve(*pit==n,w_in_F.op(0))<<endl;
-                          //   cout<<"sign(z) = "<<csgn(pit->coeff(w_in_F.op(0)))<<"     sign(F_i-F_0) = "<<csgn(F_epsi-F_eps0)<<endl;
+                        // cout<<pit->subs(it->get_w()) <<endl;
+                        // test on epsilon existance
+                        if(pit->subs(it->get_w()).has(get_symbol("eps")))
+                          {
+                            ex eps_prime = lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") );
+                            //                      BOOST_ASSERT_MSG( F_eps0 < F_epsi," Wrong direction");
+                            //       cout<<"solve"<<endl;
+                            // cout<<"F= "<<*pit<<endl;
+                            // cout<<"eps_i: "<<lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") )<<endl;
+                            // cout<<" Poles of Gamma on eps_i: "<<it->get_pole_lst().subs(it->get_w()).subs(get_symbol("eps")==eps_prime)<<endl;
+                            lst w_in_F  = has_w(*pit,it->get_w_lst());
+                            if(w_in_F.nops()>0)
+                              {
+                                cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
+                                BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
+                                // cout<<lsolve(*pit==n,w_in_F.op(0))<<endl;
+                                //   cout<<"sign(z) = "<<csgn(pit->coeff(w_in_F.op(0)))<<"     sign(F_i-F_0) = "<<csgn(F_epsi-F_eps0)<<endl;
                       
-                          //MBintegral newi(it->get_w_lst(),it->get_pole_lst(),it->get_expr(),it->get_w(),it->get_eps());
-                          //      cout<<"NEW INT: "<< newi.get_expr()<<endl;
-                          // cout<<"debug fepsi"
-                          //   <<"1: "<<lsolve(*pit==n,w_in_F.op(0))<<endl
-                          //   <<"2: "
-                          //   <<endl;
-                          // cout<<"BEFORE RESIDUE!: "<<it->get_w_lst()<<endl
-                          //    <<it->get_expr()<<endl;
-                          MBintegral res_int = it->res(w_in_F.op(w_in_F.nops()-1)==lsolve(*pit==n,w_in_F.op(w_in_F.nops()-1)),*pit,get_symbol("eps")==eps_prime);
-                          res_int.set_level(1+it->get_level());
-                          //        cout<<"after RESIDUE!: "<<res_int.get_w_lst()<<endl
-                          //   <<res_int.get_expr()<<endl;
-                          //res_int.update_poles_from_ex();
+                                //MBintegral newi(it->get_w_lst(),it->get_pole_lst(),it->get_expr(),it->get_w(),it->get_eps());
+                                //      cout<<"NEW INT: "<< newi.get_expr()<<endl;
+                                // cout<<"debug fepsi"
+                                //   <<"1: "<<lsolve(*pit==n,w_in_F.op(0))<<endl
+                                //   <<"2: "
+                                //   <<endl;
+                                // cout<<"BEFORE RESIDUE!: "<<it->get_w_lst()<<endl
+                                //    <<it->get_expr()<<endl;
+                                MBintegral res_int = it->res(w_in_F.op(w_in_F.nops()-1)==lsolve(*pit==n,w_in_F.op(w_in_F.nops()-1)),*pit,get_symbol("eps")==eps_prime);
+                                res_int.set_level(1+it->get_level());
+                                //        cout<<"after RESIDUE!: "<<res_int.get_w_lst()<<endl
+                                //   <<res_int.get_expr()<<endl;
+                                //res_int.update_poles_from_ex();
 
-                          //  cout<<"Storing RES_INT with eps_prime = " <<eps_prime<<"  "<<res_int.get_eps().rhs()<<endl;
-                          res_int*=(2*Pi*I*csgn(pit->coeff(w_in_F.op(w_in_F.nops()-1)))*csgn(F_epsi-F_eps0));
-                          // cout<<"RES EXPR:  "<<res_int.get_expr()<<endl;
-                          res_int.barnes1();
-                          res_int.barnes2();
-                          R.push_back(res_int);
-                        }
-                      // else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no W dependence in pole");
+                                //  cout<<"Storing RES_INT with eps_prime = " <<eps_prime<<"  "<<res_int.get_eps().rhs()<<endl;
+                                res_int*=(2*Pi*I*csgn(pit->coeff(w_in_F.op(w_in_F.nops()-1)))*csgn(F_epsi-F_eps0));
+                                // cout<<"RES EXPR:  "<<res_int.get_expr()<<endl;
+                                res_int.barnes1();
+                                res_int.barnes2();
+                                R.push_back(res_int);
+                              }
+                            // else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no W dependence in pole");
+                          }
+                        else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no eps dependence in pole");
+                        //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
+                      }// if n>max
                     }
-                  else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no eps dependence in pole");
-                         //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
-                }// if n>max
-                }
 
+                }
             }
+          O = R;
         }
-      O = R;
-    }
-  cout<<"Continue get "<<C.size()<<" integrals"<<endl;
+      cout<<"Continue get "<<C.size()<<" integrals"<<endl;
   
 
-  for(MBlst::iterator it = C.begin();it!= C.end();++it)
+      for(MBlst::iterator it = C.begin();it!= C.end();++it)
+        {
+          //cout<<(it->get_pole_lst().subs(it->get_w())).subs(get_symbol("eps")==0)<<endl;
+          // cout<<endl <<"series:  " << it->get_gamma_expr().series(get_symbol("eps")==0,0)<<endl<<endl;
+        }
+      return C;
+    }catch(std::exception &p)
     {
-      //cout<<(it->get_pole_lst().subs(it->get_w())).subs(get_symbol("eps")==0)<<endl;
-      // cout<<endl <<"series:  " << it->get_gamma_expr().series(get_symbol("eps")==0,0)<<endl<<endl;
+      throw std::logic_error(std::string("In function \"MBcontinue\":\n |___> ")+p.what());
     }
-  return C;
-  }catch(std::exception &p)
-  {
-    throw std::logic_error(std::string("In function \"MBcontinue\":\n |___> ")+p.what());
-  }
 }
 
 
 MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
 {
   using namespace mbtree;
-try
-  {
-  rootint.barnes1();
-  rootint.barnes2();
+  try
+    {
+      rootint.barnes1();
+      rootint.barnes2();
 
   
 
-  // tree root creation 
-  MBtree C;
-  MBtree::iterator last_child_it,root_it;
-  last_child_it=root_it = C.insert(C.begin(), rootint);
+      // tree root creation 
+      MBtree C;
+      MBtree::iterator last_child_it,root_it;
+      last_child_it=root_it = C.insert(C.begin(), rootint);
       size_t children_added = 0;  
- do
-    {
- children_added = 0;
-      //      for(;it!=same_depth_start_iter;next_at_same_depth (it))
-      /* MBtree::fixed_depth_iterator it,it_end;
-      it = C.begin_fixed (root_it, C.max_depth ());
-    
-      it_end = C.end_fixed (root_it, C.max_depth ());*/
-      MBtree::leaf_iterator it,it_end;
-      it = C.begin_leaf();
-      it_end = C.end_leaf();
-  cout<<"work"<<endl;
-      for(;it != it_end; ++it )
+      do
         {
-	  if(C.depth(it) == C.max_depth())
-	    {
-	  cout<<"Leaf depth "<<C.depth(it)<<" Max depth "<<C.max_depth()<<endl;
-          //   cout<<std::setw(15+it->get_level())<<std::right<<"shifted on "<<it->get_level()<<endl;
-          //C.push_back(*it);//need review, multiple entries C=C U I
-          MBintegral::pole_iterator pit,pit_end;
-          ex eps_i = get_symbol("eps");
-          //          cout<<"after barness lemas "<<it->get_eps()<<endl;
-          eps_i = eps_i.subs(it->get_eps());
-
-
-
-          // Iterate over gamma arguments with eps dependence only!!!!!!!
-          lst with_eps_lst(it->poles_with_eps());
-          for(lst::const_iterator pit  = with_eps_lst.begin(); pit != with_eps_lst.end(); ++pit)
+          children_added = 0;           // no children added in new level
+          //      for(;it!=same_depth_start_iter;next_at_same_depth (it))
+          /* MBtree::fixed_depth_iterator it,it_end;
+             it = C.begin_fixed (root_it, C.max_depth ());
+    
+             it_end = C.end_fixed (root_it, C.max_depth ());*/
+          MBtree::leaf_iterator it,it_end;
+          it = C.begin_leaf();
+          it_end = C.end_leaf();
+          cout<<"work"<<endl;
+          for(;it != it_end; ++it )
             {
-              cout<<*pit<<endl;
-                 cout<<"F(eps_i) "<<pit->subs(it->get_w()).subs(it->get_eps())<<"F(eps=0) "<<pit->subs(it->get_w()).subs(get_symbol("eps")==eps0)<<"   min  "<<std::min(pit->subs(it->get_w()).subs(it->get_eps()),pit->subs(it->get_w()).subs(get_symbol("eps")==eps0))<<endl;
+              if(C.depth(it) == C.max_depth())
+                {
+                  cout<<"Leaf depth "<<C.depth(it)<<" Max depth "<<C.max_depth()<<endl;
+                  //   cout<<std::setw(15+it->get_level())<<std::right<<"shifted on "<<it->get_level()<<endl;
+                  //C.push_back(*it);//need review, multiple entries C=C U I
+                  MBintegral::pole_iterator pit,pit_end;
+                  ex eps_i = get_symbol("eps");
+                  //          cout<<"after barness lemas "<<it->get_eps()<<endl;
+                  eps_i = eps_i.subs(it->get_eps());
+
+
+
+                  // Iterate over gamma arguments with eps dependence only!!!!!!!
+                  lst with_eps_lst(it->poles_with_eps());
+                  for(lst::const_iterator pit  = with_eps_lst.begin(); pit != with_eps_lst.end(); ++pit)
+                    {
+                      cout<<*pit<<endl;
+                      cout<<"F(eps_i) "<<pit->subs(it->get_w()).subs(it->get_eps())<<"F(eps=0) "<<pit->subs(it->get_w()).subs(get_symbol("eps")==eps0)<<"   min  "<<std::min(pit->subs(it->get_w()).subs(it->get_eps()),pit->subs(it->get_w()).subs(get_symbol("eps")==eps0))<<endl;
                  
              
-              ex F_eps0 = pit->subs( it->get_w() ).subs( get_symbol("eps") == eps0) ;
-              ex F_epsi =  pit->subs( it->get_w() ).subs( it->get_eps() ) ;
+                      ex F_eps0 = pit->subs( it->get_w() ).subs( get_symbol("eps") == eps0) ;
+                      ex F_epsi =  pit->subs( it->get_w() ).subs( it->get_eps() ) ;
 
-              if(F_eps0==F_epsi) 
-                cout<<"Terminating eps=0 achieved  "<<std::min(F_eps0,F_epsi)<<endl;
+                      if(F_eps0==F_epsi) 
+                        cout<<"Terminating eps=0 achieved  "<<std::min(F_eps0,F_epsi)<<endl;
 
-              ex dir__ = csgn(F_eps0 - F_epsi);
-              int dir = int( ex_to<numeric>(dir__).to_double());
+                      ex dir__ = csgn(F_eps0 - F_epsi);
+                      int dir = int( ex_to<numeric>(dir__).to_double());
 
-              //              for(int n =0;n>std::min(F_eps0,F_epsi);n--)
+                      //              for(int n =0;n>std::min(F_eps0,F_epsi);n--)
 
-              int pole;
+                      int pole;
               
-              if(dir > 0)
-                pole = int(ceil(ex_to<numeric>(F_epsi).to_double())); 
-              else if(F_epsi < 0)
-                     pole = int(floor(ex_to<numeric>(F_epsi).to_double())); 
-              else
-                pole = 0;
+                      if(dir > 0)
+                        pole = int(ceil(ex_to<numeric>(F_epsi).to_double())); 
+                      else if(F_epsi < 0)
+                        pole = int(floor(ex_to<numeric>(F_epsi).to_double())); 
+                      else
+                        pole = 0;
 
-              for(int n = pole; dir*(F_eps0 - n) >= 0 && n <= 0; n += dir)
-                {
-                  //        if( n < std::max(F_eps0,F_epsi))
-                    {
-                  
-                  // cout<<pit->subs(it->get_w()) <<endl;
-                  // test on epsilon existance
-                  if(pit->subs(it->get_w()).has(get_symbol("eps")))
-                    {
-                      ex eps_prime = lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") );
-                      //                      BOOST_ASSERT_MSG( F_eps0 < F_epsi," Wrong direction");
-                      //       cout<<"solve"<<endl;
-                      // cout<<"F= "<<*pit<<endl;
-                      // cout<<"eps_i: "<<lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") )<<endl;
-                      // cout<<" Poles of Gamma on eps_i: "<<it->get_pole_lst().subs(it->get_w()).subs(get_symbol("eps")==eps_prime)<<endl;
-                      lst w_in_F  = has_w(*pit,it->get_w_lst());
-                      if(w_in_F.nops()>0)
+                      for(int n = pole; dir*(F_eps0 - n) >= 0 && n <= 0; n += dir)
                         {
-                      cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
-                      BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
-                          // cout<<lsolve(*pit==n,w_in_F.op(0))<<endl;
-                          //   cout<<"sign(z) = "<<csgn(pit->coeff(w_in_F.op(0)))<<"     sign(F_i-F_0) = "<<csgn(F_epsi-F_eps0)<<endl;
+                          //        if( n < std::max(F_eps0,F_epsi))
+                          {
+                  
+                            // cout<<pit->subs(it->get_w()) <<endl;
+                            // test on epsilon existance
+                            if(pit->subs(it->get_w()).has(get_symbol("eps")))
+                              {
+                                ex eps_prime = lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") );
+                                //                      BOOST_ASSERT_MSG( F_eps0 < F_epsi," Wrong direction");
+                                //       cout<<"solve"<<endl;
+                                // cout<<"F= "<<*pit<<endl;
+                                // cout<<"eps_i: "<<lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") )<<endl;
+                                // cout<<" Poles of Gamma on eps_i: "<<it->get_pole_lst().subs(it->get_w()).subs(get_symbol("eps")==eps_prime)<<endl;
+                                lst w_in_F  = has_w(*pit,it->get_w_lst());
+                                if(w_in_F.nops()>0)
+                                  {
+                                    cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
+                                    BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
+                                    // cout<<lsolve(*pit==n,w_in_F.op(0))<<endl;
+                                    //   cout<<"sign(z) = "<<csgn(pit->coeff(w_in_F.op(0)))<<"     sign(F_i-F_0) = "<<csgn(F_epsi-F_eps0)<<endl;
                       
-                          //MBintegral newi(it->get_w_lst(),it->get_pole_lst(),it->get_expr(),it->get_w(),it->get_eps());
-                          //      cout<<"NEW INT: "<< newi.get_expr()<<endl;
-                          // cout<<"debug fepsi"
-                          //   <<"1: "<<lsolve(*pit==n,w_in_F.op(0))<<endl
-                          //   <<"2: "
-                          //   <<endl;
-                          // cout<<"BEFORE RESIDUE!: "<<it->get_w_lst()<<endl
-                          //    <<it->get_expr()<<endl;
-                          MBintegral res_int = it->res(w_in_F.op(w_in_F.nops()-1)==lsolve(*pit==n,w_in_F.op(w_in_F.nops()-1)),*pit,get_symbol("eps")==eps_prime);
-                          res_int.set_level(1+it->get_level());
-                          //        cout<<"after RESIDUE!: "<<res_int.get_w_lst()<<endl
-                          //   <<res_int.get_expr()<<endl;
-                          //res_int.update_poles_from_ex();
+                                    //MBintegral newi(it->get_w_lst(),it->get_pole_lst(),it->get_expr(),it->get_w(),it->get_eps());
+                                    //      cout<<"NEW INT: "<< newi.get_expr()<<endl;
+                                    // cout<<"debug fepsi"
+                                    //   <<"1: "<<lsolve(*pit==n,w_in_F.op(0))<<endl
+                                    //   <<"2: "
+                                    //   <<endl;
+                                    // cout<<"BEFORE RESIDUE!: "<<it->get_w_lst()<<endl
+                                    //    <<it->get_expr()<<endl;
+                                    MBintegral res_int = it->res(w_in_F.op(w_in_F.nops()-1)==lsolve(*pit==n,w_in_F.op(w_in_F.nops()-1)),*pit,get_symbol("eps")==eps_prime);
+                                    res_int.set_level(1+it->get_level());
+                                    //        cout<<"after RESIDUE!: "<<res_int.get_w_lst()<<endl
+                                    //   <<res_int.get_expr()<<endl;
+                                    //res_int.update_poles_from_ex();
 
-                          //  cout<<"Storing RES_INT with eps_prime = " <<eps_prime<<"  "<<res_int.get_eps().rhs()<<endl;
-                          res_int*=(2*Pi*I*csgn(pit->coeff(w_in_F.op(w_in_F.nops()-1)))*csgn(F_epsi-F_eps0));
-                          // cout<<"RES EXPR:  "<<res_int.get_expr()<<endl;
-                          res_int.barnes1();
-                          res_int.barnes2();
-                          //R.push_back(res_int);
-                          last_child_it = C.append_child(it,res_int);
-                          children_added++;
+                                    //  cout<<"Storing RES_INT with eps_prime = " <<eps_prime<<"  "<<res_int.get_eps().rhs()<<endl;
+                                    res_int*=(2*Pi*I*csgn(pit->coeff(w_in_F.op(w_in_F.nops()-1)))*csgn(F_epsi-F_eps0));
+                                    // cout<<"RES EXPR:  "<<res_int.get_expr()<<endl;
+                                    res_int.barnes1();
+                                    res_int.barnes2();
+                                    //R.push_back(res_int);
+                                    last_child_it = C.append_child(it,res_int);
+                                    children_added++;
+                                  }
+                                // else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no W dependence in pole");
+                              }
+                            else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no eps dependence in pole");
+                            //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
+                          }// if n>max
                         }
-                      // else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no W dependence in pole");
-                    }
-                  else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no eps dependence in pole");
-                         //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
-                }// if n>max
-                }
 
+                    }
+                }//same depth
             }
-	    }//same depth
+          //      O = R;
         }
-      //      O = R;
-    }
- while(children_added > 0);
-  cout<<"Continue get "<<C.size()<<" integrals"<<endl;
+      while(children_added > 0);
+      cout<<"Continue get "<<C.size()<<" integrals"<<endl;
   
 
-  return C;
-  }catch(std::exception &p)
-  {
-    throw std::logic_error(std::string("In function \"MBcontinue\":\n |___> ")+p.what());
-  }
+      return C;
+    }catch(std::exception &p)
+    {
+      throw std::logic_error(std::string("In function \"MBcontinue\":\n |___> ")+p.what());
+    }
 }
 
 
@@ -729,8 +889,8 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order) /
         {
           int_in.barnes1();
           int_in.barnes2();
-                    out_ex = series_to_poly( int_in.get_expr().series(get_symbol("eps"),expansion_order) ).subs(num_subs);
-                    //out_ex = series_to_poly( int_in.get_expr().series(int_in.get_eps(),expansion_order) ).subs(num_subs);
+          out_ex = series_to_poly( int_in.get_expr().series(get_symbol("eps"),expansion_order) ).subs(num_subs);
+          //out_ex = series_to_poly( int_in.get_expr().series(int_in.get_eps(),expansion_order) ).subs(num_subs);
           // loop over W_i, converting integration contour
           for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
             {
@@ -740,7 +900,7 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order) /
           cout<<"current : "<<out_ex<<endl;
           ex wo_eps_part = out_ex;
           ex vegas_ex = 0;
-          for(int i = out_ex.ldegree( get_symbol("eps") ); i <= out_ex.degree( get_symbol("eps") ); i++)
+          for(int i = out_ex.ldegree( get_symbol("eps") ); i <expansion_order/* out_ex.degree( get_symbol("eps") )*/; i++)
             {
               cout<<"Ord( "<<i<<" ) coeff : "<< out_ex.coeff(get_symbol("eps"),i)<<endl;
               ex int_expr =  out_ex.coeff(get_symbol("eps"),i);
@@ -749,7 +909,7 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order) /
               RoMB::compile_ex_imag(lst(int_expr),int_in.get_w_lst(), fp_imag);
 
               // ----------------------------------- Vegas integration-------------------------
-               int  NDIM  = int_in.get_w_lst().nops();
+              int  NDIM  = int_in.get_w_lst().nops();
               //#define NCOMP 1
 #define USERDATA NULL
 #define EPSREL 1e-3
@@ -765,22 +925,22 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order) /
 #define NBATCH 1000
 #define GRIDNO 0
 #define STATEFILE NULL
-//SUAVE
-                #define NNEW 1000
-                #define FLATNESS 25.
+              //SUAVE
+#define NNEW 1000
+#define FLATNESS 25.
 
-                //#define KEY1 47
-                //#define KEY2 1
-                //#define KEY3 1
-                //#define MAXPASS 5
-                //#define BORDER 0.
-                //#define MAXCHISQ 10.
-                //#define MINDEVIATION .25
-                //#define NGIVEN 0
-                //#define LDXGIVEN NDIM
-                //#define NEXTRA 0
+              //#define KEY1 47
+              //#define KEY2 1
+              //#define KEY3 1
+              //#define MAXPASS 5
+              //#define BORDER 0.
+              //#define MAXCHISQ 10.
+              //#define MINDEVIATION .25
+              //#define NGIVEN 0
+              //#define LDXGIVEN NDIM
+              //#define NEXTRA 0
 
-                #define KEY 0
+#define KEY 0
               const int NCOMP = 1;
               int comp, nregions, neval, fail;
               double integral[NCOMP],integral_real[NCOMP],integral_imag[NCOMP], error[NCOMP], prob[NCOMP];
@@ -792,7 +952,7 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order) /
 			      MINEVAL, MAXEVAL,
 			      NSTART, NINCREASE,
 			      &neval, &fail, integral, error, prob);
-	*/     
+              */     
 	     
 	      Vegas(NDIM, NCOMP, fp_real, USERDATA,
 		    EPSREL, EPSABS, VERBOSE, SEED,
@@ -802,53 +962,53 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order) /
 
 
           
-             // printf("VEGAS RESULT:\tneval %d\tfail %d\n",
+              // printf("VEGAS RESULT:\tneval %d\tfail %d\n",
               
-                for( comp = 0; comp < NCOMP; ++comp )
-                printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
-                       integral_real[comp], error[comp], prob[comp]);
-                       
-                /*   TEMPORARY no IMAGE PART
-                       	      Vegas(NDIM, NCOMP, fp_imag, USERDATA,
-		    EPSREL, EPSABS, VERBOSE, SEED,
-                    MINEVAL, MAXEVAL, 
-		    NSTART, NINCREASE, NBATCH, GRIDNO, STATEFILE,
-		    &neval, &fail, integral_imag, error, prob);
-		                  for( comp = 0; comp < NCOMP; ++comp )
-                printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
-                       integral_imag[comp], error[comp], prob[comp]);
-                */
-
-            
-              /*
-               printf("\n-------------------- Suave test real--------------------\n");
-               
-                 Suave(NDIM, NCOMP, fp_real, USERDATA,
-                     EPSREL, EPSABS, VERBOSE | LAST, SEED,
-                         MINEVAL, MAXEVAL, NNEW, FLATNESS,
-                             &nregions, &neval, &fail, integral_real, error, prob);
-                             
-                               printf("SUAVE RESULT:\tnregions %d\tneval %d\tfail %d\n",
-                                   nregions, neval, fail);
-                                   
               for( comp = 0; comp < NCOMP; ++comp )
                 printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
                        integral_real[comp], error[comp], prob[comp]);
+                       
+              /*   TEMPORARY no IMAGE PART
+                   Vegas(NDIM, NCOMP, fp_imag, USERDATA,
+                   EPSREL, EPSABS, VERBOSE, SEED,
+                   MINEVAL, MAXEVAL, 
+                   NSTART, NINCREASE, NBATCH, GRIDNO, STATEFILE,
+                   &neval, &fail, integral_imag, error, prob);
+                   for( comp = 0; comp < NCOMP; ++comp )
+                   printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
+                   integral_imag[comp], error[comp], prob[comp]);
+              */
 
-
-               printf("\n-------------------- Suave test imag--------------------\n");
+            
+              /*
+                printf("\n-------------------- Suave test real--------------------\n");
                
-                 Suave(NDIM, NCOMP, fp_imag, USERDATA,
-                     EPSREL, EPSABS, VERBOSE | LAST, SEED,
-                         MINEVAL, MAXEVAL, NNEW, FLATNESS,
-                             &nregions, &neval, &fail, integral_imag, error, prob);
+                Suave(NDIM, NCOMP, fp_real, USERDATA,
+                EPSREL, EPSABS, VERBOSE | LAST, SEED,
+                MINEVAL, MAXEVAL, NNEW, FLATNESS,
+                &nregions, &neval, &fail, integral_real, error, prob);
                              
-                               printf("SUAVE RESULT:\tnregions %d\tneval %d\tfail %d\n",
-                                   nregions, neval, fail);*/
+                printf("SUAVE RESULT:\tnregions %d\tneval %d\tfail %d\n",
+                nregions, neval, fail);
+                                   
+                for( comp = 0; comp < NCOMP; ++comp )
+                printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
+                integral_real[comp], error[comp], prob[comp]);
+
+
+                printf("\n-------------------- Suave test imag--------------------\n");
+               
+                Suave(NDIM, NCOMP, fp_imag, USERDATA,
+                EPSREL, EPSABS, VERBOSE | LAST, SEED,
+                MINEVAL, MAXEVAL, NNEW, FLATNESS,
+                &nregions, &neval, &fail, integral_imag, error, prob);
+                             
+                printf("SUAVE RESULT:\tnregions %d\tneval %d\tfail %d\n",
+                nregions, neval, fail);*/
                                    
              
               // ----------------------------------- Vegas integration-------------------------              
-                                  vegas_ex+=pow(get_symbol("eps"),i)*(integral_real[0]);//+I*integral_imag[0]);
+              vegas_ex+=pow(get_symbol("eps"),i)*(integral_real[0]);//+I*integral_imag[0]);
             }
           out_ex = vegas_ex;
         }

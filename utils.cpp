@@ -384,7 +384,7 @@ for(lst::const_iterator it = pole_list.begin(); it != pole_list.end(); ++it)
       // assert(false);
       std::pair<ex,ex> ret_pair;
       if(wi == w_list.rbegin())  //  epsilon minimum
-        ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,1000);
+        ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,den);
       else  
         ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,den);
 

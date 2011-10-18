@@ -189,8 +189,8 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
         //                assert(false);
 
 	//        MBlst int_lst = MBcontinue(MBlbl_int);
-        MBtree inttr = MBcontinue_tree(MBlbl_int);
-        assert(false);
+        // MBtree inttr = MBcontinue_tree(MBlbl_int);
+        //        assert(false);
 	int_lst = MBcontinue(MBlbl_int);
         cout<<int_lst.size()<<endl;
         BOOST_FOREACH(MBintegral mbint, int_lst)
@@ -205,7 +205,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
         cout<<"Integrals "<<int_lst.size()<<endl;
 cout<< endl<<" Next step?  [Y/n]: ";
   
-  in_ch;
+
   std::cin>>in_ch;
   if(in_ch=='n')  exit(0);//assert(false);
         /*

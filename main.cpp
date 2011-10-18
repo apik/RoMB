@@ -43,11 +43,15 @@ try
   // works!!!
   //        RoMB_loop_by_loop sunset(lst(k,l), lst(pow(k,2)-1,pow(p-k-l,2)-4,pow(l,2)-5),lst(pow(p,2)==s),lst(1,1,1));
       
-    //      RoMB_loop_by_loop sunset(lst(k,l), lst(pow(k,2)-ms,pow(p-k-l,2)-ms,pow(l,2)-ms),lst(pow(p,2)==s),lst(1,1,1));
-    //       sunset.integrate(lst(ms==1,m2s==1,m3s==1,s==0));
+    // RoMB_loop_by_loop sunset(lst(k,l), lst(pow(k,2)-m1s,pow(p-k-l,2)-m2s,pow(l,2)-m3s),lst(pow(p,2)==s),lst(1,1,1));
+          //          sunset.integrate(lst(m1s==1,m2s==1,m3s==1,s==0),0);
+
+      //     bubble sunset 2=loop
+               RoMB_loop_by_loop sunset_bub(lst(k,l), lst(pow(k,2)-ms,pow(p-k-l,2)-ms,pow(l,2)-ms),lst(pow(p,2)==0),lst(1,1,1));
+                    sunset_bub.integrate(lst(ms==2,m2s==1,m3s==1,s==0),0);
       
-      //        RoMB_loop_by_loop t2loop(lst(k,l), lst(pow(k,2),pow(p+k,2),pow(p+k+l,2),pow(k+l,2),pow(l,2)),lst(pow(p,2)==s),lst(1,1,1,1,1));
-      // t2loop.integrate(lst(s==1));
+    //   RoMB_loop_by_loop t2loop(lst(k,l), lst(pow(k,2),pow(p+k,2),pow(p+k+l,2),pow(k+l,2),pow(l,2)),lst(pow(p,2)==s),lst(1,1,1,1,1));
+    //         t2loop.integrate(lst(s==-1),0);
     
     /*     RoMB_loop_by_loop bubble_five_loop(lst(k,l1,l2,l3,l4), 
         lst(pow(k,2)-ms,pow(l1,2)-ms,pow(l2,2)-ms,pow(l3,2)-ms,pow(l4,2)-ms,pow(k+l1,2)-ms,pow(k+l1+l2,2)-ms,pow(k+l1+l2+l3,2)-ms,pow(k+l1+l2+l3+l4,2)-ms,pow(k+l1+l2+l3,2)-ms,pow(k+l1+l2,2)-ms,pow(k+l1,2)-ms),
@@ -62,8 +66,8 @@ try
     //    B0_1loop_lbl.integrate(lst(s==-1,m1s==1,m2s==1));
 
   //MB works???
-                             RoMB_loop_by_loop C0_1loop_lbl(lst(k),lst(pow(k,2),pow(k+p1,2)-m1s,pow(k-p2,2)-m2s),lst(ms==1,pow(p1,2)==m1s,pow(p2,2)==m2s,p1*p2==(s-m1s-m2s)/2),lst(1,1,1));
-      C0_1loop_lbl.integrate(lst(m1s==1,m2s==1,s==-100));
+    //                            RoMB_loop_by_loop C0_1loop_lbl(lst(k),lst(pow(k,2),pow(k+p1,2)-m1s,pow(k-p2,2)-m2s),lst(ms==1,pow(p1,2)==m1s,pow(p2,2)==m2s,p1*p2==(s-m1s-m2s)/2),lst(1,1,1));
+    //      C0_1loop_lbl.integrate(lst(m1s==1,m2s==1,s==-100));
 
 
   //MB works???
@@ -88,8 +92,8 @@ try
     */
 
 
-    //    RoMB_loop_by_loop tad4(lst(l3, l4, l2, l1),lst(pow(l1,2)- ms,pow(l2 + l1,2)- ms,pow(l2 + l3 + l4,2)- ms,pow(l4,2),pow(l3,2)),lst(),lst(1,1,1,1,1));
-      //  tad4.integrate(lst(ms == 1));
+    //     RoMB_loop_by_loop tad4(lst(l3, l4, l2, l1),lst(pow(l1,2)- ms,pow(l2 + l1,2)- ms,pow(l2 + l3 + l4,2)- ms,pow(l4,2),pow(l3,2)),lst(),lst(1,1,1,1,1));
+    //      tad4.integrate(lst(ms == 1),0);
 
 
     
