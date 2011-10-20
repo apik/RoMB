@@ -75,7 +75,7 @@ LINK_DIRECTORIES( ${LINK_DIRECTORIES} ./cuba/ )
 
 #INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/ara )
 
-ADD_EXECUTABLE(romb main.cpp uf.cpp utils.cpp romb.cpp mbintegral.cpp collect_square.cpp romb_excompiler.cpp )
+ADD_EXECUTABLE(romb main.cpp uf.cpp utils.cpp romb.cpp constracc.cpp mbintegral.cpp collect_square.cpp romb_excompiler.cpp )
 TARGET_LINK_LIBRARIES(romb cuba ginac glpk ${LEMON_LIBRARIES})
 
 ## This tells cmake to install 'lemon-project' to $PREFIX/bin when

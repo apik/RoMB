@@ -182,6 +182,8 @@ std::pair<ex,ex>  hyper_cube_den(lst,lst, ex);
 
 // Start point with different countours
 exmap start_point_diff_w(lst,lst);
+// test if system solvable
+bool zero_volume(const lst&,const lst&);
 
 /*
   OPERATORS

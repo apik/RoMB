@@ -2,13 +2,15 @@
 #include "mbintegral.h"
 #include "utils.h"
 #include "constants.h"
+#include "constracc.h"
+#include "tree_util.hh"
 /**
  *
  *  Construction from F, U=1
  *
  */
 
-MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):tree_level(0) // lst nu is a list of powers of propagators and l is a number of loops
+MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):tree_level(0),res_pole(0),opt_flag(false) // lst nu is a list of powers of propagators and l is a number of loops
 {
   try
     {
@@ -82,7 +84,7 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
       cout<<">>> Found "<<coe_l.nops()<<" full squares in F polynomial"<<endl;
       cout<< coe_l<<" * "<<xsq_l<<endl;
       cout<<" F qad " <<F<<endl;
-        
+      n_0  = n_0 - F_col_sq.expand().nops() + F_col_sq.collect(x_lst,true).nops();
       //working with F-term \Gamma(\nu-L*D/2) contractedx
       ex w_sum = 0;  //F-term generates only integrations in W
 
@@ -495,6 +497,7 @@ MBintegral MBintegral::res(relational w_relation,ex pole,relational new_eps)
 
       //        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),new_gamma_pole_list,res_loran,new_w_current,new_eps);
       MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),res_loran,new_w_current,new_eps,tree_level+1);
+      resINT.set_respole(pole); // save gamma argument, generated residue
       return resINT;
     }catch(std::exception &p)
     {
@@ -745,12 +748,13 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
       rootint.barnes1();
       rootint.barnes2();
 
-  
-
+      // accumulator for constraints
+        cout<<"start constrainta : "<<rootint.get_poles_set()<< " "<<rootint.get_w_eps_set()<<endl;
+       constr_acc ca(rootint.get_poles_set(),rootint.get_w_eps_set());
       // tree root creation 
       MBtree C;
       MBtree::iterator last_child_it,root_it;
-      last_child_it=root_it = C.insert(C.begin(), rootint);
+      last_child_it= C.insert(C.begin(), rootint);
       size_t children_added = 0;  
       do
         {
@@ -764,9 +768,9 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
           it = C.begin_leaf();
           it_end = C.end_leaf();
           cout<<"work"<<endl;
-          for(;it != it_end; ++it )
+          for(it = C.begin_leaf();it != it_end; ++it )
             {
-              if(C.depth(it) == C.max_depth())
+              if((C.depth(it) == C.max_depth() && children_added == 0) || (C.depth(it) == C.max_depth()-1 && children_added > 0) )
                 {
                   cout<<"Leaf depth "<<C.depth(it)<<" Max depth "<<C.max_depth()<<endl;
                   //   cout<<std::setw(15+it->get_level())<<std::right<<"shifted on "<<it->get_level()<<endl;
@@ -809,44 +813,25 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
                       for(int n = pole; dir*(F_eps0 - n) >= 0 && n <= 0; n += dir)
                         {
                           //        if( n < std::max(F_eps0,F_epsi))
-                          {
-                  
-                            // cout<<pit->subs(it->get_w()) <<endl;
-                            // test on epsilon existance
+                          
+			    
+			    // test on epsilon existance
                             if(pit->subs(it->get_w()).has(get_symbol("eps")))
                               {
                                 ex eps_prime = lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") );
-                                //                      BOOST_ASSERT_MSG( F_eps0 < F_epsi," Wrong direction");
-                                //       cout<<"solve"<<endl;
-                                // cout<<"F= "<<*pit<<endl;
-                                // cout<<"eps_i: "<<lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") )<<endl;
-                                // cout<<" Poles of Gamma on eps_i: "<<it->get_pole_lst().subs(it->get_w()).subs(get_symbol("eps")==eps_prime)<<endl;
-                                lst w_in_F  = has_w(*pit,it->get_w_lst());
+				lst w_in_F  = has_w(*pit,it->get_w_lst());
                                 if(w_in_F.nops()>0)
                                   {
+				    cout<<endl<<endl<<endl<<"ASDASDASDASDSD "<<*pit<<" "<<ca.test_single(pit->subs(get_symbol("eps") == 0))<<endl<<endl<<endl;
+
                                     cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
                                     BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
-                                    // cout<<lsolve(*pit==n,w_in_F.op(0))<<endl;
-                                    //   cout<<"sign(z) = "<<csgn(pit->coeff(w_in_F.op(0)))<<"     sign(F_i-F_0) = "<<csgn(F_epsi-F_eps0)<<endl;
-                      
-                                    //MBintegral newi(it->get_w_lst(),it->get_pole_lst(),it->get_expr(),it->get_w(),it->get_eps());
-                                    //      cout<<"NEW INT: "<< newi.get_expr()<<endl;
-                                    // cout<<"debug fepsi"
-                                    //   <<"1: "<<lsolve(*pit==n,w_in_F.op(0))<<endl
-                                    //   <<"2: "
-                                    //   <<endl;
-                                    // cout<<"BEFORE RESIDUE!: "<<it->get_w_lst()<<endl
-                                    //    <<it->get_expr()<<endl;
+                                    
                                     MBintegral res_int = it->res(w_in_F.op(w_in_F.nops()-1)==lsolve(*pit==n,w_in_F.op(w_in_F.nops()-1)),*pit,get_symbol("eps")==eps_prime);
                                     res_int.set_level(1+it->get_level());
-                                    //        cout<<"after RESIDUE!: "<<res_int.get_w_lst()<<endl
-                                    //   <<res_int.get_expr()<<endl;
-                                    //res_int.update_poles_from_ex();
-
-                                    //  cout<<"Storing RES_INT with eps_prime = " <<eps_prime<<"  "<<res_int.get_eps().rhs()<<endl;
-                                    res_int*=(2*Pi*I*csgn(pit->coeff(w_in_F.op(w_in_F.nops()-1)))*csgn(F_epsi-F_eps0));
-                                    // cout<<"RES EXPR:  "<<res_int.get_expr()<<endl;
-                                    res_int.barnes1();
+				    res_int*=(2*Pi*I*csgn(pit->coeff(w_in_F.op(w_in_F.nops()-1)))*csgn(F_epsi-F_eps0));
+				    if(ca.test_single(pit->subs(get_symbol("eps") == 0)))res_int.set_optimizable(true);
+				    res_int.barnes1();
                                     res_int.barnes2();
                                     //R.push_back(res_int);
                                     last_child_it = C.append_child(it,res_int);
@@ -856,7 +841,7 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
                               }
                             else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no eps dependence in pole");
                             //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
-                          }// if n>max
+                          // if n>max
                         }
 
                     }
@@ -866,7 +851,7 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
         }
       while(children_added > 0);
       cout<<"Continue get "<<C.size()<<" integrals"<<endl;
-  
+      // kptree::print_tree_bracketed(C);
 
       return C;
     }catch(std::exception &p)

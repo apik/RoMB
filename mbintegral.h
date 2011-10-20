@@ -81,6 +81,8 @@ class MBintegral
   exmap w_current;
   relational eps_current;
   int tree_level;
+  ex res_pole;
+  bool opt_flag;
 public:
   typedef std::list<double>::iterator gamma_iterator;
   //  typedef lst::const_iterator pole_iterator;
@@ -96,6 +98,22 @@ public:
     return std::make_pair(w_lst.begin(),w_lst.end());
   }
 
+  void set_respole(const ex& setr)
+  {
+    res_pole = setr;
+  }
+  ex get_respole()
+  {
+    return res_pole;
+  }
+  void set_optimizable(const bool& op)
+  {
+    opt_flag = op;
+  }
+  bool get_optimizable()
+  {
+    return opt_flag;
+  }
   lst poles_with_eps();
  
   int get_level()
@@ -130,6 +148,13 @@ public:
   exset get_w_set()
   {
     return w_lst;
+  }
+
+  exset get_w_eps_set()
+  {
+    exset new_set(w_lst);
+    new_set.insert(get_symbol("eps"));
+    return new_set;
   }
 
   exmap new_point();
@@ -243,7 +268,7 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
     {
     }
   // Constructor for Residue
- MBintegral(lst w_lst_in,ex full_int_expr_in,exmap w_current_in,relational eps_in,size_t tree_lvl):full_int_expr(full_int_expr_in),w_current(w_current_in),eps_current(eps_in),tree_level(tree_lvl)
+ MBintegral(lst w_lst_in,ex full_int_expr_in,exmap w_current_in,relational eps_in,size_t tree_lvl):full_int_expr(full_int_expr_in),w_current(w_current_in),eps_current(eps_in),tree_level(tree_lvl),res_pole(0),opt_flag(false)
   {
     w_lst = lst2set(w_lst_in);
     //update_poles_from_ex();
@@ -252,7 +277,7 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
   }
   
   // constructor for two MBintegrals concatination
-  MBintegral(lst w_lst_in,lst pole_lst_in,ex full_int_expr_in):full_int_expr(full_int_expr_in),tree_level(0)
+  MBintegral(lst w_lst_in,lst pole_lst_in,ex full_int_expr_in):full_int_expr(full_int_expr_in),tree_level(0),res_pole(0),opt_flag(false)
   {
     w_lst = lst2set(w_lst_in);
     gamma_poles = lst2set(pole_lst_in);

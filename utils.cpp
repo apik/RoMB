@@ -246,6 +246,8 @@ ex ginac_set_d(double val)
 
 std::pair<ex,ex>  hyper_cube_den(lst pole_list,lst w_list, ex den)
 {
+try
+  {
     using namespace lemon;
     GlpkLp lp;
     exhashmap<LpBase::Col> col_map;
@@ -274,7 +276,7 @@ std::pair<ex,ex>  hyper_cube_den(lst pole_list,lst w_list, ex den)
         //cout<<"Ostatok "<<tmp_expr<<endl;
         if(is_a<numeric>(tmp_expr))
           lp.addRow(-ex_to<numeric>(tmp_expr).to_double(),constr_expr,Lp::INF);
-        else throw std::logic_error("Lower bound is not a numeric");
+        else throw std::logic_error(std::string("Lower bound is not a numeric"));
       }
 
     double l_bound,r_bound;
@@ -318,20 +320,26 @@ std::pair<ex,ex>  hyper_cube_den(lst pole_list,lst w_list, ex den)
         //        double x   = die();                      // simulate rolling a die
         // new edition in center of interval no random
         //if((l_bound - trunc(l_bound)) < 10e-8) lbs = trunc(l_bound);
-        lbs = ginac_set_d(l_bound);
+        //lbs = ginac_set_d(l_bound);
+	lbs = l_bound;
         //if((r_bound - trunc(r_bound)) < 10e-8) ubs = trunc(r_bound);
-         ubs = ginac_set_d(r_bound);
-        cout<<"ginac_set_d "<<ginac_set_d(l_bound)<<" "<<ginac_set_d(r_bound)<<endl;
+	//ubs = ginac_set_d(r_bound);
+	ubs = r_bound;
+        //cout<<"ginac_set_d "<<ginac_set_d(l_bound)<<" "<<ginac_set_d(r_bound)<<endl;
         ex x_half = lbs*(1- pow(den,-1)) + ubs*pow(den,-1);
         //        double real_half = (r_bound + l_bound)/2.0;
         //        cout<<"Point "<<die()<<"   "<<x<<endl;
         return std::make_pair(*w_list.begin(),x_half);
+  }catch(std::exception &p)
+    {
+      throw std::logic_error(std::string("In function \"hyper_cube_den\":\n |___> ")+p.what());
+    }
 }
 
 
 exmap start_point_diff_w(lst pole_list,lst w_list)
 {
-  
+  try{
   /* 
      test part x_0= (A'*A)^(-1)*A'*b 
   
@@ -402,7 +410,68 @@ for(lst::const_iterator it = pole_list.begin(); it != pole_list.end(); ++it)
   
   cout<<"START POINT SUBS  "<<subs_map<<endl;
   return subs_map;
+  }catch(std::exception &p)
+    {
+      throw std::logic_error(std::string("In function \"start_point_diff_w\":\n |___> ")+p.what());
+    }
 }
 
 
 
+bool zero_volume(const lst& pole_list,const lst& w_list)
+{
+  try{
+  using namespace lemon;
+  GlpkLp lp;
+  exhashmap<LpBase::Col> col_map;
+  for(lst::const_iterator wi = w_list.begin();wi!=w_list.end();++wi)
+    {
+      col_map[*wi] = lp.addCol();
+    }
+  for(lst::const_iterator pit = pole_list.begin();pit!= pole_list.end();++pit)
+    {
+      ex tmp_expr = *pit;
+      Lp::Expr constr_expr;
+      for(lst::const_iterator wi = w_list.begin();wi!=w_list.end();++wi)
+	{
+	  
+	  ex wi_coeff = tmp_expr.coeff(*wi);
+	  tmp_expr-=(*wi)*wi_coeff;
+	  if(is_a<numeric>(wi_coeff))
+	    constr_expr+=ex_to<numeric>(wi_coeff).to_double()*col_map[*wi];
+	  else throw std::logic_error(std::string("Non numeric coefficient in pole term. "));
+	}
+      if(is_a<numeric>(tmp_expr))
+	lp.addRow(-ex_to<numeric>(tmp_expr).to_double(),constr_expr,Lp::INF);
+      else 
+	{
+	  cout<< tmp_expr<<endl;
+	  throw std::logic_error(std::string("Lower bound is not a numeric"));
+	}
+    }
+    
+  double l_bound,u_bound;
+  for(lst::const_iterator wi = w_list.begin();wi!=w_list.end();++wi)
+    {
+      lp.min();
+      lp.obj(col_map[*wi]);
+      lp.solve();
+      if (lp.primalType() == Lp::OPTIMAL) 
+	l_bound = lp.primal();
+      else return true;
+      lp.max();
+      lp.obj(col_map[*wi]);
+      lp.solve();
+      if (lp.primalType() == Lp::OPTIMAL) 
+	u_bound = lp.primal();
+      else return true;
+      cout<<"ub: "<<u_bound<<" lb: "<<l_bound<<endl;
+      if((u_bound - l_bound) <= 0)
+        return true;
+    }
+  return false;
+  }catch(std::exception &p)
+    {
+      throw std::logic_error(std::string("In function \"zero_volume\":\n |___> ")+p.what());
+    }
+}
