@@ -52,7 +52,7 @@ UFXmap UF(lst k_lst,lst p_lst,lst subs_lst, unsigned int displacement )
           //cout<<(*itr)*(*itc)<<"M("<<distance( k_lst.begin(),itr)<<","<<distance( k_lst.begin(),itc)<<") coeff "<<fprop.coeff((*itr),1).coeff((*itc),1)<<endl;
           sDtmp -= (*itr)*(*itc)*fprop.coeff((*itr),1).coeff((*itc),1);
         }
-  //cout<<"M: "<<M<<endl;
+  cout<<"M: "<<M<<endl;
   sDtmp = sDtmp.expand();
   //cout<<"Expr linear on external momentum: "<<sDtmp.expand()<<endl;
 

@@ -23,16 +23,16 @@ bool constr_acc::test_single(const ex& constr)
 {
   lst add_lst(constraints);
   add_lst.append(constr);
-  return !zero_volume(add_lst,w_lst));
+  return !zero_volume(add_lst,w_lst);
 }
 size_t constr_acc::add_lst(lst& constr)
 {
 }
 
-bool test_lst(lst& cl)
+bool constr_acc::test_lst(lst& cl)
 {
   lst add_lst(constraints);
   for(lst::const_iterator lit = cl.begin(); lit != cl.end(); ++lit)
     add_lst.append(*lit);
-  return !zero_volume(add_lst,w_lst));
+  return !zero_volume(add_lst,w_lst);
 }

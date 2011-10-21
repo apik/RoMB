@@ -65,8 +65,22 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 		}
 	    }
             
+          ex mul_int(1);
+          //          exmap mul_subs_map;
+          lst coe_prop_lst;
+          for(lst::const_iterator kkit = P_with_k_lst.begin(); kkit != P_with_k_lst.end(); ++kkit)
+            {
+              if(kkit->expand().coeff(*kit,2) <0 )
+                {
+                  coe_prop_lst.append((-1)*(*kkit));
+                  mul_int *= pow(-1,prop_pow_map[*kkit]);
+                }
+              else
+                coe_prop_lst.append(*kkit);
+            }
 	  cout<< "Set wo k_i "<<input_prop_set<<endl;
 	  cout<<" PWKlst "<<P_with_k_lst<<endl;
+          cout<< " coe: "<<coe_prop_lst<<endl;
 	  /*
 	    lexi sort of input prop list, and it's modification
 	  */            
@@ -76,9 +90,9 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 	  // subs only in F for last momentum
 	  UFXmap inUFmap;
 	  if(boost::next(kit) == k_lst.end())
-            inUFmap = UF(lst(*kit),P_with_k_lst,subs_lst,displacement_x);
+            inUFmap = UF(lst(*kit),coe_prop_lst,subs_lst,displacement_x);
 	  else
-            inUFmap = UF(lst(*kit),P_with_k_lst,subs_lst,displacement_x); // no substitution!!!
+            inUFmap = UF(lst(*kit),coe_prop_lst,subs_lst,displacement_x); // no substitution!!!
 	  displacement_x +=fusion::at_key<UFX::xlst>(inUFmap).nops(); 
 
 	  lst nu_into;
@@ -91,7 +105,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 							     ),nu_into,1,displacement_w);
 	  displacement_w+=Uint.get_w_lst().nops();
 	  cout<<"ui9nt eps : "<<Uint.get_expr()<<endl;
-
+          Uint *= mul_int;
 	  /*
 	    expression to mul root integral
 	    where to subs prop(k_prev)==1
@@ -174,7 +188,12 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
             
             
 	}
+
+
       cout<<"Constructed integral with:"<<endl;
+      cout<<"Poles: "<<MBlbl_int.get_poles_set()<<endl;
+      MBlbl_int.set_poles_set(MBlbl_int.poles_from_ex(MBlbl_int.get_expr()));
+    cout<<"Poles true: "<<MBlbl_int.poles_from_ex(MBlbl_int.get_expr())<<endl;
       cout<<"Poles: "<<MBlbl_int.get_poles_set()<<endl;
       cout<<"W's : "<<MBlbl_int.get_w_set()<<endl;
       cout<<"Expr : "<<MBlbl_int.get_expr()<<endl;
@@ -200,12 +219,13 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 	      last_it  = bfit;
 	      //inttr.erase(bfit);
 	      cout<< inttr.size()<<endl;
-	      break;   
+	      //break;   
 		
 	      //opt_sum +=inttr.size(bfit);
 	    }
 	}
-      MBtree::sibling_iterator sit_gen(last_it);
+      /*     
+ MBtree::sibling_iterator sit_gen(last_it);
       // loop over neighbours
       std::vector<MBtree::iterator> v_it;
       for(MBtree::iterator sit = sit_gen.range_first(); sit != sit_gen.range_last(); ++ sit)
@@ -217,23 +237,23 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 	}
 
       //combination code
-      const int r = 3;//*****************************************************
-      const int n = 10;//****************************************************
-      std::vector<int> v_int(n);//*******************************************
-      for (int i = 0; i < n; ++i) { v_int[i] = i; }//************************
-      int N = 0;//***********************************************************
-      do {//*****************************************************************
-	++N;//***************************************************************
-	if (N < 10 || N > 117) {//*******************************************
-	  std::cout << "[ " << v_int[0];//***********************************
-	  for (int j = 1; j < r; ++j) { std::cout << ", " << v_int[j]; }//***
-	  std::cout << " ]" << std::endl;//**********************************
+      const int r = 3;
+      const int n = 10;
+      std::vector<int> v_int(n);
+      for (int i = 0; i < n; ++i) { v_int[i] = i; }
+      int N = 0;
+      do {
+	++N;
+	if (N < 10 || N > 117) {
+	  std::cout << "[ " << v_int[0];
+	  for (int j = 1; j < r; ++j) { std::cout << ", " << v_int[j]; }
+	  std::cout << " ]" << std::endl;
 	} else if (N == 10) {
 	  std::cout << "  . . ." << std::endl;
 	}
       } while (next_combination(v_int.begin(), v_int.begin() + r, v_int.end()));
       // end of combination code
-
+      */
       cout<< "Min int: "<<inttr.size()-opt_sum<<endl;
       int_lst.assign(inttr.begin(),inttr.end());
       //exit(5);//assert(false);
