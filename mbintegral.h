@@ -140,7 +140,10 @@ public:
   {
     return gamma_poles;
   }
- 
+  void set_poles_set(const exset& inset)
+  {
+    gamma_poles = inset;
+  } 
   lst get_w_lst()
   {
     return set2lst(w_lst);

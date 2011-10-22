@@ -3,7 +3,7 @@
 #include "utils.h"
 #include "constants.h"
 #include "constracc.h"
-#include "tree_util.hh"
+//#include "tree_util.hh"
 /**
  *
  *  Construction from F, U=1
@@ -305,6 +305,8 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
           //        cout<<"New gamma list:"<<endl<<get_gamma_poles()<<endl;
           full_int_expr = coeff;
           cout<<w_lst<<endl;
+
+          gamma_poles = poles_from_ex(full_int_expr);
         }
 
       /*********************************
@@ -429,6 +431,7 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
           //        cout<<"New gamma list:"<<endl<<get_gamma_poles()<<endl;
           full_int_expr = coeff;
           cout<<w_lst<<endl;
+          gamma_poles = poles_from_ex(full_int_expr);
         }// no collect squares part           
     }catch(std::exception &p)
     {
@@ -522,11 +525,11 @@ lst MBintegral::poles_with_eps()
 */
 exset MBintegral::poles_from_ex(ex ie_)
 {
-  ex ie = ie_.numer();
+  ex ie = normal(ie_).numer();
   exset gammaset,psiset,psi2set;
-  full_int_expr.find(tgamma(wild()),gammaset);
-  full_int_expr.find(psi(wild()),psiset);
-  full_int_expr.find(psi(wild(),wild(1)),psi2set);
+ ie.find(tgamma(wild()),gammaset);
+  ie.find(psi(wild()),psiset);
+  ie.find(psi(wild(),wild(1)),psi2set);
 
   exset poles_set;
   BOOST_FOREACH(ex gex,gammaset)
@@ -825,11 +828,25 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
 				    cout<<endl<<endl<<endl<<"ASDASDASDASDSD "<<*pit<<" "<<ca.test_single(pit->subs(get_symbol("eps") == 0))<<endl<<endl<<endl;
 
                                     cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
-                                    BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
+                                    BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>=abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
+                                    // decide what var to get res
+                                    ex var_to_get_res = 0;
+                                    for(lst::const_iterator vgit = w_in_F.begin(); vgit != w_in_F.end();++vgit)
+                                      {
+                                        if(pit->coeff(*vgit,1) == 1)
+                                          {
+                                            var_to_get_res = *vgit;
+                                            break;
+                                          }
+                                        if(pit->coeff(*vgit,1) == -1)
+                                            var_to_get_res = *vgit;
+                                      }
+                                    if( var_to_get_res ==0) var_to_get_res = w_in_F.op(w_in_F.nops()-1);
                                     
-                                    MBintegral res_int = it->res(w_in_F.op(w_in_F.nops()-1)==lsolve(*pit==n,w_in_F.op(w_in_F.nops()-1)),*pit,get_symbol("eps")==eps_prime);
+
+                                    MBintegral res_int = it->res(var_to_get_res ==lsolve(*pit==n,var_to_get_res),*pit,get_symbol("eps")==eps_prime);
                                     res_int.set_level(1+it->get_level());
-				    res_int*=(2*Pi*I*csgn(pit->coeff(w_in_F.op(w_in_F.nops()-1)))*csgn(F_epsi-F_eps0));
+				    res_int*=(2*Pi*I*csgn(pit->coeff(var_to_get_res))*csgn(F_epsi-F_eps0));
 				    if(ca.test_single(pit->subs(get_symbol("eps") == 0)))res_int.set_optimizable(true);
 				    res_int.barnes1();
                                     res_int.barnes2();
