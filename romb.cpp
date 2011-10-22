@@ -1,19 +1,19 @@
 #include "romb.h"
 #include "utils.h"
-  /**
-   *
-   *  loop momentums,propagator expressions,
-   *  invariants substitutions,propagator powers,number of loops
-   *
-   \param k_lst loop momentums list
-   \param p_lst propagator expressions list
-   \param subs_lst invariants substitutions list
-   \param nu propagator powers list
-   \param l number of loops 
+/**
+ *
+ *  loop momentums,propagator expressions,
+ *  invariants substitutions,propagator powers,number of loops
+ *
+ \param k_lst loop momentums list
+ \param p_lst propagator expressions list
+ \param subs_lst invariants substitutions list
+ \param nu propagator powers list
+ \param l number of loops 
    
-   \return 
-   *
-  */
+ \return 
+ *
+ */
 RoMB_loop_by_loop:: RoMB_loop_by_loop(
 				      lst k_lst,
 				      lst p_lst,
