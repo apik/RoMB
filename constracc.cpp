@@ -1,12 +1,19 @@
 #include "constracc.h"
 #include "utils.h"
-constr_acc::constr_acc(lst constr_lst,lst w_lst_in) : constraints(constr_lst),w_lst(w_lst_in)
+/*constr_acc::constr_acc(lst constr_lst,lst w_lst_in) : constraints(constr_lst),w_lst(w_lst_in)
 {
 }
-constr_acc::constr_acc(exset constr_lst,exset w_lst_in)
+*/
+constr_acc::constr_acc(MBintegral::w_lst_type constr_lst,MBintegral::w_lst_type w_lst_in)
 {
-  constraints = set2lst(constr_lst);
-  w_lst = set2lst(w_lst_in);
+  BOOST_FOREACH(ex ce,constr_lst)
+    {
+      constraints.append(ce);
+    }
+  BOOST_FOREACH(ex we,w_lst_in)
+    {
+      w_lst.append(we);
+    }
 }
 bool constr_acc::add_single(const ex& constr)
 {

@@ -103,7 +103,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 			  fusion::make_map<UFX::F,UFX::xlst>(fusion::at_key<UFX::F>(inUFmap),
 							     fusion::at_key<UFX::xlst>(inUFmap)
 							     ),nu_into,1,displacement_w);
-	  displacement_w+=Uint.get_w_lst().nops();
+	  displacement_w+=Uint.w_size();
 	  cout<<"ui9nt eps : "<<Uint.get_expr()<<endl;
           Uint *= mul_int;
 	  /*
@@ -189,13 +189,13 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
             
 	}
 
-
+      MBlbl_int.fix_inv();
       cout<<"Constructed integral with:"<<endl;
-      cout<<"Poles: "<<MBlbl_int.get_poles_set()<<endl;
-      MBlbl_int.set_poles_set(MBlbl_int.poles_from_ex(MBlbl_int.get_expr()));
+      //cout<<"Poles: "<<MBlbl_int.get_poles_set()<<endl;
+      //MBlbl_int.set_poles_set(MBlbl_int.poles_from_ex(MBlbl_int.get_expr()));
     cout<<"Poles true: "<<MBlbl_int.poles_from_ex(MBlbl_int.get_expr())<<endl;
-      cout<<"Poles: "<<MBlbl_int.get_poles_set()<<endl;
-      cout<<"W's : "<<MBlbl_int.get_w_set()<<endl;
+    cout<<"Poles: "<<MBlbl_int.get_poles()<<endl;
+    cout<<"W's : "<<MBlbl_int.get_w_lst()<<endl;
       cout<<"Expr : "<<MBlbl_int.get_expr()<<endl;
 
       cout<< endl<<" Ready for MBcontinue?  [Y/n]: ";

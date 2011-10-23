@@ -70,8 +70,6 @@ exset lst2set(const lst & );
 
 
 
-lst has_w(ex ,lst );
-
 // function test exmap is suitable solution of system of inequalities
 bool interior_point(lst , exmap );
 
