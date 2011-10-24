@@ -15,4 +15,7 @@ class constr_acc
   size_t add_lst(lst&);
   bool test_lst(lst& cl);
 };
+// function test exmap is suitable solution of system of inequalities
+bool interior_point(MBintegral::p_lst_type , exmap );
+
 #endif // __CONSTRACC_H__

@@ -53,6 +53,7 @@
 
 #include "romb_excompiler.h"
 #include "collect_square.h"
+
 //#include "sim.h"
 #include <cuba.h>
 
@@ -69,9 +70,6 @@ lst set2lst(const exset & );
 exset lst2set(const lst & );
 
 
-
-// function test exmap is suitable solution of system of inequalities
-bool interior_point(lst , exmap );
 
 /***********************************************************************
  *  NAME

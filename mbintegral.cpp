@@ -23,6 +23,7 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
       ex F = (fusion::at_key<UFX::F>(fx_in)).expand();///< distributed polynom factorizing X(i)X(j)*(...)
      
       ex F_pow = (N-l*(2-get_symbol("eps")));
+      ex U_pow = N - (l+1)*(2-get_symbol("eps"));
       exset f_set;
       if(F.find(wild(1)*wild(1)+2*wild(1)*wild(2)+wild(2)*wild(2), f_set))cout<< "HAVE square"<<endl;
       cout<<setw(30)<<std::internal<<"+++INTEGRAL PARAMETERS+++"<<endl;
@@ -45,7 +46,7 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
 
 		
       //    ex coeff = 1;                             // numerical coeeficient independent of X(j)
-      ex coeff = pow(exp(get_symbol("eps")*Euler),l);///pow(I*pow(Pi,2 - get_symbol("eps")),l);
+      ex coeff = pow(exp(get_symbol("eps")*Euler),l)*pow(-1,U_pow);///pow(I*pow(Pi,2 - get_symbol("eps")),l);
       // important if power = 0????
       for(lst::const_iterator nui = nu.begin();nui!=nu.end();++nui)
         coeff/=tgamma(*nui);
@@ -497,7 +498,9 @@ void MBintegral::fix_inv()
         }
       w_lst_for_comparision.push_back(get_symbol("eps"));
       comparator = new ex_is_lesseq_degrevlex(w_lst_for_comparision);
+      w_lst.unique();
       w_lst.sort(*comparator);
+      gamma_poles.unique();
       gamma_poles.sort(*comparator);
 }
 /*
@@ -528,21 +531,8 @@ MBintegral MBintegral::res(relational w_relation,ex pole,relational new_eps)
       // remove W-residue from w-list
       exvector cut_w_vec(w_lst.size()-1);
       std::remove_copy(w_lst.begin(),w_lst.end(),cut_w_vec.begin(),w_relation.lhs());
-      //        cout<<"removed "<<w_relation.lhs()<<"  in list "<<lst(cut_w_vec.begin(),cut_w_vec.end())<<endl;
       /*
-        lst new_gamma_pole_list;
-        for(exset::iterator it = gamma_poles.begin();it!=gamma_poles.end();++it)
-        if(*it != pole && has_w(it->subs(w_relation),w_lst).nops() > 0) new_gamma_pole_list.append(it->subs(w_relation));
-        cout<<"removed pole list  "<<pole.subs(w_relation)<<"  in list "<<new_gamma_pole_list<<endl;
-        // !!! IMPORTANT!!! no 2*pi*i multiplication and no sign multiplication 
-        */
-        
-      //        if(full_int_expr.denom().has(tgamma(pole))) assert(false);
-      // cout<<"  TAKING RES ON:  "<<full_int_expr<<endl;
-
-      //        cout<<"RES LORAN: "<< full_int_expr.series(w_relation,0).coeff(w_relation.lhs(),-1)<<endl;
-      /*
-        REsidue by Loran serties !!!!!
+        REsidue by Laurent series !!!!!
       */
       ex res_loran = full_int_expr.series(w_relation,0).coeff(w_relation.lhs(),-1);
       /*
@@ -554,11 +544,6 @@ MBintegral MBintegral::res(relational w_relation,ex pole,relational new_eps)
       //   cout<<" Not modif:  "<<new_w_current<<endl;
 
       new_w_current.erase(w_relation.lhs());
-      // cout<<" modif:  "<<new_w_current<<endl;
-      //        cout<<"CHECK:  "<<new_gamma_pole_list<<endl;
-      //        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),new_gamma_pole_list,new_no_gamma_part,new_w_current,new_eps);
-
-      //        MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),new_gamma_pole_list,res_loran,new_w_current,new_eps);
       MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),res_loran,new_w_current,new_eps,tree_level+1);
       resINT.set_respole(pole); // save gamma argument, generated residue
       return resINT;
@@ -765,7 +750,7 @@ exmap MBintegral::new_point()
   var_list.push_back(get_symbol("eps"));
   eps_w_current=start_point_diff_w(gamma_poles,var_list);
   // cout<<"Int: "<<  interior_point(set2lst(get_poles_set()),eps_w_current)<<endl;
-  BOOST_ASSERT_MSG(interior_point(set2lst(get_poles_set()),eps_w_current),"Not a convex polyhedron interior point");
+  BOOST_ASSERT_MSG(interior_point(gamma_poles,eps_w_current),"Not a convex polyhedron interior point");
     
   for(w_lst_type::const_iterator it = w_lst.begin();it!=w_lst.end();++it)
     w_current[*it] = it->subs(eps_w_current);
