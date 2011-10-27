@@ -47,6 +47,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
       unsigned int displacement_w = 0;
       for(lst::const_iterator kit = k_lst.begin(); kit != k_lst.end(); ++kit)
 	{
+
 	  cout<<"PROP_POW_MAP "<<prop_pow_map<<endl;
 	  /*
 	    temporary set of propagators, with all momentum,except deleted
@@ -65,12 +66,13 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 		}
 	    }
             
-          ex mul_int(1);
+          //          ex mul_int(1);
           //          exmap mul_subs_map;
+          /*
           lst coe_prop_lst;
           for(lst::const_iterator kkit = P_with_k_lst.begin(); kkit != P_with_k_lst.end(); ++kkit)
             {
-              if(kkit->expand().coeff(*kit,2) <0 )
+              if(kkit->expand().coeff(*kit,2) >0 )
                 {
                   coe_prop_lst.append((-1)*(*kkit));
                   mul_int *= pow(-1,prop_pow_map[*kkit]);
@@ -78,9 +80,10 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
               else
                 coe_prop_lst.append(*kkit);
             }
+          */
 	  cout<< "Set wo k_i "<<input_prop_set<<endl;
 	  cout<<" PWKlst "<<P_with_k_lst<<endl;
-          cout<< " coe: "<<coe_prop_lst<<endl;
+          //          cout<< " coe: "<<coe_prop_lst<<endl;
 	  /*
 	    lexi sort of input prop list, and it's modification
 	  */            
@@ -90,9 +93,9 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 	  // subs only in F for last momentum
 	  UFXmap inUFmap;
 	  if(boost::next(kit) == k_lst.end())
-            inUFmap = UF(lst(*kit),coe_prop_lst,subs_lst,displacement_x);
+            inUFmap = UF(lst(*kit),P_with_k_lst,subs_lst,displacement_x);
 	  else
-            inUFmap = UF(lst(*kit),coe_prop_lst,subs_lst,displacement_x); // no substitution!!!
+            inUFmap = UF(lst(*kit),P_with_k_lst,subs_lst,displacement_x); // no substitution!!!
 	  displacement_x +=fusion::at_key<UFX::xlst>(inUFmap).nops(); 
 
 	  lst nu_into;
@@ -104,8 +107,9 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 							     fusion::at_key<UFX::xlst>(inUFmap)
 							     ),nu_into,1,displacement_w);
 	  displacement_w+=Uint.w_size();
-	  cout<<"ui9nt eps : "<<Uint.get_expr()<<endl;
-          Uint *= mul_int;
+	  cout<<"ui9nt eps : "<<Uint.get_expr().subs(tgamma(wild()) == 1)<<endl;
+          // multiply on (-1)^(wrong prop power)
+          //  Uint *= mul_int;
 	  /*
 	    expression to mul root integral
 	    where to subs prop(k_prev)==1
@@ -120,67 +124,71 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 	      mom_find.find(pow(wild(1),wild(2)),found_prop);
 	      cout<<" is a mul  "<<found_prop<<endl;
 	      //                lst prop_pow_lst;
-	      if(boost::next(kit)!=k_lst.end())
+              //	      if(boost::next(kit)!=k_lst.end())
+              for(lst::const_iterator kplusit = kit;boost::next(kplusit) != k_lst.end(); ++kplusit)
 		{
-		  ex mom_to_find = *(boost::next(kit));
-		  BOOST_FOREACH(ex propex,found_prop)
+                 
+		  ex mom_to_find = *(boost::next(kplusit));
+		  BOOST_FOREACH(ex propex_c,found_prop)
 		    {
-		      cout<<"kit "<<mom_to_find<<" propex "<<propex.has(mom_to_find)<<endl;                        
+                      // cout<<"kit "<<mom_to_find<<" propex "<<propex.has(mom_to_find)<<endl;                        
                         
-		      if(propex.has(mom_to_find))
+		      if(propex_c.has(mom_to_find) && is_a<power>(propex_c))
 			{
+			  cout<<"before subs kex : "<<expr_k_to_subs_1.subs(tgamma(wild()) == 1)<<endl;
+			  expr_k_to_subs_1 = expr_k_to_subs_1.subs(propex_c == 1);
+			  cout<<"after subs kex : "<<expr_k_to_subs_1.subs(tgamma(wild()) == 1)<<endl;
+                          /*
+                            converting prop to form -p^2+m^2
+                          */
 
-			  cout<<"before subs kex : "<<expr_k_to_subs_1<<endl;
-			  expr_k_to_subs_1 = expr_k_to_subs_1.subs(propex == 1);
-			  cout<<"after subs kex : "<<expr_k_to_subs_1<<endl;
+                          ex p_power;
+                          ex p_expr;
+                          ex p_not_corr = ex_to<power>(propex_c).op(0);
+                          ex coeff_ksq = p_not_corr.expand().coeff(mom_to_find,2); // coeff infront of K^2
+                          if( coeff_ksq != -1 )
+                            {
+                              p_not_corr /=coeff_ksq;
+                              cout<<"koeff_ksq "<<coeff_ksq<<endl;
+                              MBlbl_int*= pow(coeff_ksq,ex_to<power>(propex_c).op(1));
+                              //                  propex = pow(p_not_corr,ex_to<power>(propex_c).op(1));
+                              p_power = ex_to<power>(propex_c).op(1);
+                              p_expr = p_not_corr.expand();
+                            }
+                          else
+                            {
+                              p_power = ex_to<power>(propex_c).op(1);
+                              p_expr = ex_to<power>(propex_c).op(0).expand();
+                            }
+                          
 			  /*
 			    Search for duplications in prop set
 			  */
 			  cout<<"where to find props: "<<input_prop_set<<endl;
 			  bool dupl_found = false;
 			  cout<< input_prop_set.size()<<endl;
-			  BOOST_FOREACH(ex pr, input_prop_set)
+                       
+                          if(prop_pow_map.count(p_expr) > 0)
+                            {
+                              BOOST_ASSERT_MSG(count(input_prop_set.begin(),input_prop_set.end(),p_expr) > 0,"Propagator not found in prop set");
+                              prop_pow_map[p_expr] -=p_power;
+                            }
+			  else
 			    {
-			      exmap repls;
-			      if(is_a<power>(propex))
-				{
-				  if((ex_to<power>(propex).op(0)).match(wild()*pr,repls))
-				    {
-				      cout<<"MATCH WILD "<<repls<<endl;
-				      ex mul_ex = pow(wild(),ex_to<power>(propex).op(1)).subs(repls);
-				      cout<<"MUL_EX: "<<mul_ex<<endl;
-				      expr_k_to_subs_1*=mul_ex;
-
-				      prop_pow_map[pr] += (-1)*ex_to<power>(propex).op(1);
-				      dupl_found = true;
-				    }
-				  if(ex_to<power>(propex).op(0).match(pr))
-				    {
-				      cout<<"add"<<endl;
-				      prop_pow_map[pr] += (-1)*ex_to<power>(propex).op(1);
-				      dupl_found = true;
-				    }
-				}
-			      else  throw std::logic_error(string("incompitible power"));
-			    }
-			  if(!dupl_found)
-			    {
-			      if(is_a<power>(propex))
-				input_prop_set.push_back(ex_to<power>(propex).op(0));
-			      else throw std::logic_error(string("incompitible power"));
-			      //prop_pow_lst.append(ex_to<power>(propex).op(1));
-			      prop_pow_map[ex_to<power>(propex).op(0)] = (-1)*ex_to<power>(propex).op(1);
-			    }
+                              prop_pow_map[p_expr] = (-1)*p_power;
+                              input_prop_set.push_back(p_expr);
+                            }
 			}
 		    }
 		  //cout<<"needed props "<<prop_pow_lst<<endl;
 		}
 	    }
-            
+          cout<<"ya tut"<<endl;            
 
 
 	  MBlbl_int*=expr_k_to_subs_1;
-
+          cout<<"ya tut"<<endl;            
+          //          cout<<"HAS INT :    "<<MBlbl_int.get_expr().subs(tgamma(wild(4)) == 0)<<endl;
 	  MBlbl_int+=Uint;
 	  cout<<"bad"<<endl;
 	  //            MBlbl_int.insert_w_lst(Uint.get_w_lst());

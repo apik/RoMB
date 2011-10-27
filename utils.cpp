@@ -381,3 +381,5 @@ bool zero_volume(const lst& pole_list,const lst& w_list)
       throw std::logic_error(std::string("In function \"zero_volume\":\n |___> ")+p.what());
     }
 }
+
+

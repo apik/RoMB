@@ -47,15 +47,20 @@ try
   //                 sunset.integrate(lst(m1s==1,m2s==1,m3s==1,s==0),0);
 
     //     bubble sunset 2=loop
-//                                            RoMB_loop_by_loop sunset_bub(lst(k,l), lst(pow(k,2)-ms,pow(p-k-l,2)-ms,pow(l,2)-ms),lst(pow(p,2)==0),lst(1,1,1));
-//                                               sunset_bub.integrate(lst(ms==1,m2s==1,m3s==1,s==0),0);
+    //RoMB_loop_by_loop sunset_bub(lst(k,l), lst(-pow(k,2)+ms,-pow(-k-l,2)+ms,-pow(l,2)+ms),lst(pow(p,2)==0),lst(1,1,1));
+    //sunset_bub.integrate(lst(ms==1,m2s==1,m3s==1,s==0),0);
 
     //     bubble sunset 3=loop
-    //         RoMB_loop_by_loop sunset_bub(lst(k,l,l1), lst(pow(k,2)-ms,pow(-k-l-l1,2)-ms,pow(l,2)-ms,pow(l1,2)-ms),lst(pow(p,2)==s),lst(1,1,1,1));
-    //               sunset_bub.integrate(lst(ms==1,m2s==1,m3s==1,s==0),0);
+    RoMB_loop_by_loop sunset_bub(lst(k,l1,l), lst(-pow(k,2)+ms,-pow(l,2)+ms,-pow(l1,2)+ms,-pow(p-k-l-l1,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1));
+    sunset_bub.integrate(lst(ms==1,m2s==1,m3s==1,s==0),-1);
+
+    //        RoMB_loop_by_loop sunset_bub_d(lst(l1,l2,l3), lst(-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l3,2)+ms,-pow(l1+l2,2)+ms,-pow(l1+l2+l3,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1));
+        //                   sunset_bub_d.integrate(lst(ms==1,m2s==1,m3s==1,s==0),-1);
+    //    RoMB_loop_by_loop sunset_bub_d(lst(l1,l2,l3), lst(-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l3,2)+ms,-pow(l1-l2,2)+ms,-pow(l2-l3,2)+ms,-pow(l3-l1,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1,1));
+    //                  sunset_bub_d.integrate(lst(ms==1,m2s==1,m3s==1,s==0),1);
 		  //bubble 4-loop
-        RoMB_loop_by_loop sunset_bub(lst(k,l1,l2,l3), lst(pow(k,2),pow(-k-l1-l2-l3,2)-ms,pow(l2,2)-ms,pow(l1,2)-ms,pow(l3,2)),lst(pow(p,2)==s),lst(1,1,1,1,1));
-                   sunset_bub.integrate(lst(ms==1,m2s==1,m3s==1,s==0),-2);
+    //    RoMB_loop_by_loop sunset_bub(lst(k,l1,l2,l3), lst(-pow(k,2)+ms,-pow(l2,2)+ms,-pow(l1,2)+ms,-pow(l3,2)+ms,-pow(k+l1+l2+l3,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1));
+    //               sunset_bub.integrate(lst(ms==1,m2s==1,m3s==1,s==0),-2);
       
     //                RoMB_loop_by_loop t2loop(lst(k,l), lst(pow(k,2)-ms,pow(p+k,2)-ms,pow(p+k+l,2)-ms,pow(k+l,2)-ms,pow(l,2)-ms),lst(pow(p,2)==s),lst(1,1,1,1,1));
     //    t2loop.integrate(lst(s==1,ms == 0),1);
@@ -99,8 +104,8 @@ try
     */
 
 
-    //         RoMB_loop_by_loop tad4(lst(l3, l4, l2, l1),lst(pow(l1,2)- ms,pow(l2 + l1,2)- ms,pow(l2 + l3 + l4,2)- ms,pow(l4,2),pow(l3,2)),lst(),lst(1,1,1,1,1));
-    //      tad4.integrate(lst(ms == 1),0);
+    //             RoMB_loop_by_loop tad4(lst(l1, l2, l3, l4),lst(pow(l1,2)- ms,pow(l2,2)- ms,pow(l3 ,2)- ms,pow(l4,2),pow(l1+l2+l3+l4,2)),lst(),lst(1,1,1,1,1));
+    //      tad4.integrate(lst(ms == 1),-2);
 
 
     
@@ -108,7 +113,7 @@ try
        Pentagon
      */
    
-    /*    RoMB_loop_by_loop pent(lst(k1),lst(pow(p1 + k1,2)- ms,pow(p1 + p5 + k1,2),
+    /*        RoMB_loop_by_loop pent(lst(k1),lst(pow(p1 + k1,2)- ms,pow(p1 + p5 + k1,2),
                                         pow(p1 + p5 + p4 + k1,2)- ms,pow(p1 + p5 + p4 + p3 + k1,2)- ms,
                                         pow(k1,2)),
                             lst(

@@ -46,7 +46,9 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
 
 		
       //    ex coeff = 1;                             // numerical coeeficient independent of X(j)
-      ex coeff = pow(exp(get_symbol("eps")*Euler),l)*pow(-1,U_pow);///pow(I*pow(Pi,2 - get_symbol("eps")),l);
+      ex coeff = pow(exp(get_symbol("eps")*Euler),l)*pow(1,U_pow);///pow(I*pow(Pi,2 - get_symbol("eps")),l);
+      //  ex Laporta_factor =I/ tgamma(1+get_symbol("eps"));
+            //            ex coeff = Laporta_factor;
       // important if power = 0????
       for(lst::const_iterator nui = nu.begin();nui!=nu.end();++nui)
         coeff/=tgamma(*nui);
@@ -70,6 +72,7 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
       cout<< coe_l<<" * "<<xsq_l<<endl;
       cout<<" F qad " <<F<<endl;
       n_0  = n_0 - F_col_sq.expand().nops() + F_col_sq.collect(x_lst,true).nops();
+      ex nFprime = F_col_sq.collect(x_lst,true).nops();
       //working with F-term \Gamma(\nu-L*D/2) contractedx
       ex w_sum = 0;  //F-term generates only integrations in W
 
@@ -77,14 +80,19 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
       // decide to collect or not
       // sumCj = sum_j(C(j,2))
       ex sumCj(0);
+      ex sumlj(0);
       for(lst::const_iterator cit = xsq_l.begin(); cit != xsq_l.end(); ++cit)
-        sumCj+=binomial(cit->nops(),2);
+        {
+          sumCj += binomial(cit->nops(),2);
+          sumlj += cit->nops();
+        }
 
-      cout<<" n_c = "<<n_c<<" n_0("<<n_0<<") - sumCj("<<sumCj<<") =  "<< n_0 - sumCj<<endl;
+      cout<<" n_c = "<<n_c<<" n_0("<<nFprime<<") + sumlj("<<sumlj<<") =  "<< nFprime + sumlj<<endl;
       /*********************************
          COLLECT FULL SQARE PART
       **********************************/
-      if(n_c > n_0 - sumCj) // collecting squares
+      //      if(sumCj >0 && n_c >= n_0 - sumCj) // collecting squares
+      if(sumCj >0 && n_c > nFprime + sumlj) // collecting squares
         {
           cout<< ">>>  COLLECTING SQUARES!!!!!!!"<<endl;
           F = F_col_sq;
@@ -95,7 +103,7 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
           //--------------------------------
           //      MB for full squares
           //--------------------------------
-          size_t z_idx = 0;
+          size_t z_idx = displacement;
           if(F.nops() == 0 && xsq_l.nops() == 1)
             {
               /*
@@ -618,6 +626,17 @@ for(lst::const_iterator it = pole_list.begin(); it != pole_list.end(); ++it)
  cout<<x0_w<<"   int point  "<<interior_point(pole_list,x0_w)<<endl;
   // end test
 */
+    lst constraints;
+    lst w_con;
+    BOOST_FOREACH(ex ce,pole_list)
+      {
+        constraints.append(ce);
+      }
+    BOOST_FOREACH(ex we,w_list)
+      {
+        w_con.append(we);
+      }
+    BOOST_ASSERT_MSG(!zero_volume(constraints,w_con)," ZERO VOLUME AT START");
   exset point_set;
   exmap subs_map;
   ex den = 2;
