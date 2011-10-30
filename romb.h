@@ -24,4 +24,5 @@ public:
 
   void integrate(lst, int exp_order = 1);
 };
+  void print_mathematica(MBintegral);
 #endif // __ROMB_H__

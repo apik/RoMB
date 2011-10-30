@@ -29,17 +29,19 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
       /* 
 	 Full set of unused propagators, will change 
       */
-      exlist input_prop_set( p_lst.begin(),p_lst.end());
-      cout<<"INPSET: "<<input_prop_set<<endl;
-
+      exlist input_prop_set;//( p_lst.begin(),p_lst.end());
       /* 
 	 map for propagator powers
       */
       exmap prop_pow_map;
       for(lst::const_iterator Pit = p_lst.begin(); Pit != p_lst.end(); ++Pit)
 	{
-	  prop_pow_map[*Pit] = nu.op(std::distance(p_lst.begin(),Pit));
+	input_prop_set.push_back(Pit->expand());
+	  prop_pow_map[Pit->expand()] = nu.op(std::distance(p_lst.begin(),Pit));
 	}
+	
+      cout<<"INPSET: "<<input_prop_set<<endl;
+
       /* 
 	 Iterate over momentums k1,k2,k3,etc.
       */
@@ -47,7 +49,9 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
       unsigned int displacement_w = 0;
       for(lst::const_iterator kit = k_lst.begin(); kit != k_lst.end(); ++kit)
 	{
-
+          // Integral Normalization coefficient 
+          //          MBlbl_int *= pow(I,k_lst.nops());
+          MBlbl_int *= 1/tgamma(1+get_symbol("eps"));
 	  cout<<"PROP_POW_MAP "<<prop_pow_map<<endl;
 	  /*
 	    temporary set of propagators, with all momentum,except deleted
@@ -66,23 +70,23 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 		}
 	    }
             
-          //          ex mul_int(1);
-          //          exmap mul_subs_map;
-          /*
-          lst coe_prop_lst;
-          for(lst::const_iterator kkit = P_with_k_lst.begin(); kkit != P_with_k_lst.end(); ++kkit)
-            {
-              if(kkit->expand().coeff(*kit,2) >0 )
-                {
-                  coe_prop_lst.append((-1)*(*kkit));
-                  mul_int *= pow(-1,prop_pow_map[*kkit]);
-                }
-              else
-                coe_prop_lst.append(*kkit);
-            }
-          */
 	  cout<< "Set wo k_i "<<input_prop_set<<endl;
 	  cout<<" PWKlst "<<P_with_k_lst<<endl;
+          // if only one term in PWKLST use well known formula
+          if(P_with_k_lst.nops() == 1)
+            {
+              ex pr_t = P_with_k_lst.op(0);
+              ex nu_t = prop_pow_map[pr_t];
+              exmap repls;
+              BOOST_ASSERT_MSG(pr_t.match(-pow(*kit,2) + wild(2)),"ONE PROP");
+              if(pr_t.match(-pow(*kit,2) + wild(2),repls))cout<<"repls: "<<repls<<endl;
+              ex mass_tadpole = (tgamma(nu_t+get_symbol("eps")-2)/tgamma(nu_t)*pow(wild(2).subs(repls),-nu_t-get_symbol("eps")+2));
+              cout<<mass_tadpole<<endl;
+              MBlbl_int *= mass_tadpole;
+              MBlbl_int.add_pole(nu_t+get_symbol("eps")-2);
+            }
+          else 
+            {
           //          cout<< " coe: "<<coe_prop_lst<<endl;
 	  /*
 	    lexi sort of input prop list, and it's modification
@@ -102,14 +106,16 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 	  for(lst::const_iterator nuit = P_with_k_lst.begin(); nuit != P_with_k_lst.end(); ++nuit )
 	    nu_into.append(prop_pow_map[*nuit]);
 	  cout<<" Powers list before input: "<<nu_into<<endl;
+          /*
 	  MBintegral Uint(
 			  fusion::make_map<UFX::F,UFX::xlst>(fusion::at_key<UFX::F>(inUFmap),
 							     fusion::at_key<UFX::xlst>(inUFmap)
 							     ),nu_into,1,displacement_w);
+          */
+
+	  MBintegral Uint(inUFmap,nu_into,1,displacement_w);
 	  displacement_w+=Uint.w_size();
 	  cout<<"ui9nt eps : "<<Uint.get_expr().subs(tgamma(wild()) == 1)<<endl;
-          // multiply on (-1)^(wrong prop power)
-          //  Uint *= mul_int;
 	  /*
 	    expression to mul root integral
 	    where to subs prop(k_prev)==1
@@ -165,8 +171,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 			    Search for duplications in prop set
 			  */
 			  cout<<"where to find props: "<<input_prop_set<<endl;
-			  bool dupl_found = false;
-			  cout<< input_prop_set.size()<<endl;
+					  cout<< input_prop_set.size()<<endl;
                        
                           if(prop_pow_map.count(p_expr) > 0)
                             {
@@ -182,6 +187,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 		    }
 		  //cout<<"needed props "<<prop_pow_lst<<endl;
 		}
+
 	    }
           cout<<"ya tut"<<endl;            
 
@@ -193,11 +199,14 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 	  cout<<"bad"<<endl;
 	  //            MBlbl_int.insert_w_lst(Uint.get_w_lst());
 	  // MBlbl_int.insert_pole_lst(Uint.get_pole_lst());
-            
+            }// else more then one prop            
             
 	}
 
       MBlbl_int.fix_inv();
+
+      MBlbl_int.new_point();        
+      print_mathematica(MBlbl_int);
       cout<<"Constructed integral with:"<<endl;
       //cout<<"Poles: "<<MBlbl_int.get_poles_set()<<endl;
       //MBlbl_int.set_poles_set(MBlbl_int.poles_from_ex(MBlbl_int.get_expr()));
@@ -210,7 +219,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
       char in_ch;
       std::cin>>in_ch;
       if(in_ch=='n')  exit(0);//assert(false);
-      MBlbl_int.new_point();        
+
 
 
       //                assert(false);
@@ -317,6 +326,61 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
     }
 }
 
+
+struct mathematica_replace : public map_function
+{
+  ex operator()(const ex &e)
+  {
+    exmap repls;
+    if(e.match(tgamma(wild()),repls))
+      {
+        stringstream str;
+        str<<"Gamma["<<wild().subs(repls)<<"]";
+        return get_symbol(str.str());
+      }
+    else if(e.match(exp(wild()),repls))
+      {
+        stringstream str;
+        str<<"Exp["<<wild().subs(repls)<<"]";
+        return get_symbol(str.str());
+      }
+    else return e.map(*this);
+  }
+};
+
+void print_mathematica(MBintegral mb_in)
+{
+  exmap w_c(mb_in.get_w());
+  exmap w_to_z;
+  MBintegral::w_lst_type w_l(mb_in.get_w_lst());
+  size_t cntr = 1;
+  BOOST_FOREACH(ex w_inl,w_l)
+    {
+      string st1("z");
+      
+      w_to_z[w_inl] = get_symbol(st1+lexical_cast<string>(cntr));
+      cntr++;
+    }
+  //  cout<<"W TO Z: "<<w_to_z<<endl;
+  ex mfin = mb_in.get_expr();
+  mfin = mfin.subs(w_to_z);
+  mfin = mfin.subs(Euler == get_symbol("EulerGamma"));
+  mathematica_replace math_map;
+  ex rpm = math_map(mfin);
+
+  ex eps_value = mb_in.get_eps();
+
+  cout<<endl<<"(********* Begin of Mathematica output **********)"<<endl;
+  cout<<"rules={{eps->"<<eps_value.rhs()<<"},{";
+  for(exmap::iterator it =w_c.begin(); it != w_c.end(); ++it )
+    if(boost::next(it) == w_c.end())
+      cout<<w_to_z[it->first]<<"->"<<it->second<<"}}"<<endl;
+    else
+      cout<<w_to_z[it->first]<<"->"<<it->second<<",";
+   cout<<"fin="<<rpm<<endl;
+   cout<<"(*********  End of Mathematica output   **********)"<<endl<<endl;
+
+}
 void RoMB_loop_by_loop::integrate(lst number_subs_list, int exp_order)
 {
   ex int_expr_out = 0;
@@ -326,3 +390,4 @@ void RoMB_loop_by_loop::integrate(lst number_subs_list, int exp_order)
   cout<<" FRESULT anl : "<<"          = "<<int_expr_out.expand().collect(get_symbol( "eps" ))<<endl;
   cout<<" FRESULT num: "<<"          = "<<evalf(int_expr_out.expand().collect(get_symbol( "eps" )))<<endl;
 }
+

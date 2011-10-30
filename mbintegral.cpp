@@ -10,7 +10,7 @@
  *
  */
 
-MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):tree_level(0),res_pole(0),opt_flag(false) // lst nu is a list of powers of propagators and l is a number of loops
+MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l, unsigned int displacement):tree_level(0),res_pole(0),opt_flag(false) // lst nu is a list of powers of propagators and l is a number of loops
 {
   try
     {
@@ -21,7 +21,7 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
       lst  x_lst(fusion::at_key<UFX::xlst>(fx_in));
      
       ex F = (fusion::at_key<UFX::F>(fx_in)).expand();///< distributed polynom factorizing X(i)X(j)*(...)
-     
+      ex U = (fusion::at_key<UFX::U>(fx_in)).expand();
       ex F_pow = (N-l*(2-get_symbol("eps")));
       ex U_pow = N - (l+1)*(2-get_symbol("eps"));
       exset f_set;
@@ -45,16 +45,16 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
       cout<<"x_map_start "<<x_power_map<<endl;
 
 		
-      //    ex coeff = 1;                             // numerical coeeficient independent of X(j)
-      ex coeff = pow(exp(get_symbol("eps")*Euler),l)*pow(1,U_pow);///pow(I*pow(Pi,2 - get_symbol("eps")),l);
-      //  ex Laporta_factor =I/ tgamma(1+get_symbol("eps"));
-            //            ex coeff = Laporta_factor;
+      ex coeff = 1;                             // numerical coeeficient independent of X(j)
+      // ex coeff = pow(exp(get_symbol("eps")*Euler),l)*pow(1,U_pow);///pow(I*pow(Pi,2 - get_symbol("eps")),l);
+      //ex Laporta_factor =I/ tgamma(1+get_symbol("eps"));
+      //  ex coeff = Laporta_factor;
       // important if power = 0????
       for(lst::const_iterator nui = nu.begin();nui!=nu.end();++nui)
         coeff/=tgamma(*nui);
      
       /************************************************************ 
-       |  collecting squares only if it's efficient               |
+       |  collecting squares only if it's efficient,              |
        |  number of terms in expanded F="n_0", in collected "n_c" |
        |  and length of square "s"                                |
        |  n_c > n_0 - C(s,2), where C is a binomial coefficient   |
@@ -70,9 +70,10 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
         
       cout<<">>> Found "<<coe_l.nops()<<" full squares in F polynomial"<<endl;
       cout<< coe_l<<" * "<<xsq_l<<endl;
-      cout<<" F qad " <<F<<endl;
+      cout<<" F qad " <<F_col_sq<<endl;
       n_0  = n_0 - F_col_sq.expand().nops() + F_col_sq.collect(x_lst,true).nops();
-      ex nFprime = F_col_sq.collect(x_lst,true).nops();
+      //      ex nFprime = ex_to<add>(F_col_sq.collect(x_lst,true)).nops();
+      size_t nFprime = is_a<add>(F_col_sq.collect(x_lst,true)) ? F_col_sq.collect(x_lst,true).nops() : 1;
       //working with F-term \Gamma(\nu-L*D/2) contractedx
       ex w_sum = 0;  //F-term generates only integrations in W
 
@@ -84,7 +85,7 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
       for(lst::const_iterator cit = xsq_l.begin(); cit != xsq_l.end(); ++cit)
         {
           sumCj += binomial(cit->nops(),2);
-          sumlj += cit->nops();
+          sumlj += std::min((*(cit)+1-U).nops(),(*(cit)-1+U).nops());
         }
 
       cout<<" n_c = "<<n_c<<" n_0("<<nFprime<<") + sumlj("<<sumlj<<") =  "<< nFprime + sumlj<<endl;
@@ -92,7 +93,7 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
          COLLECT FULL SQARE PART
       **********************************/
       //      if(sumCj >0 && n_c >= n_0 - sumCj) // collecting squares
-      if(sumCj >0 && n_c > nFprime + sumlj) // collecting squares
+      if(sumCj >0 && n_c >= nFprime + sumlj) // collecting squares
         {
           cout<< ">>>  COLLECTING SQUARES!!!!!!!"<<endl;
           F = F_col_sq;
@@ -124,73 +125,92 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
             {
               for(size_t i = 0; i < xsq_l.nops(); i++)
                 {
+                  ex sq_lst(xsq_l.op(i)); // summ for MB
+                  // substituting U=Summ(x_j)=1
+                  sq_lst = (sq_lst + U -1).nops() < (sq_lst - U + 1).nops() ? (sq_lst+U-1) : (sq_lst+1-U);
                   string str = "w"+boost::lexical_cast<string>(displacement);
                   displacement++;
                   //symbol w(str);
                   ex w_i = get_symbol(str);
                   //     w_lst.append(w_i);
                   insert_w(w_i);
-                  coeff*=tgamma(-w_i)*pow(coe_l.op(i),w_i)/(2*Pi*I);
-                
+                  coeff*=tgamma(-w_i);
                   cout<<"w_i_power "<<w_i<<endl;
                   //                gamma_poles.append(-w_i); //!!!! review
                   insert_pole(-w_i); //!!!! review
                   w_sum+=w_i;
+                  cout<<"SQ_LST: "<<sq_lst<<"  .nops()"<<sq_lst.nops()<<endl;                  
 
-                  // subMB construction
-                  // ordering in full square expr
-                  // x_lst -> to list<symbol> for comparision
-                  ex sq_lst(xsq_l.op(i)); // summ for MB
-                  sq_lst = sq_lst.collect(x_lst,true);
-                  std::list<symbol> tmp_x_sym_list;
-                  for(lst::const_iterator simit = x_lst.begin(); simit != x_lst.end(); ++simit)
-                    if(is_a<symbol>(*simit)) tmp_x_sym_list.push_back(ex_to<symbol>(*simit));
-                  ex_is_lesseq_degrevlex subF_comp(tmp_x_sym_list);
-                  exlist subFl(sq_lst.begin(),sq_lst.end());
-                  // sorting lexicographicaly
-                  subFl.sort(subF_comp);
-
-                  
-                  
-                  cout<<"SQLST : "<<subFl<<endl;
-                  coeff /= (pow(2*Pi*I,sq_lst.nops()-1)*tgamma(-2*w_i));
-                  insert_pole(-2*w_i);
-                  ex z_sum = 0;
-                  for(exlist::iterator x_it = subFl.begin(); x_it != subFl.end(); ++x_it)
+                  if(sq_lst.nops() > 1)
                     {
-                      ex a_power;
-                      if(subFl.end() == boost::next(x_it)) // X_k expr
+                      coeff *= pow(coe_l.op(i),w_i)/(2*Pi*I);
+                      // subMB construction
+                      // ordering in full square expr
+                      // x_lst -> to list<symbol> for comparision
+                      sq_lst = sq_lst.collect(x_lst,true);
+                      std::list<symbol> tmp_x_sym_list;
+                      for(lst::const_iterator simit = x_lst.begin(); simit != x_lst.end(); ++simit)
+                        if(is_a<symbol>(*simit)) tmp_x_sym_list.push_back(ex_to<symbol>(*simit));
+                      ex_is_lesseq_degrevlex subF_comp(tmp_x_sym_list);
+                      exlist subFl(sq_lst.begin(),sq_lst.end());
+                      // sorting lexicographicaly
+                      subFl.sort(subF_comp);
+
+                  
+                  
+                      cout<<"SQLST : "<<subFl<<endl;
+                      coeff /= (pow(2*Pi*I,sq_lst.nops()-1)*tgamma(-2*w_i));
+                      insert_pole(-2*w_i);
+                      ex z_sum = 0;
+                      for(exlist::iterator x_it = subFl.begin(); x_it != subFl.end(); ++x_it)
                         {
-                          coeff *= tgamma(-2*w_i + z_sum);
-                          a_power = 2*w_i - z_sum;
-                          insert_pole(-2*w_i + z_sum);
-                        }
-                      else // ordinary exprs
-                        {
-                          string z_str = "z_"+boost::lexical_cast<string>(z_idx);
-                          z_idx++;
-                          ex z_i = get_symbol(z_str);
-                          cout << z_i<<endl;
-                          insert_w(z_i);
-                          //			w_lst.append(z_i);
-                          coeff*=tgamma(-z_i);
-                          a_power = z_i;
-                          insert_pole(-z_i); //!!!! review
-                          z_sum += a_power;
-                        } 
-		    
-                      // add x-part with it's coefficient
-                      for(lst::const_iterator it1=x_lst.begin();it1!=x_lst.end();++it1)
-                        {
-                          if(x_it->has(*it1))
+                          ex a_power;
+                          if(subFl.end() == boost::next(x_it)) // X_k expr
                             {
-                              // simple expression x_i or -x_i, x_it->degree(x) == 1
-                              BOOST_ASSERT_MSG(x_it->degree(*it1) == 1,"Not a simple expression in square");
-                              x_power_map[*it1]+=(a_power);
-                              coeff *=pow(x_it->lcoeff(*it1),a_power);
+                              coeff *= tgamma(-2*w_i + z_sum);
+                              a_power = 2*w_i - z_sum;
+                              insert_pole(-2*w_i + z_sum);
                             }
-                        }
+                          else // ordinary exprs
+                            {
+                              string z_str = "z_"+boost::lexical_cast<string>(z_idx);
+                              z_idx++;
+                              ex z_i = get_symbol(z_str);
+                              cout << z_i<<endl;
+                              insert_w(z_i);
+                              //			w_lst.append(z_i);
+                              coeff*=tgamma(-z_i);
+                              a_power = z_i;
+                              insert_pole(-z_i); //!!!! review
+                              z_sum += a_power;
+                            } 
+		    
+                          // add x-part with it's coefficient
+                          for(lst::const_iterator it1=x_lst.begin();it1!=x_lst.end();++it1)
+                            {
+                              if(x_it->has(*it1))
+                                {
+                                  // simple expression x_i or -x_i, x_it->degree(x) == 1
+                                  BOOST_ASSERT_MSG(x_it->degree(*it1) == 1,"Not a simple expression in square");
+                                  x_power_map[*it1]+=(a_power);
+                                  coeff *=pow(x_it->lcoeff(*it1),a_power);
+                                }
+                            }//it1
+                        }//xit
+                    }// more then one term in x_sq_lst
+                  else // only one term in square
+                    {
+                      ex tmsq = sq_lst;
+                      for(lst::const_iterator it11=x_lst.begin();it11!=x_lst.end();++it11)
+                        if(sq_lst.has(*it11))
+                          {
+                            x_power_map[*it11] += w_i*sq_lst.degree(*it11);
+                            tmsq = tmsq.lcoeff(*it11);
+                          }
+                      coeff *= pow(tmsq,w_i);
+                      cout<<"one term constructed"<<endl; 
                     }
+
                 }
             }
 
@@ -201,7 +221,11 @@ MBintegral::MBintegral(FXmap fx_in,lst nu,numeric l, unsigned int displacement):
           for(lst::const_iterator sit = x_lst.begin(); sit != x_lst.end(); ++sit)
             if(is_a<symbol>(*sit)) x_sym_list.push_back(ex_to<symbol>(*sit));
           ex_is_lesseq_degrevlex F_comp(x_sym_list);
-          exlist Fl(F.begin(),F.end());
+          exlist Fl;
+          if(is_a<add>(F))
+            Fl.assign(F.begin(),F.end());
+          else 
+            Fl.push_back(F);
           //   cout<<"FEX "<<Fex<<endl;
 
           // sorting lexicographicaly
@@ -639,7 +663,8 @@ for(lst::const_iterator it = pole_list.begin(); it != pole_list.end(); ++it)
     BOOST_ASSERT_MSG(!zero_volume(constraints,w_con)," ZERO VOLUME AT START");
   exset point_set;
   exmap subs_map;
-  ex den = 2;
+  ex den = 2.75 
+;
   for(MBintegral::w_lst_type::const_reverse_iterator wi = w_list.rbegin();wi != w_list.rend();++wi) 
     {
       lst tmp_pole_list;
@@ -953,13 +978,20 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
                     {
                       cout<<*pit<<endl;
                       cout<<"F(eps_i) "<<pit->subs(it->get_w()).subs(it->get_eps())<<"F(eps=0) "<<pit->subs(it->get_w()).subs(get_symbol("eps")==eps0)<<"   min  "<<std::min(pit->subs(it->get_w()).subs(it->get_eps()),pit->subs(it->get_w()).subs(get_symbol("eps")==eps0))<<endl;
-                 
+                      cout<<"w current: "<<it->get_w()<<endl;
              
                       ex F_eps0 = pit->subs( it->get_w() ).subs( get_symbol("eps") == eps0) ;
                       ex F_epsi =  pit->subs( it->get_w() ).subs( it->get_eps() ) ;
 
                       if(F_eps0==F_epsi) 
-                        cout<<"Terminating eps=0 achieved  "<<std::min(F_eps0,F_epsi)<<endl;
+                        {
+                          cout<<"Terminating eps=0 achieved  "<<std::min(F_eps0,F_epsi)<<endl;
+                          throw std::logic_error(string("Contour hit the pole"));
+                          assert(false);
+                        }
+                      
+                      else
+                        {
 
                       ex dir__ = csgn(F_eps0 - F_epsi);
                       int dir = int( ex_to<numeric>(dir__).to_double());
@@ -1022,7 +1054,7 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
                           //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
                           // if n>max
                         }
-
+                        }//else
                     }
                 }//same depth
             }

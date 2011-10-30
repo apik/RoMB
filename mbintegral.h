@@ -111,7 +111,12 @@ public:
     {
       return gamma_poles.size();
     }
-
+  void add_pole(const ex& pex_in)
+  {
+    if(has_w(pex_in).nops() > 0)
+      gamma_poles.push_back(pex_in);
+    gamma_poles.unique();
+  }
   void set_respole(const ex& setr)
   {
     res_pole = setr;
@@ -306,7 +311,7 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
   }
  
 
-  MBintegral(FXmap,lst,numeric, unsigned int displacement = 0); // lst nu is a list of powers of propagators and l is a number of loops
+  MBintegral(UFXmap,lst,numeric, unsigned int displacement = 0); // lst nu is a list of powers of propagators and l is a number of loops
 };
 
 typedef std::list<MBintegral> MBlst;

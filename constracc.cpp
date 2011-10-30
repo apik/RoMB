@@ -32,10 +32,10 @@ bool constr_acc::test_single(const ex& constr)
   add_lst.append(constr);
   return !zero_volume(add_lst,w_lst);
 }
-size_t constr_acc::add_lst(lst& constr)
+/*size_t constr_acc::add_lst(lst& constr)
 {
 }
-
+*/
 bool constr_acc::test_lst(lst& cl)
 {
   lst add_lst(constraints);
