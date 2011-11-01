@@ -127,7 +127,11 @@ MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l, unsigned int displacement)
                 {
                   ex sq_lst(xsq_l.op(i)); // summ for MB
                   // substituting U=Summ(x_j)=1
-                  sq_lst = (sq_lst + U -1).nops() < (sq_lst - U + 1).nops() ? (sq_lst+U-1) : (sq_lst+1-U);
+                  if(sq_lst.nops() > std::min((sq_lst + U -1).nops(), (sq_lst - U + 1).nops()))
+                    {
+                      sq_lst = (sq_lst + U -1).nops() < (sq_lst - U + 1).nops() ? (sq_lst+U-1) : (sq_lst+1-U);
+                    }
+                  
                   string str = "w"+boost::lexical_cast<string>(displacement);
                   displacement++;
                   //symbol w(str);
@@ -220,7 +224,7 @@ MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l, unsigned int displacement)
           std::list<symbol> x_sym_list;
           for(lst::const_iterator sit = x_lst.begin(); sit != x_lst.end(); ++sit)
             if(is_a<symbol>(*sit)) x_sym_list.push_back(ex_to<symbol>(*sit));
-          ex_is_lesseq_degrevlex F_comp(x_sym_list);
+          f_lesseq_revlex F_comp(x_sym_list);
           exlist Fl;
           if(is_a<add>(F))
             Fl.assign(F.begin(),F.end());
@@ -230,6 +234,7 @@ MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l, unsigned int displacement)
 
           // sorting lexicographicaly
           Fl.sort(F_comp);
+          Fl.reverse();
           cout<<"FEX "<<Fl<<endl;
 
 
@@ -346,7 +351,8 @@ MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l, unsigned int displacement)
           for(lst::const_iterator sit = x_lst.begin(); sit != x_lst.end(); ++sit)
             if(is_a<symbol>(*sit)) x_sym_list.push_back(ex_to<symbol>(*sit));
        
-          ex_is_lesseq_degrevlex F_comp(x_sym_list);
+          //          ex_is_lesseq_degrevlex F_comp(x_sym_list);
+          f_lesseq_revlex F_comp(x_sym_list);
 
 
           exlist Fl(F.begin(),F.end());

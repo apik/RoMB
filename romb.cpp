@@ -36,7 +36,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
       exmap prop_pow_map;
       for(lst::const_iterator Pit = p_lst.begin(); Pit != p_lst.end(); ++Pit)
 	{
-	input_prop_set.push_back(Pit->expand());
+          input_prop_set.push_back(Pit->expand());
 	  prop_pow_map[Pit->expand()] = nu.op(std::distance(p_lst.begin(),Pit));
 	}
 	
@@ -87,120 +87,139 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
             }
           else 
             {
-          //          cout<< " coe: "<<coe_prop_lst<<endl;
-	  /*
-	    lexi sort of input prop list, and it's modification
-	  */            
+              //          cout<< " coe: "<<coe_prop_lst<<endl;
+              /*
+                lexi sort of input prop list, and it's modification
+              */            
  
 
-	  // uf and then MB represenatation construction
-	  // subs only in F for last momentum
-	  UFXmap inUFmap;
-	  if(boost::next(kit) == k_lst.end())
-            inUFmap = UF(lst(*kit),P_with_k_lst,subs_lst,displacement_x);
-	  else
-            inUFmap = UF(lst(*kit),P_with_k_lst,subs_lst,displacement_x); // no substitution!!!
-	  displacement_x +=fusion::at_key<UFX::xlst>(inUFmap).nops(); 
+              // uf and then MB represenatation construction
+              // subs only in F for last momentum
+              UFXmap inUFmap;
+              if(boost::next(kit) == k_lst.end())
+                inUFmap = UF(lst(*kit),P_with_k_lst,subs_lst,displacement_x);
+              else
+                inUFmap = UF(lst(*kit),P_with_k_lst,subs_lst,displacement_x); // no substitution!!!
+              displacement_x +=fusion::at_key<UFX::xlst>(inUFmap).nops(); 
 
-	  lst nu_into;
-	  for(lst::const_iterator nuit = P_with_k_lst.begin(); nuit != P_with_k_lst.end(); ++nuit )
-	    nu_into.append(prop_pow_map[*nuit]);
-	  cout<<" Powers list before input: "<<nu_into<<endl;
-          /*
-	  MBintegral Uint(
-			  fusion::make_map<UFX::F,UFX::xlst>(fusion::at_key<UFX::F>(inUFmap),
-							     fusion::at_key<UFX::xlst>(inUFmap)
-							     ),nu_into,1,displacement_w);
-          */
+              lst nu_into;
+              for(lst::const_iterator nuit = P_with_k_lst.begin(); nuit != P_with_k_lst.end(); ++nuit )
+                nu_into.append(prop_pow_map[*nuit]);
+              cout<<" Powers list before input: "<<nu_into<<endl;
+              /*
+                MBintegral Uint(
+                fusion::make_map<UFX::F,UFX::xlst>(fusion::at_key<UFX::F>(inUFmap),
+                fusion::at_key<UFX::xlst>(inUFmap)
+                ),nu_into,1,displacement_w);
+              */
 
-	  MBintegral Uint(inUFmap,nu_into,1,displacement_w);
-	  displacement_w+=Uint.w_size();
-	  cout<<"ui9nt eps : "<<Uint.get_expr().subs(tgamma(wild()) == 1)<<endl;
-	  /*
-	    expression to mul root integral
-	    where to subs prop(k_prev)==1
-	  */
-	  ex expr_k_to_subs_1= Uint.get_expr();
+              MBintegral Uint(inUFmap,nu_into,1,displacement_w);
+              displacement_w+=Uint.w_size();
+              cout<<"ui9nt eps (no gamma) : "<<Uint.get_expr().subs(tgamma(wild()) == 1)<<endl;
+              cout<<"ui9nt eps : "<<Uint.get_expr()<<endl;
+              /*
+                expression to mul root integral
+                where to subs prop(k_prev)==1
+              */
+              ex expr_k_to_subs_1= Uint.get_expr();
 
-	  ex mom_find = Uint.get_expr();
-	  cout<< "where find props: "<<mom_find<<endl;
-	  if(is_a<mul>(mom_find))
-	    {
-	      exset found_prop;
-	      mom_find.find(pow(wild(1),wild(2)),found_prop);
-	      cout<<" is a mul  "<<found_prop<<endl;
-	      //                lst prop_pow_lst;
-              //	      if(boost::next(kit)!=k_lst.end())
-              for(lst::const_iterator kplusit = kit;boost::next(kplusit) != k_lst.end(); ++kplusit)
-		{
-                 
-		  ex mom_to_find = *(boost::next(kplusit));
-		  BOOST_FOREACH(ex propex_c,found_prop)
-		    {
-                      // cout<<"kit "<<mom_to_find<<" propex "<<propex.has(mom_to_find)<<endl;                        
-                        
-		      if(propex_c.has(mom_to_find) && is_a<power>(propex_c))
-			{
-			  cout<<"before subs kex : "<<expr_k_to_subs_1.subs(tgamma(wild()) == 1)<<endl;
-			  expr_k_to_subs_1 = expr_k_to_subs_1.subs(propex_c == 1);
-			  cout<<"after subs kex : "<<expr_k_to_subs_1.subs(tgamma(wild()) == 1)<<endl;
-                          /*
-                            converting prop to form -p^2+m^2
-                          */
-
-                          ex p_power;
-                          ex p_expr;
-                          ex p_not_corr = ex_to<power>(propex_c).op(0);
-                          ex coeff_ksq = p_not_corr.expand().coeff(mom_to_find,2); // coeff infront of K^2
-                          if( coeff_ksq != -1 )
-                            {
-                              p_not_corr /=coeff_ksq;
-                              cout<<"koeff_ksq "<<coeff_ksq<<endl;
-                              MBlbl_int*= pow(coeff_ksq,ex_to<power>(propex_c).op(1));
-                              //                  propex = pow(p_not_corr,ex_to<power>(propex_c).op(1));
-                              p_power = ex_to<power>(propex_c).op(1);
-                              p_expr = p_not_corr.expand();
-                            }
-                          else
-                            {
-                              p_power = ex_to<power>(propex_c).op(1);
-                              p_expr = ex_to<power>(propex_c).op(0).expand();
-                            }
+              ex mom_find = Uint.get_expr();
+              cout<< "where find props: "<<mom_find<<endl;
+              if(is_a<mul>(mom_find))
+                {
+                  // set of a^b?, need to have momentums from *kit to *k_lst.end()
+                  exset found_prop_raw,found_prop;
+                  mom_find.find(pow(wild(1),wild(2)),found_prop_raw);
+                  cout<<" is a mul raw "<<found_prop_raw<<endl;
+                  // really props
+                  BOOST_FOREACH(ex px_c,found_prop_raw)
+                    {
+                      bool is_a_p = false;
+                      for(lst::const_iterator kpi = kit; kpi != k_lst.end(); ++kpi)
+                        if(px_c.has(*kpi))
+                          {
+                            is_a_p = true;
+                            break;
+                          }
+                      
+                      if(is_a_p) found_prop.insert(px_c);
+                    }
+                  cout<<" is a mul  "<<found_prop<<endl;
+                  BOOST_FOREACH(ex propex_c,found_prop)
+                    {
+                      // next momentum in loop momentum list
+                      ex next_k ;
+                      for(lst::const_iterator nkit = kit; nkit != k_lst.end(); ++nkit)
+                        if(propex_c.has(*nkit))
+                          {
+                            next_k = *nkit;
+                            break;
+                          }                         
+                      
+                      
+                      cout<<"before subs kex : "<<expr_k_to_subs_1.subs(tgamma(wild()) == 1)<<endl;
+                      expr_k_to_subs_1 = expr_k_to_subs_1.subs(propex_c == 1);
+                      cout<<"after subs kex : "<<expr_k_to_subs_1.subs(tgamma(wild()) == 1)<<endl;
+                      /*
+                        converting prop to form -p^2+m^2
+                      */
+                      
+                      ex p_power;
+                      ex p_expr;
+                      ex p_not_corr = ex_to<power>(propex_c).op(0);
+                      ex coeff_ksq = p_not_corr.expand().coeff(next_k,2); // coeff infront of K^2
+                      if( coeff_ksq != -1 )
+                        {
+                          p_not_corr /=coeff_ksq;
+                          cout<<"koeff_ksq "<<coeff_ksq<<endl;
+                          MBlbl_int*= pow(coeff_ksq,ex_to<power>(propex_c).op(1));
+                          //                  propex = pow(p_not_corr,ex_to<power>(propex_c).op(1));
+                          p_power = ex_to<power>(propex_c).op(1);
+                          p_expr = p_not_corr.expand();
+                        }
+                      else
+                        {
+                          p_power = ex_to<power>(propex_c).op(1);
+                          p_expr = ex_to<power>(propex_c).op(0).expand();
+                        }
                           
-			  /*
-			    Search for duplications in prop set
-			  */
-			  cout<<"where to find props: "<<input_prop_set<<endl;
-					  cout<< input_prop_set.size()<<endl;
-                       
-                          if(prop_pow_map.count(p_expr) > 0)
-                            {
-                              BOOST_ASSERT_MSG(count(input_prop_set.begin(),input_prop_set.end(),p_expr) > 0,"Propagator not found in prop set");
-                              prop_pow_map[p_expr] -=p_power;
-                            }
-			  else
-			    {
-                              prop_pow_map[p_expr] = (-1)*p_power;
-                              input_prop_set.push_back(p_expr);
-                            }
-			}
-		    }
-		  //cout<<"needed props "<<prop_pow_lst<<endl;
-		}
-
-	    }
-          cout<<"ya tut"<<endl;            
-
-
-	  MBlbl_int*=expr_k_to_subs_1;
-          cout<<"ya tut"<<endl;            
-          //          cout<<"HAS INT :    "<<MBlbl_int.get_expr().subs(tgamma(wild(4)) == 0)<<endl;
-	  MBlbl_int+=Uint;
-	  cout<<"bad"<<endl;
-	  //            MBlbl_int.insert_w_lst(Uint.get_w_lst());
-	  // MBlbl_int.insert_pole_lst(Uint.get_pole_lst());
+                      /*
+                        Search for duplications in prop set
+                      */
+                      cout<<"where to find props: "<<input_prop_set<<endl;
+                      cout<< input_prop_set.size()<<endl;
+                      cout<<"PWK_MAP to modiff"<<prop_pow_map<<endl;
+                      if(prop_pow_map.count(p_expr) > 0)
+                        {
+                          BOOST_ASSERT_MSG(count(input_prop_set.begin(),input_prop_set.end(),p_expr) > 0,"Propagator not found in prop set");
+                          cout<<"PPM bef: "<< prop_pow_map[p_expr]<<endl;
+                          prop_pow_map[p_expr] -=p_power;
+                          cout<<"PPM aft: "<< prop_pow_map[p_expr]<<endl;
+                        }
+                      else
+                        {
+                          prop_pow_map[p_expr] = (-1)*p_power;
+                          input_prop_set.push_back(p_expr);
+                        }
+                      cout<<"PWK_MAP after modiff"<<prop_pow_map<<endl;
+                    }
+                }
+              //cout<<"needed props "<<prop_pow_lst<<endl;
+              
+              
+              
+              cout<<"ya tut"<<endl;            
+              
+              
+              MBlbl_int*=expr_k_to_subs_1;
+              cout<<"ya tut"<<endl;            
+              //          cout<<"HAS INT :    "<<MBlbl_int.get_expr().subs(tgamma(wild(4)) == 0)<<endl;
+              MBlbl_int+=Uint;
+              cout<<"bad"<<endl;
+              //            MBlbl_int.insert_w_lst(Uint.get_w_lst());
+              // MBlbl_int.insert_pole_lst(Uint.get_pole_lst());
             }// else more then one prop            
-            
+          
 	}
 
       MBlbl_int.fix_inv();
@@ -210,9 +229,9 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
       cout<<"Constructed integral with:"<<endl;
       //cout<<"Poles: "<<MBlbl_int.get_poles_set()<<endl;
       //MBlbl_int.set_poles_set(MBlbl_int.poles_from_ex(MBlbl_int.get_expr()));
-    cout<<"Poles true: "<<MBlbl_int.poles_from_ex(MBlbl_int.get_expr())<<endl;
-    cout<<"Poles: "<<MBlbl_int.get_poles()<<endl;
-    cout<<"W's : "<<MBlbl_int.get_w_lst()<<endl;
+      cout<<"Poles true: "<<MBlbl_int.poles_from_ex(MBlbl_int.get_expr())<<endl;
+      cout<<"Poles: "<<MBlbl_int.get_poles()<<endl;
+      cout<<"W's : "<<MBlbl_int.get_w_lst()<<endl;
       cout<<"Expr : "<<MBlbl_int.get_expr()<<endl;
 
       cout<< endl<<" Ready for MBcontinue?  [Y/n]: ";
@@ -242,35 +261,35 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 	    }
 	}
       /*     
- MBtree::sibling_iterator sit_gen(last_it);
-      // loop over neighbours
-      std::vector<MBtree::iterator> v_it;
-      for(MBtree::iterator sit = sit_gen.range_first(); sit != sit_gen.range_last(); ++ sit)
-	{
-	  if(sit->get_optimizable())
-	    {
-	      v_it.push_back(sit);
-	    }
-	}
+             MBtree::sibling_iterator sit_gen(last_it);
+             // loop over neighbours
+             std::vector<MBtree::iterator> v_it;
+             for(MBtree::iterator sit = sit_gen.range_first(); sit != sit_gen.range_last(); ++ sit)
+             {
+             if(sit->get_optimizable())
+             {
+             v_it.push_back(sit);
+             }
+             }
 
-      //combination code
-      const int r = 3;
-      const int n = 10;
-      std::vector<int> v_int(n);
-      for (int i = 0; i < n; ++i) { v_int[i] = i; }
-      int N = 0;
-      do {
-	++N;
-	if (N < 10 || N > 117) {
-	  std::cout << "[ " << v_int[0];
-	  for (int j = 1; j < r; ++j) { std::cout << ", " << v_int[j]; }
-	  std::cout << " ]" << std::endl;
-	} else if (N == 10) {
-	  std::cout << "  . . ." << std::endl;
-	}
-      } while (next_combination(v_int.begin(), v_int.begin() + r, v_int.end()));
-      // end of combination code
-      */
+             //combination code
+             const int r = 3;
+             const int n = 10;
+             std::vector<int> v_int(n);
+             for (int i = 0; i < n; ++i) { v_int[i] = i; }
+             int N = 0;
+             do {
+             ++N;
+             if (N < 10 || N > 117) {
+             std::cout << "[ " << v_int[0];
+             for (int j = 1; j < r; ++j) { std::cout << ", " << v_int[j]; }
+             std::cout << " ]" << std::endl;
+             } else if (N == 10) {
+             std::cout << "  . . ." << std::endl;
+             }
+             } while (next_combination(v_int.begin(), v_int.begin() + r, v_int.end()));
+             // end of combination code
+             */
       cout<< "Min int: "<<inttr.size()-opt_sum<<endl;
       int_lst.assign(inttr.begin(),inttr.end());
       //exit(5);//assert(false);
@@ -371,6 +390,7 @@ void print_mathematica(MBintegral mb_in)
   ex eps_value = mb_in.get_eps();
 
   cout<<endl<<"(********* Begin of Mathematica output **********)"<<endl;
+  cout<<"<< MB.m"<<endl<< "<<AMBREv1.2.m"<<endl;
   cout<<"rules={{eps->"<<eps_value.rhs()<<"},{";
   for(exmap::iterator it =w_c.begin(); it != w_c.end(); ++it )
     if(boost::next(it) == w_c.end())
@@ -378,6 +398,9 @@ void print_mathematica(MBintegral mb_in)
     else
       cout<<w_to_z[it->first]<<"->"<<it->second<<",";
    cout<<"fin="<<rpm<<endl;
+   cout<<"tcont = MBcontinue[fin, eps -> 0, rules, Residues -> False];"<<endl;
+   cout<<"MBexpand[{tcont}, Exp[2 EulerGamma eps], {eps, 0, -1}]"<<endl;
+   cout<<"MBintegrate[%, {ms -> 1}]"<<endl;
    cout<<"(*********  End of Mathematica output   **********)"<<endl<<endl;
 
 }

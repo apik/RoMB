@@ -211,6 +211,77 @@ struct ex_is_lesseq_degrevlex: public ex_is_lesseq
 	}
 };
 
+
+/**  
+ * F-term comparators
+ */
+ struct f_lesseq_lex: public ex_is_lesseq
+{
+	f_lesseq_lex(const list<symbol>& variables) :
+			ex_is_lesseq(variables)
+	{
+	}
+
+	/** Compares two expressions lexicographically by their string representations.
+	 *@param a
+	 *@param b
+	 *@return true in case a is less or equal to b
+	 */
+	bool operator()(const ex &a, const ex &b) const
+	{
+		list<int> e1 = exponents(a, variables);
+		list<int> e2 = exponents(b, variables);
+		int deg1 = accumulate(e1.begin(), e1.end(), 0);
+		int deg2 = accumulate(e2.begin(), e2.end(), 0);
+		if (deg1 < deg2)
+			return true;
+		else if (deg1 > deg2)
+			return false;
+		else
+                  {
+                    e1.sort();
+                    e2.sort();
+                    return !lexicographical_compare(e1.begin(), e1.end(), e2.begin(),e2.end());
+                  }
+		
+	}
+};
+
+
+ struct f_lesseq_revlex: public ex_is_lesseq
+{
+	f_lesseq_revlex(const list<symbol>& variables) :
+			ex_is_lesseq(variables)
+	{
+	}
+
+	/** Compares two expressions lexicographically by their string representations.
+	 *@param a
+	 *@param b
+	 *@return true in case a is less or equal to b
+	 */
+	bool operator()(const ex &a, const ex &b) const
+	{
+		list<int> e1 = exponents(a, variables);
+		list<int> e2 = exponents(b, variables);
+		int deg1 = accumulate(e1.begin(), e1.end(), 0);
+		int deg2 = accumulate(e2.begin(), e2.end(), 0);
+		if (deg1 < deg2)
+			return true;
+		else if (deg1 > deg2)
+			return false;
+		else
+                  {
+                    e1.sort();
+                    e2.sort();
+                    return !lexicographical_compare(e1.rbegin(), e1.rend(), e2.rbegin(),e2.rend());
+                  }
+		
+	}
+};
+
+
+
 /**
  * Relation determining whether the given expression is a monomial under the staircase, which is determined by computing the remainders dividing by the corners of a staircase.
  *@param corners corners of the staircase of a Groebner basis (unverified input)
