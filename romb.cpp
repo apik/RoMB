@@ -18,7 +18,8 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 				      lst k_lst,
 				      lst p_lst,
 				      lst subs_lst,
-				      lst nu)
+                                      lst nu
+                                      )
 {
   try
     {
@@ -37,7 +38,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
       for(lst::const_iterator Pit = p_lst.begin(); Pit != p_lst.end(); ++Pit)
 	{
           input_prop_set.push_back(Pit->expand());
-	  prop_pow_map[Pit->expand()] = nu.op(std::distance(p_lst.begin(),Pit));
+          prop_pow_map[Pit->expand()] = nu.op(std::distance(p_lst.begin(),Pit));
 	}
 	
       cout<<"INPSET: "<<input_prop_set<<endl;
@@ -224,7 +225,12 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 
       MBlbl_int.fix_inv();
 
-      MBlbl_int.new_point();        
+      MBlbl_int.new_point();
+         
+      // setting shared point
+ 
+      w_shared = MBlbl_int.get_w();
+
       print_mathematica(MBlbl_int);
       cout<<"Constructed integral with:"<<endl;
       //cout<<"Poles: "<<MBlbl_int.get_poles_set()<<endl;
@@ -306,6 +312,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 	}*/
       cout<<"Integrals MBC "<<int_lst.size()<<endl;
       cout<<"Integrals MBT "<<inttr.size()<<endl;
+      merge();
       cout<< endl<<" Next step?  [Y/n]: ";
   
 
@@ -414,3 +421,155 @@ void RoMB_loop_by_loop::integrate(lst number_subs_list, int exp_order)
   cout<<" FRESULT num: "<<"          = "<<evalf(int_expr_out.expand().collect(get_symbol( "eps" )))<<endl;
 }
 
+
+void RoMB_loop_by_loop::merge()
+{
+  for(MBlst::iterator it = int_lst.begin();it!= int_lst.end();++it)
+    {
+      MBintegral::w_lst_type wl(it->get_w_lst());
+      wl.sort();
+      intmap[wl] += it->get_expr();
+    }
+  cout<<">>>>> Merged to : "<<intmap.size()<<" integrals" <<endl;
+}
+
+
+void RoMB_loop_by_loop::integrate_map(lst number_subs_list, int exp_order)
+{
+  typedef  std::pair<MBintegral::w_lst_type,ex> intpair;
+  ex int_expr_out = 0;
+  std::map<int,ex> squared_error;
+
+  BOOST_FOREACH(intpair i_in_m, intmap)
+    {
+      ex vegex,veger;
+      tie(vegex,veger) = expand_and_integrate_map(i_in_m.second,i_in_m.first,w_shared, number_subs_list, exp_order);
+      int_expr_out += vegex;
+      for(int i = veger.ldegree( get_symbol("eps") ); i <=veger.degree( get_symbol("eps") ); i++)
+        {
+          squared_error[i] += pow(veger.coeff(get_symbol("eps"),i), 2);
+        }
+    }
+  cout<<" FRESULT for parameters: "<<number_subs_list<<endl<<endl;
+  cout<<" FRESULT anl : "<<"          = "<<int_expr_out.expand().collect(get_symbol( "eps" ))<<endl;
+  cout<<" FRESULT num: "<<"          = "<<evalf(int_expr_out.expand().collect(get_symbol( "eps" )))<<endl;
+
+      for(int i = int_expr_out.ldegree( get_symbol("eps") ); i <=int_expr_out.degree( get_symbol("eps") ); i++)
+        {
+          cout<<" eps^"<<i<<" term: "<< int_expr_out.expand().collect(get_symbol( "eps" )).coeff(get_symbol("eps"),i)
+              <<" +/- "<<sqrt(squared_error[i])<<endl;
+        }
+
+
+}
+
+std::pair<ex,ex> expand_and_integrate_map(ex int_in,MBintegral::w_lst_type w_lst,exmap w_curr, lst num_subs, int expansion_order) // up to O(eps^1) 
+{
+  try
+    {
+      ex out_ex;
+
+      //            cout<<(it->get_pole_lst().subs(it->get_w())).subs(get_symbol("eps")==0)<<endl;
+      //         cout<<endl <<"series:  " << it->get_gamma_expr().series(get_symbol("eps")==0,expansion_order)<<endl<<endl;
+
+      if(w_lst.size() > 0)// expanding and integrating
+        {
+          //          int_in.barnes1();
+          // int_in.barnes2();
+          out_ex = series_to_poly( int_in.series(get_symbol("eps"),expansion_order) ).subs(num_subs);
+          //out_ex = series_to_poly( int_in.get_expr().series(int_in.get_eps(),expansion_order) ).subs(num_subs);
+          // loop over W_i, converting integration contour
+          //          for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
+          lst w_for_pointer;
+            BOOST_FOREACH(ex wf,w_lst)
+            {
+              w_for_pointer.append(wf);
+              ex c_i = wf.subs(w_curr);
+              out_ex = (I*out_ex.subs(wf==c_i - I*log( wf/( 1 - wf ) ) ) ) / wf/(1- wf);
+            }
+          cout<<"current : "<<out_ex<<endl;
+          ex wo_eps_part = out_ex;
+          ex vegas_ex = 0;
+          ex vegas_err = 0;
+          for(int i = out_ex.ldegree( get_symbol("eps") ); i <expansion_order/* out_ex.degree( get_symbol("eps") )*/; i++)
+            {
+              cout<<"Ord( "<<i<<" ) coeff : "<< out_ex.coeff(get_symbol("eps"),i)<<endl;
+              ex int_expr =  out_ex.coeff(get_symbol("eps"),i);
+              RoMB::FUNCP_CUBA2 fp_real;
+              RoMB::compile_ex_real(lst(evalf(int_expr)),w_for_pointer, fp_real);
+
+              // ----------------------------------- Vegas integration-------------------------
+              int  NDIM  = w_lst.size();
+              //#define NCOMP 1
+#define USERDATA NULL
+#define EPSREL 1e-3
+#define EPSABS 1e-9
+#define VERBOSE 0
+#define LAST 4
+#define SEED 0
+#define MINEVAL 0
+#define MAXEVAL 100000
+
+#define NSTART 1000
+#define NINCREASE 500
+#define NBATCH 1000
+#define GRIDNO 0
+#define STATEFILE NULL
+              //SUAVE
+#define NNEW 1000
+#define FLATNESS 25.
+
+              //#define KEY1 47
+              //#define KEY2 1
+              //#define KEY3 1
+              //#define MAXPASS 5
+              //#define BORDER 0.
+              //#define MAXCHISQ 10.
+              //#define MINDEVIATION .25
+              //#define NGIVEN 0
+              //#define LDXGIVEN NDIM
+              //#define NEXTRA 0
+
+#define KEY 0
+              const int NCOMP = 1;
+              int comp,  neval, fail;
+              double integral_real[NCOMP], error[NCOMP], prob[NCOMP];
+                   
+              printf("-------------------- Vegas test --------------------\n");
+	      /*              
+			      Vegas(NDIM, NCOMP, fp,
+			      EPSREL, EPSABS, VERBOSE, 
+			      MINEVAL, MAXEVAL,
+			      NSTART, NINCREASE,
+			      &neval, &fail, integral, error, prob);
+              */     
+	     
+	      Vegas(NDIM, NCOMP, fp_real, USERDATA,
+		    EPSREL, EPSABS, VERBOSE, SEED,
+                    MINEVAL, MAXEVAL, 
+		    NSTART, NINCREASE, NBATCH, GRIDNO, STATEFILE,
+		    &neval, &fail, integral_real, error, prob);
+
+
+          
+              // printf("VEGAS RESULT:\tneval %d\tfail %d\n",
+              
+              for( comp = 0; comp < NCOMP; ++comp )
+                printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
+                       integral_real[comp], error[comp], prob[comp]);
+                       
+              // ----------------------------------- Vegas integration-------------------------              
+              vegas_ex+=pow(get_symbol("eps"),i)*(integral_real[0]);//+I*integral_imag[0]);
+              vegas_err+=pow(get_symbol("eps"),i)*(error[0]);//+I*integral_imag[0]);
+            }
+          return std::make_pair(vegas_ex,vegas_err);
+        }
+      else // expanding only
+        {
+          return  std::make_pair(series_to_poly( int_in.series(get_symbol("eps"),expansion_order) ).subs(num_subs), 0);
+        }
+    }catch(std::exception &p)
+    {
+      throw std::logic_error(std::string("In function \"Expand_and_integrate\":\n |___> ")+p.what());
+    }
+}

@@ -1078,7 +1078,117 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
 }
 
 
+
 ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order) // up to O(eps^1) 
+{
+  try
+    {
+      ex out_ex;
+
+      //            cout<<(it->get_pole_lst().subs(it->get_w())).subs(get_symbol("eps")==0)<<endl;
+      //         cout<<endl <<"series:  " << it->get_gamma_expr().series(get_symbol("eps")==0,expansion_order)<<endl<<endl;
+      lst w_lst = int_in.get_w_lst();
+      if(int_in.w_size()>0)// expanding and integrating
+        {
+          int_in.barnes1();
+          int_in.barnes2();
+          out_ex = series_to_poly( int_in.get_expr().series(get_symbol("eps"),expansion_order) ).subs(num_subs);
+          //out_ex = series_to_poly( int_in.get_expr().series(int_in.get_eps(),expansion_order) ).subs(num_subs);
+          // loop over W_i, converting integration contour
+          for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
+            {
+              ex c_i = wit->subs(int_in.get_w());
+              out_ex = (I*out_ex.subs((*wit)==c_i - I*log( (*wit)/( 1 - (*wit) ) ) ) ) / (*wit)/(1- (*wit));
+            }
+          cout<<"current : "<<out_ex<<endl;
+          ex wo_eps_part = out_ex;
+          ex vegas_ex = 0;
+          for(int i = out_ex.ldegree( get_symbol("eps") ); i <expansion_order/* out_ex.degree( get_symbol("eps") )*/; i++)
+            {
+              cout<<"Ord( "<<i<<" ) coeff : "<< out_ex.coeff(get_symbol("eps"),i)<<endl;
+              ex int_expr =  out_ex.coeff(get_symbol("eps"),i);
+              RoMB::FUNCP_CUBA2 fp_real;
+              RoMB::compile_ex_real(lst(evalf(int_expr)),int_in.get_w_lst(), fp_real);
+
+              // ----------------------------------- Vegas integration-------------------------
+              int  NDIM  = int_in.w_size();
+              //#define NCOMP 1
+#define USERDATA NULL
+#define EPSREL 1e-3
+#define EPSABS 1e-9
+#define VERBOSE 0
+#define LAST 4
+#define SEED 0
+#define MINEVAL 0
+#define MAXEVAL 100000
+
+#define NSTART 1000
+#define NINCREASE 500
+#define NBATCH 1000
+#define GRIDNO 0
+#define STATEFILE NULL
+              //SUAVE
+#define NNEW 1000
+#define FLATNESS 25.
+
+              //#define KEY1 47
+              //#define KEY2 1
+              //#define KEY3 1
+              //#define MAXPASS 5
+              //#define BORDER 0.
+              //#define MAXCHISQ 10.
+              //#define MINDEVIATION .25
+              //#define NGIVEN 0
+              //#define LDXGIVEN NDIM
+              //#define NEXTRA 0
+
+#define KEY 0
+              const int NCOMP = 1;
+              int comp,  neval, fail;
+              double integral_real[NCOMP], error[NCOMP], prob[NCOMP];
+                   
+              printf("-------------------- Vegas test --------------------\n");
+	      /*              
+			      Vegas(NDIM, NCOMP, fp,
+			      EPSREL, EPSABS, VERBOSE, 
+			      MINEVAL, MAXEVAL,
+			      NSTART, NINCREASE,
+			      &neval, &fail, integral, error, prob);
+              */     
+	     
+	      Vegas(NDIM, NCOMP, fp_real, USERDATA,
+		    EPSREL, EPSABS, VERBOSE, SEED,
+                    MINEVAL, MAXEVAL, 
+		    NSTART, NINCREASE, NBATCH, GRIDNO, STATEFILE,
+		    &neval, &fail, integral_real, error, prob);
+
+
+          
+              // printf("VEGAS RESULT:\tneval %d\tfail %d\n",
+              
+              for( comp = 0; comp < NCOMP; ++comp )
+                printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
+                       integral_real[comp], error[comp], prob[comp]);
+                       
+              // ----------------------------------- Vegas integration-------------------------              
+              vegas_ex+=pow(get_symbol("eps"),i)*(integral_real[0]);//+I*integral_imag[0]);
+            }
+          out_ex = vegas_ex;
+        }
+      else // expanding only
+        {
+          out_ex = series_to_poly( int_in.get_expr().series(get_symbol("eps"),expansion_order) ).subs(num_subs);
+        }
+      cout<<endl<<"gp "<<out_ex<<endl;
+      return out_ex;
+    }catch(std::exception &p)
+    {
+      throw std::logic_error(std::string("In function \"Expand_and_integrate\":\n |___> ")+p.what());
+    }
+}
+
+
+ex expand_and_integrate_complex(MBintegral& int_in, lst num_subs, int expansion_order) // up to O(eps^1) 
 {
   try
     {
@@ -1222,7 +1332,7 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order) /
       return out_ex;
     }catch(std::exception &p)
     {
-      throw std::logic_error(std::string("In function \"RoMB\":\n |___> ")+p.what());
+      throw std::logic_error(std::string("In function \"Expand_int_complex\":\n |___> ")+p.what());
     }
 }
 

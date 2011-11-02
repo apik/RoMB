@@ -1,6 +1,8 @@
 #ifndef __CGAMMA_H__
 #define __CGAMMA_H__
 #include <complex>
+//#include <gsl_sf_zeta.h>
+//#include <boost/math/special_functions/zeta.hpp>
 namespace RoMB
 {
   //
@@ -326,9 +328,17 @@ std::complex<double> psi(double div,std::complex<double> z)
     }
 }
 
+/*double zeta(double s)
+{
+    if(int(s) == s)return gsl_sf_zeta_int(int(s));
+    else return gsl_sf_zeta(s);
+}*/
 
-double const Pi = M_PI; //4*atan(1); // Pi=3.14
-double const Euler = 0.577215664901532860606;  //  \gamma_E = 0.577215664901532860606 
+
+//double const Pi = M_PI; //4*atan(1); // Pi=3.14
+//double const Euler = 0.577215664901532860606;  //  \gamma_E = 0.577215664901532860606 
 #define tgamma RoMB::cgamma                                                                                                                                        
+//#define zeta boost::math::zeta                                                                                                                                        
+
 //#define psi RoMB::cpsi
 #endif
