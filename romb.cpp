@@ -496,7 +496,7 @@ std::pair<ex,ex> expand_and_integrate_map(ex int_in,MBintegral::w_lst_type w_lst
               cout<<"Ord( "<<i<<" ) coeff : "<< out_ex.coeff(get_symbol("eps"),i)<<endl;
               ex int_expr =  out_ex.coeff(get_symbol("eps"),i);
               RoMB::FUNCP_CUBA2 fp_real;
-              RoMB::compile_ex_real(lst(evalf(int_expr)),w_for_pointer, fp_real);
+              RoMB::compile_ex_real(lst(evalf(int_expr)),w_for_pointer, fp_real,"code_gen.log");
 
               // ----------------------------------- Vegas integration-------------------------
               int  NDIM  = w_lst.size();

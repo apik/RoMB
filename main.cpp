@@ -1,9 +1,29 @@
 #include "romb.h"
-
+#include "complex_c_print.h"
 int main()
 {
 try
   {
+
+ // a sample expression
+         symbol x("x"), y("y");
+         ex e = -3*pow(x, 3)*pow(y, -2) + pow(x+y, 2) - 1;
+     
+         // switch to LaTeX mode
+         cout << csrc;  
+         // this prints "-1+{(y+x)}^{2}-3 \frac{x^{3}}{y^{2}}"
+         cout << e << endl;
+     
+         // now we replace the method for the LaTeX output of powers with
+         // our own one
+         set_print_func<numeric, print_csrc_double>(complex_c_print);
+     
+         // this prints "-1+{{(y+x)}}\uparrow{2}-3 \frac{{x}\uparrow{3}}{{y}
+         //              \uparrow{2}}"
+         cout << tgamma(x+I*0) << endl;  
+         cout << tgamma(0+I*y) << endl;  
+         cout << tgamma(x+I*y) << endl;  
+         assert(false);
     symbol k1("k1"),k("k"),q("q"),p("p"),p1("p1"),p2("p2"),p3("p3"),ms("ms"),l("l"),s("s"),m1s("m1s"),m2s("m2s"),m3s("m3s");
     symbol l1("l1"),l2("l2"),l3("l3"),l4("l4"),t("t"),p4("p4"),p5("p5"),tp("tp"),v1("v1"),v2("v2"),l5("l5");
   // oneloop box
@@ -64,7 +84,7 @@ try
     
 //bubble 5-loop
      RoMB_loop_by_loop sunset_bub5(lst(l3,k,l1,l2,l4), lst(-pow(l3,2)+ms,-pow(k,2)+ms,-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l4,2)+ms,-pow(k+l1+l2+l3+l4,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1,1));
-     sunset_bub5.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),-2);
+     sunset_bub5.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),0);
 
 
 
@@ -73,8 +93,8 @@ try
 
 
       
-    // RoMB_loop_by_loop t2loop(lst(k,l), lst(-pow(k,2)+ms,-pow(p+k,2)+ms,-pow(p+k+l,2)+ms,-pow(k+l,2)+ms,-pow(l,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1));
-    //t2loop.integrate(lst(s==1,ms == 0),1);
+//     RoMB_loop_by_loop t2loop(lst(k,l), lst(-pow(k,2)+ms,-pow(p+k,2)+ms,-pow(p+k+l,2)+ms,-pow(k+l,2)+ms,-pow(l,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1));
+//    t2loop.integrate(lst(s==1,ms == 0),1);
     
     /*     RoMB_loop_by_loop bubble_five_loop(lst(k,l1,l2,l3,l4), 
 	   lst(pow(k,2)-ms,pow(l1,2)-ms,pow(l2,2)-ms,pow(l3,2)-ms,pow(l4,2)-ms,pow(k+l1,2)-ms,pow(k+l1+l2,2)-ms,pow(k+l1+l2+l3,2)-ms,pow(k+l1+l2+l3+l4,2)-ms,pow(k+l1+l2+l3,2)-ms,pow(k+l1+l2,2)-ms,pow(k+l1,2)-ms),

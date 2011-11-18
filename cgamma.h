@@ -342,3 +342,4 @@ std::complex<double> psi(double div,std::complex<double> z)
 
 //#define psi RoMB::cpsi
 #endif
+#define float double

@@ -24,7 +24,7 @@
  */
 
 #include "romb_excompiler.h"
-
+#include "code_generation.h"
 #ifdef HAVE_CONFIG_H
 //#include "config.h"
 #endif
@@ -207,10 +207,18 @@ static romb_excompiler global_romb_excompiler;
 
 	ofs << "double compiled_ex(double x)" << std::endl;
 	ofs << "{" << std::endl;
-	ofs << "double res = ";
-	expr_with_x.print(GiNaC::print_csrc_double(ofs));
-	ofs << ";" << std::endl;
-	ofs << "return(res); " << std::endl;
+//	ofs << "double res = ";
+	
+	 GiNaC::symbol val_expr("val_expr");
+    GiNaC::assign_lst AL(std::string("double"), std::string("t"));
+    AL.append(val_expr, expr);
+    AL.replace_common_subex();
+    AL.split_large_subex(1024);
+    ofs << AL << std::endl;
+
+//	expr_with_x.print(GiNaC::print_csrc_double(ofs));
+//	ofs << ";" << std::endl;
+	ofs << "return(val_expr); " << std::endl;
 	ofs << "}" << std::endl;
 
 	ofs.close();
@@ -386,10 +394,22 @@ void compile_ex(const GiNaC::lst& exprs, const GiNaC::lst& syms, FUNCP_CUBA& fp,
 
 	ofs << "void compiled_ex(const int* an, const double a[], const int* fn, double f[], void* np)" << std::endl;
 	ofs << "{" << std::endl;
+	
+		 GiNaC::symbol val_expr("val_expr");
+    GiNaC::assign_lst AL(std::string("std::complex<double>"), std::string("t"));
+    AL.append(val_expr, expr_with_cname[0]);
+    AL.replace_common_subex();
+    AL.split_large_subex(1024);
+    ofs << AL << std::endl;
+
+//	expr_with_x.print(GiNaC::print_csrc_double(ofs));
+//	ofs << ";" << std::endl;
+//	ofs << "return(val_expr); " << std::endl;
+
         //	for (std::size_t count=0; count<exprs.nops(); ++count) {
-        ofs << "f[" << "0" << "] =RoMB::Real( ";      // Re part
-		expr_with_cname[0].print(GiNaC::print_csrc_double(ofs));
-		ofs << ");" << std::endl;
+        ofs << "f[" << "0" << "] =RoMB::Real(val_expr);\n ";      // Re part
+//		expr_with_cname[0].print(GiNaC::print_csrc_double(ofs));
+//		ofs << ");" << std::endl;
                 //	}
 	ofs << "}}" << std::endl;
 
