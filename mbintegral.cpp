@@ -147,7 +147,8 @@ MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l, unsigned int displacement)
 
                   if(sq_lst.nops() > 1)
                     {
-                      coeff *= pow(coe_l.op(i),w_i)/(2*Pi*I);
+                    //edited 2Pi*I
+                      coeff *= pow(coe_l.op(i),w_i);///(2*Pi*I);
                       // subMB construction
                       // ordering in full square expr
                       // x_lst -> to list<symbol> for comparision
@@ -163,7 +164,8 @@ MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l, unsigned int displacement)
                   
                   
                       cout<<"SQLST : "<<subFl<<endl;
-                      coeff /= (pow(2*Pi*I,sq_lst.nops()-1)*tgamma(-2*w_i));
+                      //edited 2Pi*I
+                      coeff /= tgamma(-2*w_i);//(pow(2*Pi*I,sq_lst.nops()-1)*tgamma(-2*w_i));
                       insert_pole(-2*w_i);
                       ex z_sum = 0;
                       for(exlist::iterator x_it = subFl.begin(); x_it != subFl.end(); ++x_it)

@@ -476,7 +476,7 @@ std::pair<ex,ex> expand_and_integrate_map(ex int_in,MBintegral::w_lst_type w_lst
         {
           //          int_in.barnes1();
           // int_in.barnes2();
-          out_ex = series_to_poly( int_in.series(get_symbol("eps"),expansion_order) ).subs(num_subs);
+          out_ex = series_to_poly( int_in.series(get_symbol("eps"),expansion_order) ).expand().subs(num_subs);
           //out_ex = series_to_poly( int_in.get_expr().series(int_in.get_eps(),expansion_order) ).subs(num_subs);
           // loop over W_i, converting integration contour
           //          for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
