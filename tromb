@@ -1,0 +1,4 @@
+#!/bin/bash
+export CUBACORES=$1
+echo ${CUBACORES}
+./romb
