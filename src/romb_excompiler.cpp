@@ -158,6 +158,7 @@ public:
 	 */
 	void* link_so_file(const std::string filename, bool clean_up)
 	{
+		std::cout<<filename<<std::endl;
 		void* module = NULL;
 		module = dlopen(filename.c_str(), RTLD_NOW);
 		if (module == NULL)	{

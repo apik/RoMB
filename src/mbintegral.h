@@ -311,7 +311,7 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
   }
  
 
-  MBintegral(UFXmap,lst,numeric, unsigned int displacement = 0); // lst nu is a list of powers of propagators and l is a number of loops
+  MBintegral(UFXmap,lst,numeric,bool, unsigned int displacement = 0); // lst nu is a list of powers of propagators and l is a number of loops
 };
 
 typedef std::list<MBintegral> MBlst;

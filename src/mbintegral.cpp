@@ -3,6 +3,9 @@
 #include "utils.h"
 
 #include "constracc.h"
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+
 //#include "tree_util.hh"
 /**
  *
@@ -10,7 +13,7 @@
  *
  */
 
-MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l, unsigned int displacement):tree_level(0),res_pole(0),opt_flag(false) // lst nu is a list of powers of propagators and l is a number of loops
+MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l,bool subs_U, unsigned int displacement):tree_level(0),res_pole(0),opt_flag(false) // lst nu is a list of powers of propagators and l is a number of loops
 {
   try
     {
@@ -127,7 +130,7 @@ MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l, unsigned int displacement)
                 {
                   ex sq_lst(xsq_l.op(i)); // summ for MB
                   // substituting U=Summ(x_j)=1
-                  if(sq_lst.nops() > std::min((sq_lst + U -1).nops(), (sq_lst - U + 1).nops()))
+                  if(subs_U && (sq_lst.nops() > std::min((sq_lst + U -1).nops(), (sq_lst - U + 1).nops())))
                     {
                       sq_lst = (sq_lst + U -1).nops() < (sq_lst - U + 1).nops() ? (sq_lst+U-1) : (sq_lst+1-U);
                     }

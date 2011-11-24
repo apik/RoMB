@@ -1,5 +1,8 @@
 #include "romb.h"
 #include "utils.h"
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+
 /**
  *
  *  loop momentums,propagator expressions,
@@ -18,7 +21,8 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 				      lst k_lst,
 				      lst p_lst,
 				      lst subs_lst,
-                                      lst nu
+                                      lst nu,
+                                      bool subs_U
                                       )
 {
   try
@@ -74,6 +78,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 	  cout<< "Set wo k_i "<<input_prop_set<<endl;
 	  cout<<" PWKlst "<<P_with_k_lst<<endl;
           // if only one term in PWKLST use well known formula
+          // [Smirnov A.1]
           if(P_with_k_lst.nops() == 1)
             {
               ex pr_t = P_with_k_lst.op(0);
@@ -88,8 +93,35 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
             }
           else 
             {
-              //          cout<< " coe: "<<coe_prop_lst<<endl;
-              /*
+              //TWO terms in PWK_LST, [Smirnov A.4]
+              exmap repls_tad;
+              if((P_with_k_lst.nops()==2) &&
+        	 (( (P_with_k_lst.op(0).match(-pow(*kit,2))) && (P_with_k_lst.op(1).match(-pow(*kit,2)+wild())))||
+                  ( (P_with_k_lst.op(1).match(-pow(*kit,2))) && (P_with_k_lst.op(0).match(-pow(*kit,2)+wild()))))
+                 ) 
+                {
+                  exmap r1,r2;
+                  ex mm,lmb1,lmb2;
+                    if( (P_with_k_lst.op(0).match(-pow(*kit,2))) && (P_with_k_lst.op(1).match(-pow(*kit,2)+wild(),r1)))
+                      {
+                        lmb1 = prop_pow_map[P_with_k_lst.op(1)];
+                        lmb2 = prop_pow_map[P_with_k_lst.op(0)];
+                        mm=wild().subs(r1);
+                      }
+                    else if( (P_with_k_lst.op(1).match(-pow(*kit,2))) && (P_with_k_lst.op(0).match(-pow(*kit,2)+wild(),r2)))
+                      {
+                        lmb1 = prop_pow_map[P_with_k_lst.op(0)];
+                        lmb2 = prop_pow_map[P_with_k_lst.op(1)];
+                        mm=wild().subs(r2);
+                      }
+                    else throw std::logic_error(std::string("Wrong two prop topology to use eq [Smir:A.4]"));
+                  ex mass_tadpole = tgamma(lmb1+lmb2+get_symbol("eps")-2)*tgamma(-lmb2-get_symbol("eps")+2)/tgamma(lmb1)/tgamma(2-get_symbol("eps"))*pow(mm,-lmb1-lmb2-get_symbol("eps")+2);
+                  cout<<mass_tadpole<<endl;
+                }
+              else
+                {
+                  //          cout<< " coe: "<<coe_prop_lst<<endl;
+                  /*
                 lexi sort of input prop list, and it's modification
               */            
  
@@ -114,7 +146,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
                 ),nu_into,1,displacement_w);
               */
 
-              MBintegral Uint(inUFmap,nu_into,1,displacement_w);
+              MBintegral Uint(inUFmap,nu_into,1,subs_U,displacement_w);
               displacement_w+=Uint.w_size();
               cout<<"ui9nt eps (no gamma) : "<<Uint.get_expr().subs(tgamma(wild()) == 1)<<endl;
               cout<<"ui9nt eps : "<<Uint.get_expr()<<endl;
@@ -220,6 +252,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
               //            MBlbl_int.insert_w_lst(Uint.get_w_lst());
               // MBlbl_int.insert_pole_lst(Uint.get_pole_lst());
             }// else more then one prop            
+            }// two prop formula
           
 	}
 
@@ -496,7 +529,9 @@ std::pair<ex,ex> expand_and_integrate_map(ex int_in,MBintegral::w_lst_type w_lst
               cout<<"Ord( "<<i<<" ) coeff : "<< out_ex.coeff(get_symbol("eps"),i)<<endl;
               ex int_expr =  out_ex.coeff(get_symbol("eps"),i);
               RoMB::FUNCP_CUBA2 fp_real;
-              RoMB::compile_ex_real(lst(evalf(int_expr)),w_for_pointer, fp_real,"code_gen.log");
+              std::string int_c_f(boost::filesystem::current_path().string());
+              int_c_f+="/int_c_f";
+              RoMB::compile_ex_real(lst(evalf(int_expr)),w_for_pointer, fp_real,int_c_f);
 
               // ----------------------------------- Vegas integration-------------------------
               int  NDIM  = w_lst.size();

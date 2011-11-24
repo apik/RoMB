@@ -73,6 +73,7 @@ UFXmap UF(lst k_lst,lst p_lst,lst subs_lst, unsigned int displacement )
   //  cout<<"pol_list "<<lp<<endl;
   U=U.subs(subs_lst,subs_options::algebraic);
   F=F.subs(subs_lst,subs_options::algebraic);
+  cout<<"ALGEBRAIC: U= "<<U<<endl<<"F= "<<F<<endl;
   //  cout<<"UF_WORK"<<endl;
   return fusion::make_map<UFX::U,UFX::F,UFX::xlst>(U,F,xp);
 }

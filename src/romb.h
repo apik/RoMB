@@ -38,7 +38,7 @@ public:
    \return 
    *
   */
-  RoMB_loop_by_loop(lst,lst,lst,lst);
+  RoMB_loop_by_loop(lst,lst,lst,lst,bool subs_U = true);
   void merge();
   void integrate(lst,int exp_order = 1);
 void integrate_map(lst,int exp_order = 1);

@@ -71,43 +71,10 @@ INCLUDE_DIRECTORIES(
 ## TARGET_LINK_LIBRARIES statements.
 
 LINK_DIRECTORIES( ${LINK_DIRECTORIES} ./cuba/ )
-#ADD_SUBDIRECTORY( ara )
+ADD_SUBDIRECTORY( src )
 
-#INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/ara )
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src )
 
-ADD_EXECUTABLE(romb main.cpp uf.cpp utils.cpp romb.cpp constracc.cpp mbintegral.cpp collect_square.cpp romb_excompiler.cpp code_generation.cc)
-TARGET_LINK_LIBRARIES(romb cuba ginac glpk ${LEMON_LIBRARIES})
-
-## This tells cmake to install 'lemon-project' to $PREFIX/bin when
-## 'make install' is executed. You can give more targets separated
-## by whitespaces.
-
-INSTALL(
-  TARGETS romb
-  RUNTIME DESTINATION bin
-  COMPONENT bin
-)
-
-## Sometimes MSVC overwhelms you with compiler warnings which are impossible to
-## avoid. Then comment out these sections. Normally you won't need it as the
-## LEMON include headers suppress these warnings anyway.
-
-#IF(MSVC)
-#  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}
-#      /wd4250 /wd4355 /wd4503 /wd4800 /wd4996")
-# # Suppressed warnings:
-# # C4250: 'class1' : inherits 'class2::member' via dominance
-# # C4355: 'this' : used in base member initializer list
-# # C4503: 'function' : decorated name length exceeded, name was truncated
-# # C4800: 'type' : forcing value to bool 'true' or 'false'
-# #        (performance warning)
-# # C4996: 'function': was declared deprecated
-# ENDIF(MSVC)
-
-ENABLE_TESTING()
-
-## The auxiliary doxygen files (.dox) should be placed in the 'doc'
-## subdirectory. The next line includes the CMAKE config of that directory.
-
-#ADD_SUBDIRECTORY(doc)
+ADD_EXECUTABLE(romb_test main.cpp )
+TARGET_LINK_LIBRARIES(romb_test romb cuba ginac glpk boost_filesystem ${LEMON_LIBRARIES})
 
