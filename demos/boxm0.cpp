@@ -118,7 +118,7 @@ MEGA 5-LOOP BUBBLE with 12 propagators
 
   //MB works???
   
-    /*
+    
           RoMB_loop_by_loop box1loopm0(lst(k),lst(-pow(k,2),-pow(k+p1,2),-pow(k+p1+p2,2),-pow(k+p1+p2+p4,2)),
                                   lst(pow(p1,2)==0,pow(p2,2)==0,pow(p4,2)==0,
                                       p1*p2==-s/2,//
@@ -130,8 +130,8 @@ MEGA 5-LOOP BUBBLE with 12 propagators
                                        lst(1,1,1,1),false);
     box1loopm0.integrate_map(lst(s==3,t==1));
    
-    box1loopm0.integrate(lst(s==5,t==2));
-    */
+//    box1loopm0.integrate(lst(s==5,t==2));
+    
 //MASIVE BOX LBL
     /*   
     RoMB_loop_by_loop box1loopm(lst(k),lst(-pow(k,2)+ms,-pow(k+p1,2)+ms,-pow(k+p1+p2,2)+ms,-pow(k+p1+p2+p4,2)+ms),
@@ -167,6 +167,7 @@ MEGA 5-LOOP BUBBLE with 12 propagators
 
 
     //double box
+    /*
     RoMB_loop_by_loop dobox1loopm(lst(k1,k2),lst(-pow(k1,2),-pow(k1+p1,2),-pow(k1+p1+p2,2),
                                                      -pow(k1-k2,2),-pow(k2,2),-pow(k2+p1+p2,2),
                                                      -pow(k2-p3,2)),
@@ -180,7 +181,7 @@ MEGA 5-LOOP BUBBLE with 12 propagators
                                         ),
                                    lst(1,1,1,1,1,1,1),false);
    dobox1loopm.integrate_map(lst(ms1==1,ms2==1,ms3==1,ms4==1,ms==1,s==-1/2,t==-3));
-
+*/
         
     /*
       4-loop  tadpole

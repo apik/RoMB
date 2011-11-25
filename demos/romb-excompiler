@@ -1,0 +1,4 @@
+#!/bin/sh
+x86_64-pc-linux-gnu-gcc -x c -fPIC -shared -o $1.so $1
+#cp $1.so src/$1.so
+#gcc -x c++ -fPIC -shared -o $1.so $1

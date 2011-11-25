@@ -50,8 +50,8 @@ MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l,bool subs_U, unsigned int d
 		
       ex coeff = 1;                             // numerical coeeficient independent of X(j)
       // ex coeff = pow(exp(get_symbol("eps")*Euler),l)*pow(1,U_pow);///pow(I*pow(Pi,2 - get_symbol("eps")),l);
-      //ex Laporta_factor =I/ tgamma(1+get_symbol("eps"));
-      //  ex coeff = Laporta_factor;
+     // ex Laporta_factor =I/ tgamma(1+get_symbol("eps"));
+    //    ex coeff = Laporta_factor;
       // important if power = 0????
       for(lst::const_iterator nui = nu.begin();nui!=nu.end();++nui)
         coeff/=tgamma(*nui);
@@ -360,11 +360,17 @@ MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l,bool subs_U, unsigned int d
           f_lesseq_revlex F_comp(x_sym_list);
 
 
-          exlist Fl(F.begin(),F.end());
+          exlist Fl;
+          if(is_a<add>(F))
+            Fl.assign(F.begin(),F.end());
+          else 
+            Fl.push_back(F);
+
           //   cout<<"FEX "<<Fex<<endl;
 
           // sorting lexicographicaly
           Fl.sort(F_comp);
+          Fl.reverse();
           cout<<"FEX "<<Fl<<endl;
 
 
