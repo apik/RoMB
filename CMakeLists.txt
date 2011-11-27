@@ -70,7 +70,7 @@ INCLUDE_DIRECTORIES(
 ## executables, simple repeat (and edit) the following ADD_EXECUTABLE and
 ## TARGET_LINK_LIBRARIES statements.
 
-LINK_DIRECTORIES( ${LINK_DIRECTORIES} ./cuba/ )
+LINK_DIRECTORIES( ${LINK_DIRECTORIES} ${PROJECT_SOURCE_DIR}/cuba/ )
 ADD_SUBDIRECTORY( src )
 ADD_SUBDIRECTORY( demos )
 
