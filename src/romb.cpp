@@ -55,8 +55,9 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
       for(lst::const_iterator kit = k_lst.begin(); kit != k_lst.end(); ++kit)
 	{
           // Integral Normalization coefficient 
-          //          MBlbl_int *= pow(I,k_lst.nops());
+        //            MBlbl_int *= pow(I,k_lst.nops());
           MBlbl_int *= 1/tgamma(1+get_symbol("eps"));
+          //MBlbl_int *= pow(Pi,2-get_symbol("eps"));
 	  cout<<"PROP_POW_MAP "<<prop_pow_map<<endl;
 	  /*
 	    temporary set of propagators, with all momentum,except deleted
@@ -78,7 +79,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 	  cout<< "Set wo k_i "<<input_prop_set<<endl;
 	  cout<<" PWKlst "<<P_with_k_lst<<endl;
 	  bool direct_formula_applied = false;
-          // if only one term in PWKLST use well known formula
+          // if only one term in PWKLST use well known formulas
           // [Smirnov A.1]
           if(!direct_formula_applied && (P_with_k_lst.nops() == 1))
             {
@@ -263,15 +264,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 
           MBlbl_int.fix_inv();
           cout<<"expr: "<<MBlbl_int.get_expr()<<endl;
-          // MB only if w's existsts
-          if(MBlbl_int.w_size() > 0)
-            MBlbl_int.new_point();
-               
-          // setting shared point
- 
-          w_shared = MBlbl_int.get_w();
-
-          print_mathematica(MBlbl_int);
+          
           cout<<"Constructed integral with:"<<endl;
           //cout<<"Poles: "<<MBlbl_int.get_poles_set()<<endl;
           //MBlbl_int.set_poles_set(MBlbl_int.poles_from_ex(MBlbl_int.get_expr()));
@@ -279,6 +272,21 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
           cout<<"Poles: "<<MBlbl_int.get_poles()<<endl;
           cout<<"W's : "<<MBlbl_int.get_w_lst()<<endl;
           cout<<"Expr : "<<MBlbl_int.get_expr()<<endl;
+
+          if(MBlbl_int.w_size()>0)          
+            {
+              MBlbl_int.new_point();
+              w_shared = MBlbl_int.get_w();
+            }
+          print_mathematica(MBlbl_int);
+          // MB only if w's existsts or eps!=0
+          if((MBlbl_int.w_size() > 0) && (MBlbl_int.get_eps().rhs() != 0))
+          {
+            
+            
+          // setting shared point
+         
+
 
           cout<< endl<<" Ready for MBcontinue?  [Y/n]: ";
           char in_ch;
@@ -386,6 +394,12 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
         
           //cout<<" RESULT : "<<endl
           //    <<"               = "<<int_expr_out.expand().collect(get_symbol( "eps" ))<<endl;
+          }
+          else // no contour integration or no continuation in eps
+          {
+            int_lst.push_back(MBlbl_int);
+            merge();
+          }
         }catch(std::exception &p)
            {
              throw std::logic_error(std::string("In function \"RoMB\":\n |___> ")+p.what());
@@ -527,18 +541,18 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
                 ex c_i = wf.subs(w_curr);
                 out_ex = (I*out_ex.subs(wf==c_i - I*log( wf/( 1 - wf ) ) ) ) / wf/(1- wf);
               }
-            cout<<"current : "<<out_ex<<endl;
+            //cout<<"current : "<<out_ex<<endl;
             ex wo_eps_part = out_ex;
             ex vegas_ex = 0;
             ex vegas_err = 0;
             for(int i = out_ex.ldegree( get_symbol("eps") ); i <expansion_order/* out_ex.degree( get_symbol("eps") )*/; i++)
               {
-                cout<<"Ord( "<<i<<" ) coeff : "<< out_ex.coeff(get_symbol("eps"),i)<<endl;
+                cout<<"eps^ "<<i<<"  : "<<endl;//<< out_ex.coeff(get_symbol("eps"),i)<<endl;
                 ex int_expr =  out_ex.coeff(get_symbol("eps"),i);
                 RoMB::FUNCP_CUBA2 fp_real;
                 std::string int_c_f(boost::filesystem::current_path().string());
                 int_c_f+="/int_c_f";
-                RoMB::compile_ex_real(lst(evalf(int_expr)),w_for_pointer, fp_real,int_c_f);
+                RoMB::compile_ex_real(lst(evalf(int_expr)),w_for_pointer, fp_real);//,int_c_f);
 
                 // ----------------------------------- Vegas integration-------------------------
                 int  NDIM  = w_lst.size();

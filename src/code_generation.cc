@@ -402,8 +402,8 @@ namespace GiNaC {
   void assign_lst::print(std::ostream & os) const
   {
     lst lhs_lst = ex_to<lst>(lhs);
-    lst rhs_lst = ex_to<lst>(rhs.subs(psi(wild(1),wild(2)) == dummy_psi2(wild(1),wild(2))).subs(psi(wild(1)) == dummy_psi1(wild(1))));
-set_print_func<numeric, print_csrc_double>(complex_c_print);
+    lst rhs_lst = ex_to<lst>(rhs);//.subs(psi(wild(1),wild(2)) == dummy_psi2(wild(1),wild(2))).subs(psi(wild(1)) == dummy_psi1(wild(1))));
+//set_print_func<numeric, print_csrc_double>(complex_c_print);
     lst::const_iterator it_lhs, it_rhs;
     for ( it_lhs = lhs_lst.begin(), it_rhs = rhs_lst.begin(); it_lhs != lhs_lst.end(); it_lhs++, it_rhs++)
       {

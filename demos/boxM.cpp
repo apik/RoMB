@@ -136,14 +136,14 @@ MEGA 5-LOOP BUBBLE with 12 propagators
        
     RoMB_loop_by_loop box1loopm(lst(k),lst(-pow(k,2)+ms,-pow(k+p1,2)+ms,-pow(k+p1+p2,2)+ms,-pow(k+p1+p2+p4,2)+ms),
                                     lst(pow(p1,2)==0,pow(p2,2)==0,pow(p4,2)==0,
-                                       p1*p2==-s/2,//
+                                       p1*p2==s/2,//
                                         
-                                      p1*p4==(s/2+t/2),//
+                                      p1*p4==-(s/2+t/2),//
                                         
-                                        p2*p4==-t/2 //
+                                        p2*p4==t/2 //
                                         ),
-                                lst(1,1,1,1),false);
-        box1loopm.integrate_map(lst(ms1==1,ms2==1,ms3==1,ms4==1,ms==1,s==30,t==5));
+                                lst(1,1,1,1),true);
+        box1loopm.integrate_map(lst(ms1==1,ms2==1,ms3==1,ms4==1,ms==1,s==-3,t==-1),3);
     
     //triple box
 /*

@@ -130,11 +130,10 @@ public:
 			throw std::runtime_error("could not create source code file for compilation");
 		}
 
-                //		ofs << "#include <cstddef> " << std::endl;
-                //	ofs << "#include <cstdlib> " << std::endl;
-                //	ofs << "#include <cmath> " << std::endl;
-                //	ofs << "#include <complex> " << std::endl;
-            	ofs << "#include <math.h> " << std::endl;
+		ofs << "#include <cstddef> " << std::endl;
+		ofs << "#include <cstdlib> " << std::endl;
+		ofs << "#include <cmath> " << std::endl;
+		ofs << "#include <complex> " << std::endl;
 		ofs << "#include \"cgamma.h\"" << std::endl;
 		ofs << std::endl;
 	}
@@ -158,7 +157,6 @@ public:
 	 */
 	void* link_so_file(const std::string filename, bool clean_up)
 	{
-		std::cout<<filename<<std::endl;
 		void* module = NULL;
 		module = dlopen(filename.c_str(), RTLD_NOW);
 		if (module == NULL)	{
@@ -392,28 +390,28 @@ void compile_ex(const GiNaC::lst& exprs, const GiNaC::lst& syms, FUNCP_CUBA& fp,
 	global_romb_excompiler.create_src_file(unique_filename, ofs);
         
         //        ofs<< "#include <complex.h>"<<std::endl;
-//        ofs << "extern \"C\" {"<<std::endl;
+        ofs << "extern \"C\" {"<<std::endl;
 
 	ofs << "void compiled_ex(const int* an, const double a[], const int* fn, double f[], void* np)" << std::endl;
 	ofs << "{" << std::endl;
 	
 		 GiNaC::symbol val_expr("val_expr");
-                 GiNaC::assign_lst AL(std::string("complex double"), std::string("t"));
-                 AL.append(val_expr, expr_with_cname[0]);
-                 AL.replace_common_subex();
-                 AL.split_large_subex(1024);
-                 ofs << AL << std::endl;
+    GiNaC::assign_lst AL(std::string("std::complex<double>"), std::string("t"));
+    AL.append(val_expr, expr_with_cname[0]);
+    AL.replace_common_subex();
+    AL.split_large_subex(1024);
+    ofs << AL << std::endl;
 
 //	expr_with_x.print(GiNaC::print_csrc_double(ofs));
 //	ofs << ";" << std::endl;
 //	ofs << "return(val_expr); " << std::endl;
 
         //	for (std::size_t count=0; count<exprs.nops(); ++count) {
-        ofs << "f[" << "0" << "] =creal(val_expr);\n ";      // Re part
+        ofs << "f[" << "0" << "] =RoMB::Real(val_expr);\n ";      // Re part
 //		expr_with_cname[0].print(GiNaC::print_csrc_double(ofs));
 //		ofs << ");" << std::endl;
                 //	}
-	ofs << "}" << std::endl;
+	ofs << "}}" << std::endl;
 
 	ofs.close();
 

@@ -48,8 +48,8 @@ try
   //                 sunset.integrate(lst(m1s==1,m2s==1,m3s==1,s==0),0);
 
     //     bubble sunset 2=loop
-//                   RoMB_loop_by_loop sunset_bub(lst(k,l), lst(-pow(k,2)+ms,-pow(-k-l,2)+ms,-pow(l,2)+ms),lst(pow(p,2)==0),lst(1,1,1));
-//      sunset_bub.integrate(lst(ms==1,m2s==1,m3s==1,s==0),1);
+                   RoMB_loop_by_loop sunset_bub(lst(k,l), lst(-pow(k,2)+ms,-pow(-k-l,2)+ms,-pow(l,2)+ms),lst(pow(p,2)==0),lst(1,1,1));
+      sunset_bub.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
 
     //     bubble sunset 3=loop
     //                     RoMB_loop_by_loop sunset_bub(lst(p,k,l), lst(-pow(p,2)+ms,-pow(k,2)+ms,-pow(l,2)+ms,-pow(-p-k-l,2)+ms),lst(pow(l3,2)==s),lst(1,1,1,1));
@@ -167,6 +167,7 @@ MEGA 5-LOOP BUBBLE with 12 propagators
 
 
     //double box
+    /*
     RoMB_loop_by_loop dobox1loopm(lst(k1,k2),lst(-pow(k1,2),-pow(k1+p1,2),-pow(k1+p1+p2,2),
                                                      -pow(k1-k2,2),-pow(k2,2),-pow(k2+p1+p2,2),
                                                      -pow(k2-p3,2)),
@@ -180,7 +181,7 @@ MEGA 5-LOOP BUBBLE with 12 propagators
                                         ),
                                    lst(1,1,1,1,1,1,1),false);
    dobox1loopm.integrate_map(lst(ms1==1,ms2==1,ms3==1,ms4==1,ms==1,s==-1/2,t==-3));
-
+*/
         
     /*
       4-loop  tadpole
