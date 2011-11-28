@@ -119,6 +119,8 @@ MEGA 5-LOOP BUBBLE with 12 propagators
      RoMB_loop_by_loop B0_1loop_lblm(lst(k),lst(-pow(k,2)+m1s,-pow(p-k,2)+m2s),
      lst(pow(p,2)==s),lst(1,1),true);
      B0_1loop_lblm.integrate_map(lst(s==-1,m1s==1,m2s==1),1);
+     cout<<"************** From PJfry ***********"<<endl;
+     cout<<""<<endl;
 #endif
     //MB works???
     //                                RoMB_loop_by_loop C0_1loop_lbl(lst(k),lst(pow(k,2),pow(k+p1,2)-m1s,pow(k-p2,2)-m2s),lst(ms==1,pow(p1,2)==m1s,pow(p2,2)==m2s,p1*p2==(s-m1s-m2s)/2),lst(1,1,1));

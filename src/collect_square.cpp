@@ -6,6 +6,8 @@
 #include <cassert>
 std::pair<lst,lst> collect_square(ex& F,lst x)
 {
+try
+  {
   //symbol l("l"),u("u"),g("g"),x1("x1"),x2("x2"),x3("x3"),x4("x4");
   //x = lst(x1,x2,x3,x4);
   //  ex F_out =(3*u*F).expand();
@@ -49,7 +51,7 @@ std::pair<lst,lst> collect_square(ex& F,lst x)
 	      {
 		if(F.coeff(xi1->second,1).coeff(xi2->second,1).has(2*(x_coeff_key)))
 		  {
-		    //cout<<"("<<x<<","<<y<<")"<<endl;
+		   cout<<"("<<x<<","<<y<<")"<<endl;
 		    xm(x,y) = (xi1->second)*(xi2->second);
 		    xm(y,x) = (xi1->second)*(xi2->second);
 		  }
@@ -74,16 +76,24 @@ std::pair<lst,lst> collect_square(ex& F,lst x)
 	      }
 	    x++;
 	  }
+
+          std::deque<size_t>::iterator itdeq = unique (zero_cr.begin(), zero_cr.end());
+          zero_cr.resize( itdeq - zero_cr.begin() ); 
+	  BOOST_FOREACH(size_t cr_todel, zero_cr)
+            {
+              cout<<"zero_cr content: "<<cr_todel<<endl;
+            }
 	  /*
 	    removing columns and rows with zeros
 	  */
 	  BOOST_FOREACH(size_t cr_todel, zero_cr)
 	    {
+              cout<<"deleting "<<cr_todel<<endl;
 	      ex m_ex = reduced_matrix(xm, cr_todel, cr_todel);
 	      xm = ex_to<matrix>(m_ex);
 	      x_to_index.erase(x_to_index.begin()+cr_todel);
 	    }
-	  //cout<<"xm after no term : "<<xm<<endl;
+	  cout<<"xm after no term : "<<xm<<endl;
 	  /*
 	    signum matrix s23*s31==s21, if not remove r3,c3
 	  */
@@ -165,5 +175,9 @@ std::pair<lst,lst> collect_square(ex& F,lst x)
     F=F_out;
     }
   return std::make_pair(x_coeff_lst,x_sq_lst);
-   
+  }catch(std::exception &p)
+  {
+    throw std::logic_error(std::string("In function \"Collect_square\":\n |___> ")+p.what());
+  }
+ 
 }

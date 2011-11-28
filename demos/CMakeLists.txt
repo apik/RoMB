@@ -48,9 +48,9 @@ TARGET_LINK_LIBRARIES(boxM_test ${ROMB_LIBS})
 ADD_EXECUTABLE(sunset2loop_test sunset2loop.cpp )
 TARGET_LINK_LIBRARIES(sunset2loop_test ${ROMB_LIBS})
 
-## One-loop B0 function example
-#ADD_EXECUTABLE(B0_test B0.cpp )
-#TARGET_LINK_LIBRARIES(B0_test ${ROMB_LIBS})
+## One-loop E0 function example
+ADD_EXECUTABLE(pentagon_test pentagon.cpp )
+TARGET_LINK_LIBRARIES(pentagon_test ${ROMB_LIBS})
 
 ## One-loop B0 function example
 #ADD_EXECUTABLE(B0_test B0.cpp )

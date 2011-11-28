@@ -69,8 +69,8 @@ MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l,bool subs_U, unsigned int d
       // F_col_sq modified, for decision
       ex F_col_sq = F;
       lst coe_l,xsq_l;
+      cout<<"test collect squares"<<endl;
       tie(coe_l,xsq_l) = collect_square(F_col_sq,x_lst);
-        
       cout<<">>> Found "<<coe_l.nops()<<" full squares in F polynomial"<<endl;
       cout<< coe_l<<" * "<<xsq_l<<endl;
       cout<<" F qad " <<F_col_sq<<endl;
@@ -517,7 +517,7 @@ MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l,bool subs_U, unsigned int d
 
     }catch(std::exception &p)
     {
-      throw std::logic_error(std::string("In function \"MBintegral)UFX)\":\n |___> ")+p.what());
+      throw std::logic_error(std::string("In function \"MBintegral-UFXversion\":\n |___> ")+p.what());
     }
 
 }
