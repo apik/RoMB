@@ -119,23 +119,24 @@ public:
 				throw std::runtime_error("mkstemp failed");
 			}
 			filename = std::string(new_filename);
-			ofs.open(new_filename, std::ios::out);
-			delete[] new_filename;
-		} else {
-			// use parameter as filename
+                        delete[] new_filename;
+                        filename.append(".f90");
 			ofs.open(filename.c_str(), std::ios::out);
+                } else {
+			// use parameter as filename
+                  ofs.open(filename.c_str(), std::ios::out);
 		}
 		
 		if (!ofs) {
 			throw std::runtime_error("could not create source code file for compilation");
 		}
 
-		ofs << "#include <cstddef> " << std::endl;
-		ofs << "#include <cstdlib> " << std::endl;
-		ofs << "#include <cmath> " << std::endl;
-		ofs << "#include <complex> " << std::endl;
-		ofs << "#include \"cgamma.h\"" << std::endl;
-		ofs << std::endl;
+                //ofs << "#include <cstddef> " << std::endl;
+		//ofs << "#include <cstdlib> " << std::endl;
+		//ofs << "#include <cmath> " << std::endl;
+		//ofs << "#include <complex> " << std::endl;
+		//ofs << "#include \"cgamma.h\"" << std::endl;
+		//ofs << std::endl;
 	}
 	/**
 	 * Calls the shell script 'ginac-excompiler' to compile the produced C
@@ -165,7 +166,7 @@ public:
 
 		add_opened_module(module, filename, clean_up);
 
-		return dlsym(module, "compiled_ex");
+		return dlsym(module, "integrand_");
 	}
 	/**
 	 * Removes a modules from the module list. Performs a clean-up before that.
@@ -376,7 +377,7 @@ void compile_ex(const GiNaC::lst& exprs, const GiNaC::lst& syms, FUNCP_CUBA& fp,
 	GiNaC::lst replacements;
 	for (std::size_t count=0; count<syms.nops(); ++count) {
 		std::ostringstream s;
-		s << "a[" << count << "]";
+		s << "a(" << count+1 << ")";
 		replacements.append(syms.op(count) == symbol(s.str()));
 	}
 
@@ -390,10 +391,13 @@ void compile_ex(const GiNaC::lst& exprs, const GiNaC::lst& syms, FUNCP_CUBA& fp,
 	global_romb_excompiler.create_src_file(unique_filename, ofs);
         
         //        ofs<< "#include <complex.h>"<<std::endl;
-        ofs << "extern \"C\" {"<<std::endl;
+        // ofs << "extern \"C\" {"<<std::endl;
 
-	ofs << "void compiled_ex(const int* an, const double a[], const int* fn, double f[], void* np)" << std::endl;
-	ofs << "{" << std::endl;
+	ofs << "integer function integrand(ndim,a,ncomp,ff)" << std::endl;
+	ofs << "  implicit none" << std::endl;
+	ofs << "  integer ndim,ncomp" << std::endl;
+	ofs << "  double precision a(*),ff(*)" << std::endl;
+	ofs << "  double complex wgamma,wpsipg" << std::endl;
 	
 		 GiNaC::symbol val_expr("val_expr");
     GiNaC::assign_lst AL(std::string("std::complex<double>"), std::string("t"));
@@ -401,17 +405,19 @@ void compile_ex(const GiNaC::lst& exprs, const GiNaC::lst& syms, FUNCP_CUBA& fp,
     AL.replace_common_subex();
     AL.split_large_subex(1024);
     ofs << AL << std::endl;
-
+    ofs<<"ff(1)=dreal(val_expr)\n"
+       <<"integrand=0\n"
+       <<"end\n";
 //	expr_with_x.print(GiNaC::print_csrc_double(ofs));
 //	ofs << ";" << std::endl;
 //	ofs << "return(val_expr); " << std::endl;
 
         //	for (std::size_t count=0; count<exprs.nops(); ++count) {
-        ofs << "f[" << "0" << "] =RoMB::Real(val_expr);\n ";      // Re part
-//		expr_with_cname[0].print(GiNaC::print_csrc_double(ofs));
-//		ofs << ");" << std::endl;
+    //  ofs << "f[" << "0" << "] =dreal(";      // Re part
+    //		expr_with_cname[0].print(GiNaC::print_csrc_double(ofs));
+    //		ofs << ");\n" << std::endl;
                 //	}
-	ofs << "}}" << std::endl;
+    //	ofs << "}}" << std::endl;
 
 	ofs.close();
 

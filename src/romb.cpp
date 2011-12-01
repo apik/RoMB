@@ -541,7 +541,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
                 ex c_i = wf.subs(w_curr);
                 out_ex = (I*out_ex.subs(wf==c_i - I*log( wf/( 1 - wf ) ) ) ) / wf/(1- wf);
               }
-            //cout<<"current : "<<out_ex<<endl;
+//            cout<<"current : "<<out_ex<<endl;
             ex wo_eps_part = out_ex;
             ex vegas_ex = 0;
             ex vegas_err = 0;
@@ -552,6 +552,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
                 RoMB::FUNCP_CUBA2 fp_real;
                 std::string int_c_f(boost::filesystem::current_path().string());
                 int_c_f+="/int_c_f";
+                cout<<"\n\n\n"<<evalf(int_expr)<<"\n\n\n\n"<<endl;
                 RoMB::compile_ex_real(lst(evalf(int_expr)),w_for_pointer, fp_real);//,int_c_f);
 
                 // ----------------------------------- Vegas integration-------------------------
