@@ -277,6 +277,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
             {
               MBlbl_int.new_point();
               w_shared = MBlbl_int.get_w();
+              MBlbl_int.barnes1();
             }
           print_mathematica(MBlbl_int);
           // MB only if w's existsts or eps!=0
@@ -530,7 +531,18 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
           {
             //          int_in.barnes1();
             // int_in.barnes2();
+            
+            
+            /////////////////////////////////////
+            // shifting contours
+            /////////////////////////////////////
+            
+            
+            
             out_ex = series_to_poly( int_in.series(get_symbol("eps"),expansion_order) ).expand().subs(num_subs);
+            exset fnd;
+            out_ex.find(tgamma(wild()),fnd);
+            cout<<" TOSHIFT: "<<fnd<<endl<<endl;
             //out_ex = series_to_poly( int_in.get_expr().series(int_in.get_eps(),expansion_order) ).subs(num_subs);
             // loop over W_i, converting integration contour
             //          for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
@@ -559,13 +571,13 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
                 int  NDIM  = w_lst.size();
                 //#define NCOMP 1
 #define USERDATA NULL
-#define EPSREL 1e-3
+#define EPSREL 1e-4
 #define EPSABS 1e-9
 #define VERBOSE 0
 #define LAST 4
 #define SEED 0
 #define MINEVAL 0
-#define MAXEVAL 100000
+#define MAXEVAL 1000000
 
 #define NSTART 1000
 #define NINCREASE 500

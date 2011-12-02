@@ -401,9 +401,34 @@ namespace GiNaC {
    */
   void assign_lst::print(std::ostream & os) const
   {
+  symbol zero_symb("0"), unit_sym("1"), two_sym("2"), three_sym("3"), four_sym("4");
+  exmap sf_subs;
+  sf_subs[psi(1,wild(1))] = wpsipg(wild(1),unit_sym);
+  sf_subs[psi(2,wild(2))] = wpsipg(wild(2),two_sym);
+  sf_subs[psi(3,wild(3))] = wpsipg(wild(3),three_sym);
+  sf_subs[psi(1,wild(4))] = wpsipg(wild(4),four_sym);
+  sf_subs[psi(wild())]    = wpsipg(wild(),zero_symb);
+  sf_subs[tgamma(wild(5))]= wgamma(wild(5));
     lst lhs_lst = ex_to<lst>(lhs);
-    lst rhs_lst = ex_to<lst>(rhs.subs(psi(wild(1),wild(2)) == wpsipg(wild(2),wild(1))).subs(psi(wild(1)) 
-                                                                                            == wpsipg(wild(1),0)).subs(tgamma(wild(3))==wgamma(wild(3))));
+    lst rhs_lst = ex_to<lst>(rhs.subs(sf_subs));
+/*    lst rhs_lst = ex_to<lst>(rhs.subs(psi(1,wild(2)) == wpsipg(wild(2),unit_sym))
+        .subs(psi(2,wild(2)) == wpsipg(wild(2),two_sym))
+        .subs(psi(3,wild(2)) == wpsipg(wild(2),three_sym))
+        .subs(psi(1,wild(2)) == wpsipg(wild(2),four_sym))
+	.subs(psi(wild())== wpsipg(wild(),zero_symb))
+	.subs(tgamma(wild(3))==wgamma(wild(3))));
+*/	
+/*	    lst rhs_lst = ex_to<lst>(rhs.subs(psi(1,wild(2)) == wpsipg(wild(2),unit_sym),
+        psi(2,wild(2)) == wpsipg(wild(2),two_sym),
+        psi(3,wild(2)) == wpsipg(wild(2),three_sym),
+        psi(1,wild(2)) == wpsipg(wild(2),four_sym),
+	psi(wild())== wpsipg(wild(),zero_symb),
+	tgamma(wild(3))==wgamma(wild(3))));
+*/	
+	
+	
+
+	
 set_print_func<numeric, print_csrc_double>(complex_fort_print);
 set_print_func<power, print_csrc_double>(power_fort_print);
 

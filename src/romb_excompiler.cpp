@@ -150,7 +150,7 @@ public:
 			throw std::runtime_error("romb_excompiler::compile_src_file: error compiling source file!");
 		}
 		if (clean_up) {
-			remove(filename.c_str());
+		//	remove(filename.c_str());
 		}
 	}
 	/**

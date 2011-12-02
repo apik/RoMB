@@ -52,8 +52,8 @@ try
     //  sunset_bub.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
 
     //     bubble sunset 3=loop
-#define TOPO 3
-#if TOPO==1    
+//#define TOPO 1
+//#if TOPO==1    
 /******************************************************************    
  *    FRESULT for parameters: {ms==1,m2s==1,m3s==1,s==0}
  *   
@@ -64,22 +64,22 @@ try
  *    eps^-1 term: 35/2 +/- 0
  *    eps^0 term: 21.308685443306456902 +/- 0.01814768000077260732
  ***************************************************************/
-           RoMB_loop_by_loop sunset_bub(lst(p,k,l), lst(-pow(p,2)+ms,-pow(k,2)+ms,-pow(l,2)+ms,-pow(-p-k-l,2)+ms),lst(pow(l3,2)==s),lst(1,1,1,1));
-           sunset_bub.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
-#elif TOPO==2
- RoMB_loop_by_loop sunset_bub_d(lst(l1,l2,l3), lst(-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l3,2)+ms,-pow(l1+l2,2)+ms,-pow(l1+l2+l3,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1));
- sunset_bub_d.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
-#elif TOPO==3
- RoMB_loop_by_loop sunset_bub_e(lst(l1,l2,l3), lst(-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l3,2)+ms,-pow(l1-l2,2)+ms,-pow(l2-l3,2)+ms,-pow(l3-l1,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1,1));  
- sunset_bub_e.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
-#endif
+//           RoMB_loop_by_loop sunset_bub(lst(p,k,l), lst(-pow(p,2)+ms,-pow(k,2)+ms,-pow(l,2)+ms,-pow(-p-k-l,2)+ms),lst(pow(l3,2)==s),lst(1,1,1,1));
+//           sunset_bub.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
+//#elif TOPO==2
+// RoMB_loop_by_loop sunset_bub_d(lst(l1,l2,l3), lst(-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l3,2)+ms,-pow(l1+l2,2)+ms,-pow(l1+l2+l3,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1));
+// sunset_bub_d.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
+//#elif TOPO==3
+// RoMB_loop_by_loop sunset_bub_e(lst(l1,l2,l3), lst(-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l3,2)+ms,-pow(l1-l2,2)+ms,-pow(l2-l3,2)+ms,-pow(l3-l1,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1,1));  
+// sunset_bub_e.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
+//#endif
     //bubble 4-loop
     //            RoMB_loop_by_loop sunset_bub(lst(k,l1,l2,l3), lst(-pow(k,2)+ms,-pow(l2,2)+ms,-pow(l1,2)+ms,-pow(l3,2)+ms,-pow(k+l1+l2+l3,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1));
     // sunset_bub.integrate(lst(ms==1,m2s==1,m3s==1,s==0),0);
     
 //bubble 5-loop
-//     RoMB_loop_by_loop sunset_bub5(lst(l3,k,l1,l2,l4), lst(-pow(l3,2)+ms,-pow(k,2)+ms,-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l4,2)+ms,-pow(k+l1+l2+l3+l4,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1,1));
-//     sunset_bub5.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),3);
+     RoMB_loop_by_loop sunset_bub5(lst(l3,k,l1,l2,l4), lst(-pow(l3,2)+ms,-pow(k,2)+ms,-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l4,2)+ms,-pow(k+l1+l2+l3+l4,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1,1));
+     sunset_bub5.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
 
 
 
@@ -110,8 +110,8 @@ MEGA 5-LOOP BUBBLE with 12 propagators
 
 
 
-//     RoMB_loop_by_loop t2loop(lst(k,l), lst(-pow(k,2)+ms,-pow(p+k,2)+ms,-pow(p+k+l,2)+ms,-pow(k+l,2)+ms,-pow(l,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1));
-//    t2loop.integrate(lst(s==1,ms == 0),1);
+    // RoMB_loop_by_loop t2loop(lst(l,k), lst(-pow(k,2)+ms,-pow(p+k,2)+ms,-pow(p+k+l,2)+ms,-pow(k+l,2)+ms,-pow(l,2)+ms),lst(pow(p,2)==s,ms==0),lst(1,1,1,1,1));
+    //t2loop.integrate_map(lst(s==-1,ms == 0),3);
     
     /*     RoMB_loop_by_loop bubble_five_loop(lst(k,l1,l2,l3,l4), 
 	   lst(pow(k,2)-ms,pow(l1,2)-ms,pow(l2,2)-ms,pow(l3,2)-ms,pow(l4,2)-ms,pow(k+l1,2)-ms,pow(k+l1+l2,2)-ms,pow(k+l1+l2+l3,2)-ms,pow(k+l1+l2+l3+l4,2)-ms,pow(k+l1+l2+l3,2)-ms,pow(k+l1+l2,2)-ms,pow(k+l1,2)-ms),
@@ -181,31 +181,31 @@ MEGA 5-LOOP BUBBLE with 12 propagators
 
 
     //double box
-    /*
+/*    
     RoMB_loop_by_loop dobox1loopm(lst(k1,k2),lst(-pow(k1,2),-pow(k1+p1,2),-pow(k1+p1+p2,2),
                                                      -pow(k1-k2,2),-pow(k2,2),-pow(k2+p1+p2,2),
                                                      -pow(k2-p3,2)),
 
                                    lst(pow(p1,2)==0,pow(p2,2)==0,pow(p3,2)==0,pow(p4,2)==0,
-                                       p1*p2==s/2-ms,//
+                                       p1*p2==s/2,//
                                         
-                                      p1*p3==t/2-ms,//
+                                      p1*p3==t/2,//
                                         
-                                       p2*p3==ms-(s+t)/2 //
+                                       p2*p3==-(s+t)/2 //
                                         ),
-                                   lst(1,1,1,1,1,1,1),false);
+                                   lst(1,1,1,1,1,1,1),true);
    dobox1loopm.integrate_map(lst(ms1==1,ms2==1,ms3==1,ms4==1,ms==1,s==-1/2,t==-3));
-*/
+    */
         
     /*
       4-loop  tadpole
     */
 
+       /*
+         RoMB_loop_by_loop tad4(lst(l1, l2, l3, l4),lst(-pow(l1,2)+ ms,-pow(l2,2)+ ms,-pow(l3 ,2)+ ms,-pow(l4,2),-pow(l1+l2+l3+l4,2)),lst(),lst(1,1,1,1,1));
+         tad4.integrate_map(lst(ms == 1),1);
 
-    //             RoMB_loop_by_loop tad4(lst(l1, l2, l3, l4),lst(pow(l1,2)- ms,pow(l2,2)- ms,pow(l3 ,2)- ms,pow(l4,2),pow(l1+l2+l3+l4,2)),lst(),lst(1,1,1,1,1));
-    //      tad4.integrate(lst(ms == 1),-2);
-
-
+         */
     
      /*
        Pentagon

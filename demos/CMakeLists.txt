@@ -52,13 +52,18 @@ TARGET_LINK_LIBRARIES(sunset2loop_test ${ROMB_LIBS})
 ADD_EXECUTABLE(pentagon_test pentagon.cpp )
 TARGET_LINK_LIBRARIES(pentagon_test ${ROMB_LIBS})
 
+## One-loop F0 function example
+ADD_EXECUTABLE(hexagon_test hexagon.cpp )
+TARGET_LINK_LIBRARIES(hexagon_test ${ROMB_LIBS})
+
+
 ## Three-loop bubbles example
 ADD_EXECUTABLE(bubbles3loop_test bubbles3loop.cpp )
 TARGET_LINK_LIBRARIES(bubbles3loop_test ${ROMB_LIBS})
 
-## One-loop B0 function example
-#ADD_EXECUTABLE(B0_test B0.cpp )
-#TARGET_LINK_LIBRARIES(B0_test ${ROMB_LIBS})
+## Two-loop Double-Box function example
+ADD_EXECUTABLE(doubleBox_test doubleBox.cpp )
+TARGET_LINK_LIBRARIES(doubleBox_test ${ROMB_LIBS})
 
 ## One-loop B0 function example
 #ADD_EXECUTABLE(B0_test B0.cpp )

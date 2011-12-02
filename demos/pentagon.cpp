@@ -26,13 +26,29 @@ int main()
                        p3*p4 == s34/2,
                        p3*p5 == (s12-s34-s45)/2,
                        p4*p5 == s45/2);
-      
+#define topo 2
+#if topo==1      
+      RoMB_loop_by_loop pent(lst(k1),lst(-pow(p1 + k1,2)+ms,-pow(p1 + p2 + k1,2)+ms,
+                                         -pow(p1 + p2 + p3 + k1,2)+ms,-pow(p1 + p2 + p3 + p4 + k1,2)+ms,
+                                         -pow(k1,2)+ms),
+                             inv_l,
+                             lst(1,1,1,1,1),false);
+      pent.integrate_map(lst(s12==-2,s23==-3,s34==-4,s45==-5,s15==-6,ms==1));
+#elif topo==2      
+// M=0 with factor tgamma(1-eps)^2/tgamma(1-2eps)
+/*      PJfry
+*	1/eps^-2 :(-0.111111,0)
+*	1/eps^-1 :(0.0856421,0)
+*	1/eps^0 :(0.0513422,0)  -3.28987
+
+*/
       RoMB_loop_by_loop pent(lst(k1),lst(-pow(p1 + k1,2),-pow(p1 + p2 + k1,2),
                                          -pow(p1 + p2 + p3 + k1,2),-pow(p1 + p2 + p3 + p4 + k1,2),
                                          -pow(k1,2)),
                              inv_l,
-                             lst(1,1,1,1,1),false);
-      pent.integrate_map(lst(s12==-2,s23==-3,s34==-4,s45==-5,s15==-6,ms==0));
+                             lst(1,1,1,1,1),true);
+      pent.integrate_map(lst(s12==-2,s23==-3,s34==-4,s45==-5,s15==-6,ms==1));
+#endif      
        
     }
   catch(std::exception &p)

@@ -267,10 +267,15 @@ public:
   void barnes1()
   {
     exmap match_map;
-    if( full_int_expr.match(wild(5)*tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wild(3)-wild())*tgamma(wild(4)-wild()),match_map))
-      cout<<"BARNES1 MATCHES with coeff:  "<<match_map[wild()]<<endl;
-    if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wild(3)-wild())*tgamma(wild(4)-wild()),match_map))                    
-          cout<<"BARNES1 MATCHES wo coeff:  "<<match_map<<endl;
+    if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wild(3)-wild())*tgamma(wild(4)-wild()),match_map))
+      {                    
+        cout<<"BARNES1 MATCHES wo coeff:  "<<match_map<<endl;
+      }
+    else if( full_int_expr.match(wild(5)*tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wild(3)-wild())*tgamma(wild(4)-wild()),match_map))
+      if(!match_map[wild(5)].has(match_map[wild()])) // no matched omega dependense
+        {
+          cout<<"BARNES1 MATCHES with coeff:  "<<match_map[wild()]<<endl;
+        }
   }
   void barnes2()
   {
