@@ -545,11 +545,26 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
             if (!out_ex.is_zero())
               {
              
+            //out_ex = series_to_poly( int_in.get_expr().series(int_in.get_eps(),expansion_order) ).subs(num_subs);
+            // loop over W_i, converting integration contour
+            //          for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
+           
+//            cout<<"current : "<<out_ex<<endl;
+            ex wo_eps_part = out_ex;
+            ex vegas_ex = 0;
+            ex vegas_err = 0;
+            for(int i = out_ex.ldegree( get_symbol("eps") ); i <expansion_order/* out_ex.degree( get_symbol("eps") )*/; i++)
+              {
+                
+
+                cout<<"eps^ "<<i<<"  : "<<endl;//<< out_ex.coeff(get_symbol("eps"),i)<<endl;
+                ex int_expr =  out_ex.coeff(get_symbol("eps"),i);
+
             lst psl;
             exset f_gammapsi;
             // GAMMA(Z)
             exset fnd_tgamma;
-            out_ex.find(tgamma(wild()),fnd_tgamma);
+            int_expr.find(tgamma(wild()),fnd_tgamma);
             //cout<<" TOSHIFT: "<<fnd.subs(w_curr)<<endl<<endl;
             f_gammapsi.insert(fnd_tgamma.begin(), fnd_tgamma.end());
             BOOST_FOREACH(ex Fe,fnd_tgamma)
@@ -563,7 +578,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
             }
             // PSI(Z)
             exset fnd_psi;
-            out_ex.find(psi(wild()),fnd_psi);
+            int_expr.find(psi(wild()),fnd_psi);
             //cout<<" TOSHIFT: "<<fnd.subs(w_curr)<<endl<<endl;
             f_gammapsi.insert(fnd_psi.begin(), fnd_psi.end());
             BOOST_FOREACH(ex Fe,fnd_psi)
@@ -577,7 +592,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
             }
             // PSI(K,Z)
             exset fnd_psi_i;
-            out_ex.find(psi(wild(1),wild()),fnd_psi_i);
+            int_expr.find(psi(wild(1),wild()),fnd_psi_i);
             //cout<<" TOSHIFT: "<<fnd.subs(w_curr)<<endl<<endl;
             f_gammapsi.insert(fnd_psi_i.begin(), fnd_psi_i.end());
             BOOST_FOREACH(ex Fe,fnd_psi_i)
@@ -591,26 +606,19 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
             }
 
             exmap sc_map = shift_contours(f_gammapsi,psl,w_curr);
-            //out_ex = series_to_poly( int_in.get_expr().series(int_in.get_eps(),expansion_order) ).subs(num_subs);
-            // loop over W_i, converting integration contour
-            //          for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
-            lst w_for_pointer;
-            BOOST_FOREACH(ex wf,w_lst)
-              {
-                w_for_pointer.append(wf);
-                //ex c_i = wf.subs(w_curr);
-                ex c_i = wf.subs(sc_map);
+
+
+
+                lst w_for_pointer;
+                BOOST_FOREACH(ex wf,w_lst)
+                  {
+                    w_for_pointer.append(wf);
+                    //ex c_i = wf.subs(w_curr);
+                    ex c_i = wf.subs(sc_map);
+                    
+                    int_expr = (I*int_expr.subs(wf==c_i - I*log( wf/( 1 - wf ) ) ) ) / wf/(1- wf);
+                  }
                 
-                out_ex = (I*out_ex.subs(wf==c_i - I*log( wf/( 1 - wf ) ) ) ) / wf/(1- wf);
-              }
-//            cout<<"current : "<<out_ex<<endl;
-            ex wo_eps_part = out_ex;
-            ex vegas_ex = 0;
-            ex vegas_err = 0;
-            for(int i = out_ex.ldegree( get_symbol("eps") ); i <expansion_order/* out_ex.degree( get_symbol("eps") )*/; i++)
-              {
-                cout<<"eps^ "<<i<<"  : "<<endl;//<< out_ex.coeff(get_symbol("eps"),i)<<endl;
-                ex int_expr =  out_ex.coeff(get_symbol("eps"),i);
                 RoMB::FUNCP_CUBA2 fp_real;
                 std::string int_c_f(boost::filesystem::current_path().string());
                 int_c_f+="/int_c_f";
