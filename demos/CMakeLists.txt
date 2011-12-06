@@ -30,7 +30,7 @@ LINK_DIRECTORIES( ${LINK_DIRECTORIES} ${PROJECT_SOURCE_DIR}/cuba/ )
 #ADD_SUBDIRECTORY( src )
 
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src )
-SET(ROMB_LIBS romb cuba ginac glpk boost_filesystem romb ${LEMON_LIBRARIES})
+SET(ROMB_LIBS romb cuba ginac glpk boost_filesystem gsl gslcblas romb ${LEMON_LIBRARIES})
 
 ## One-loop B0 function example
 ADD_EXECUTABLE(B0_test B0.cpp )
@@ -47,6 +47,10 @@ TARGET_LINK_LIBRARIES(boxM_test ${ROMB_LIBS})
 ## Two-loop sunset example
 ADD_EXECUTABLE(sunset2loop_test sunset2loop.cpp )
 TARGET_LINK_LIBRARIES(sunset2loop_test ${ROMB_LIBS})
+
+## Two-loop self-energy examples
+ADD_EXECUTABLE(tsil_test tsil.cpp )
+TARGET_LINK_LIBRARIES(tsil_test ${ROMB_LIBS})
 
 ## One-loop E0 function example
 ADD_EXECUTABLE(pentagon_test pentagon.cpp )

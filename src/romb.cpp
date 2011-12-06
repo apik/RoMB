@@ -1,5 +1,6 @@
 #include "romb.h"
 #include "utils.h"
+#include "shift.h"
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 
@@ -481,6 +482,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
   {
     for(MBlst::iterator it = int_lst.begin();it!= int_lst.end();++it)
       {
+      it->barnes1();
         MBintegral::w_lst_type wl(it->get_w_lst());
         wl.sort();
         intmap[wl] += it->get_expr();
@@ -529,7 +531,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 
         if(w_lst.size() > 0)// expanding and integrating
           {
-            //          int_in.barnes1();
+            //int_in.barnes1();
             // int_in.barnes2();
             
             
@@ -540,9 +542,55 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
             
             
             out_ex = series_to_poly( int_in.series(get_symbol("eps"),expansion_order) ).expand().subs(num_subs);
-            exset fnd;
-            out_ex.find(tgamma(wild()),fnd);
-            cout<<" TOSHIFT: "<<fnd<<endl<<endl;
+            if (!out_ex.is_zero())
+              {
+             
+            lst psl;
+            exset f_gammapsi;
+            // GAMMA(Z)
+            exset fnd_tgamma;
+            out_ex.find(tgamma(wild()),fnd_tgamma);
+            //cout<<" TOSHIFT: "<<fnd.subs(w_curr)<<endl<<endl;
+            f_gammapsi.insert(fnd_tgamma.begin(), fnd_tgamma.end());
+            BOOST_FOREACH(ex Fe,fnd_tgamma)
+            {
+              exmap repls_fe;
+              if(Fe.match(tgamma(wild()),repls_fe))
+                {
+
+                  psl.append(wild().subs(repls_fe).subs(get_symbol("eps")==0));
+                }
+            }
+            // PSI(Z)
+            exset fnd_psi;
+            out_ex.find(psi(wild()),fnd_psi);
+            //cout<<" TOSHIFT: "<<fnd.subs(w_curr)<<endl<<endl;
+            f_gammapsi.insert(fnd_psi.begin(), fnd_psi.end());
+            BOOST_FOREACH(ex Fe,fnd_psi)
+            {
+              exmap repls_fe;
+              if(Fe.match(psi(wild()),repls_fe))
+                {
+
+                  psl.append(wild().subs(repls_fe).subs(get_symbol("eps")==0));
+                }
+            }
+            // PSI(K,Z)
+            exset fnd_psi_i;
+            out_ex.find(psi(wild(1),wild()),fnd_psi_i);
+            //cout<<" TOSHIFT: "<<fnd.subs(w_curr)<<endl<<endl;
+            f_gammapsi.insert(fnd_psi_i.begin(), fnd_psi_i.end());
+            BOOST_FOREACH(ex Fe,fnd_psi_i)
+            {
+              exmap repls_fe;
+              if(Fe.match(psi(wild(1),wild()),repls_fe))
+                {
+
+                  psl.append(wild().subs(repls_fe).subs(get_symbol("eps")==0));
+                }
+            }
+
+            exmap sc_map = shift_contours(f_gammapsi,psl,w_curr);
             //out_ex = series_to_poly( int_in.get_expr().series(int_in.get_eps(),expansion_order) ).subs(num_subs);
             // loop over W_i, converting integration contour
             //          for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
@@ -550,7 +598,9 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
             BOOST_FOREACH(ex wf,w_lst)
               {
                 w_for_pointer.append(wf);
-                ex c_i = wf.subs(w_curr);
+                //ex c_i = wf.subs(w_curr);
+                ex c_i = wf.subs(sc_map);
+                
                 out_ex = (I*out_ex.subs(wf==c_i - I*log( wf/( 1 - wf ) ) ) ) / wf/(1- wf);
               }
 //            cout<<"current : "<<out_ex<<endl;
@@ -632,6 +682,8 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
                 vegas_err+=pow(get_symbol("eps"),i)*(error[0]);//+I*integral_imag[0]);
               }
             return std::make_pair(vegas_ex,vegas_err);
+              }
+            else return std::make_pair(0,0);
           }
         else // expanding only
           {
