@@ -26,7 +26,7 @@ int main()
                        p3*p4 == s34/2,
                        p3*p5 == (s12-s34-s45)/2,
                        p4*p5 == s45/2);
-#define topo 2
+#define topo 1
 #if topo==1      
       RoMB_loop_by_loop pent(lst(k1),lst(-pow(p1 + k1,2)+ms,-pow(p1 + p2 + k1,2)+ms,
                                          -pow(p1 + p2 + p3 + k1,2)+ms,-pow(p1 + p2 + p3 + p4 + k1,2)+ms,

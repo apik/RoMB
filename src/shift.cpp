@@ -1,5 +1,4 @@
 #include "shift.h"
-#include "QuadProg++.hh"
 #include <iostream>
 #include <cmath>
 #include <boost/foreach.hpp>
@@ -270,73 +269,6 @@ try
   gsl_multimin_fdfminimizer_free (s);
   gsl_vector_free (x);
 
-
-
-  /*  
-cout<<" FUNC: "<<min_func<<endl;
-  // Filling minimizing function matrices
-  QuadProgPP::Matrix<double> G, CE, CI;
-  QuadProgPP::Vector<double> g0, ce0, ci0, x;
-  G.resize(n, n);
-  g0.resize(n);
-  CE.resize(n, 0);   // NO EQUATIONS
-  ce0.resize(0);     // NO EQUATIONS
-  // BOOST_ASSERT_MSG(inb.size()==ineql.nops(),"Different length of lists");
-  p = ineql.nops();  
-  CI.resize(n, ineql.nops());
-  ci0.resize(p);
- 
-  /*
-  for(lst::const_iterator wi = wl.begin(); wi != wl.end(); ++wi)
-    for(lst::const_iterator wj = wi; wj != wl.end(); ++wj)
-      {
-      }*/
-  /*
-  for (int i = 0; i < n; i++)	
-    for (int j = i; j < n; j++)
-      {
-        if(i ==j)
-          {
-            G[i][i] = ex_to<numeric>(2*min_func.coeff(wl.op(i),2)).to_double();
-            min_func -= wl.op(i)*wl.op(i)*min_func.coeff(wl.op(i),2);
-            cout<<"G[i][j] = "<<G[i][j]<<endl;
-          }        
-        else
-          {        
-            G[i][j] = ex_to<numeric>((min_func.coeff(wl.op(i),1)).coeff(wl.op(j),1)).to_double();
-            G[j][i] = ex_to<numeric>((min_func.coeff(wl.op(i),1)).coeff(wl.op(j),1)).to_double();
-            min_func -= wl.op(i)*wl.op(j)*(min_func.coeff(wl.op(i),1)).coeff(wl.op(j),1);
-            cout<<"G[i][j] = "<<G[i][j]<<endl;
-          }
-      }
-  cout<<min_func<<endl;
-  for (int i = 0; i < n; i++)
-    g0[i] = ex_to<numeric>(min_func.coeff(wl.op(i),1).coeff(wl.op(i),0)).to_double();
-  
-  for (int j = 0; j < p; j++)
-    {
-      ex no_w_part = ineql.op(j);
-      for (int i = 0; i < n; i++)
-        {
-          CI[i][j] = ex_to<numeric>((ineql.op(j)).coeff(wl.op(i),1)).to_double();
-          no_w_part = no_w_part.coeff(wl.op(i),0);
-        }
-      ci0[j] = ex_to<numeric>(no_w_part).to_double(); 
-    }
-  // for (int j = 0; j < p; j++)
-  //  ci0[j] = inb.at(j);
-  x.resize(n);
-  std::cout<<" G:"<<G<<endl;
-  std::cout<<" g0:"<<g0<<endl;  
-  
-  std::cout<<" CI:"<<CI<<endl;
-  std::cout<<" ci0:"<<ci0<<endl;  
-  
-
-
-  std::cout << "f: " << solve_quadprog(G, g0, CE, ce0, CI, ci0, x) << std::endl;
-  std::cout << "x: " << x << std::endl;
-*/
   return sc;
  }catch(std::exception &p)
       {
