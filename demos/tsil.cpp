@@ -96,11 +96,11 @@ MEGA 5-LOOP BUBBLE with 12 propagators
 
 
 
-//     RoMB_loop_by_loop t2loop(lst(k,l), lst(-pow(k,2)+ms,-pow(p+k,2)+ms,-pow(p+k+l,2)+ms,-pow(k+l,2)+ms,-pow(l,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1),true);
-//    t2loop.integrate_map(lst(s==-1,ms == 1),2);
-    
-     RoMB_loop_by_loop t2loop(lst(k,l), lst(-pow(k,2),-pow(p+k,2),-pow(p+k+l,2),-pow(k+l,2),-pow(l,2)),lst(pow(p,2)==s),lst(1,1,1,1,1),true);
+     RoMB_loop_by_loop t2loop(lst(k,l), lst(-pow(k,2)+ms,-pow(p+k,2),-pow(p+k+l,2)+ms,-pow(k+l,2),-pow(l,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1),true);
     t2loop.integrate_map(lst(s==-1,ms == 1),2);
+    
+//     RoMB_loop_by_loop t2loop(lst(k,l), lst(-pow(k,2),-pow(p+k,2),-pow(p+k+l,2),-pow(k+l,2),-pow(l,2)),lst(pow(p,2)==s),lst(1,1,1,1,1),true);
+//    t2loop.integrate_map(lst(s==-1,ms == 1),2);
     
     
     /*     RoMB_loop_by_loop bubble_five_loop(lst(k,l1,l2,l3,l4), 

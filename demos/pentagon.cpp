@@ -26,15 +26,23 @@ int main()
                        p3*p4 == s34/2,
                        p3*p5 == (s12-s34-s45)/2,
                        p4*p5 == s45/2);
-#define topo 2
+#define topo 1
 #if topo==1      
-/*
-FRESULT for parameters: {s12==-2,s23==-3,s34==-4,s45==-5,s15==-6,ms==1}
 
- FRESULT anl :           = -13.9572206783450490164
-  FRESULT num:           = -13.9572206783450490164
-   eps^0 term: -13.9572206783450490164 +/- 0.014663479238171329269
-   */
+  /*                            1+eps normalization
+   FRESULT for parameters: {s12==-2,s23==-3,s34==-4,s45==-5,s15==-6,ms==1}
+   
+    FRESULT anl :           = -0.010071141398715986043
+     FRESULT num:           = -0.010071141398715986043
+      eps^0 term: -0.010071141398715986043 +/- 7.5387750593540493467E-5
+      */
+      /*   Euler renormalization
+       FRESULT for parameters: {s12==-2,s23==-3,s34==-4,s45==-5,s15==-6,ms==1}
+       
+        FRESULT anl :           = 0.020204464861409441711
+         FRESULT num:           = 0.020204464861409441711
+          eps^0 term: 0.020204464861409441711 +/- 2.9955911201888832611E-4
+          */
       RoMB_loop_by_loop pent(lst(k1),lst(-pow(p1 + k1,2)+ms,-pow(p1 + p2 + k1,2)+ms,
                                          -pow(p1 + p2 + p3 + k1,2)+ms,-pow(p1 + p2 + p3 + p4 + k1,2)+ms,
                                          -pow(k1,2)+ms),

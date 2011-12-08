@@ -70,7 +70,16 @@ try
  RoMB_loop_by_loop sunset_bub_d(lst(l1,l2,l3), lst(-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l3,2)+ms,-pow(l1+l2,2)+ms,-pow(l1+l2+l3,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1));
  sunset_bub_d.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
 #elif TOPO==3
- RoMB_loop_by_loop sunset_bub_e(lst(l1,l2,l3), lst(-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l3,2)+ms,-pow(l1-l2,2)+ms,-pow(l2-l3,2)+ms,-pow(l3-l1,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1,1));  
+/*
+ FRESULT for parameters: {ms==1,m2s==1,m3s==1,s==0}
+ 
+  FRESULT anl :           = -15.1659435963670602724+(2.395758624061599562)*eps^(-1)
+   FRESULT num:           = -15.1659435963670602724+(2.395758624061599562)*eps^(-1)
+    eps^-1 term: 2.395758624061599562 +/- 0.009435467497763716863
+     eps^0 term: -15.1659435963670602724 +/- 0.5166837886560539859
+     
+*/
+ RoMB_loop_by_loop sunset_bub_e(lst(l1,l2,l3), lst(-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l3,2)+ms,-pow(l1-l2,2)+ms,-pow(l2-l3,2)+ms,-pow(l3-l1,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1,1),true);  
  sunset_bub_e.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
 #endif
     //bubble 4-loop

@@ -3,7 +3,7 @@
 #include "shift.h"
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
-
+#include <gsl/gsl_integration.h>
 /**
  *
  *  loop momentums,propagator expressions,
@@ -59,7 +59,8 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
         //            MBlbl_int *= pow(I,k_lst.nops());
           MBlbl_int *= 1/tgamma(1+get_symbol("eps"));
           //MBlbl_int *= pow(Pi,2-get_symbol("eps"));
-	  cout<<"PROP_POW_MAP "<<prop_pow_map<<endl;
+          // MBlbl_int *= exp(Euler*get_symbol("eps"));	  
+cout<<"PROP_POW_MAP "<<prop_pow_map<<endl;
 	  /*
 	    temporary set of propagators, with all momentum,except deleted
 	  */
@@ -520,6 +521,29 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 
   }
 
+template<class CubaFunc> 
+struct  GSL1dintAdapter 
+{
+  
+  static double f (double x, void * params) 
+  { 
+    
+    CubaFunc function = reinterpret_cast< CubaFunc > (params);
+    // get pointer to data from gsl_vector
+    
+    //    typedef int (*FUNCP_CUBA2) (const int*, const double[], const int*, double[],void*);
+    double x_in[1];
+    x_in[0] = x;
+    int n_d = 1;
+    int n_d_f = 1;
+    double f_out[1];
+    (*function)( &n_d, x_in, &n_d_f,f_out, NULL ); 
+      return f_out[0];
+  }
+};
+
+
+
   std::pair<ex,ex> expand_and_integrate_map(ex int_in,MBintegral::w_lst_type w_lst,exmap w_curr, lst num_subs, int expansion_order) // up to O(eps^1) 
   {
     try
@@ -626,11 +650,12 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
                 RoMB::compile_ex_real(lst(evalf(int_expr)),w_for_pointer, fp_real);//,int_c_f);
 
                 // ----------------------------------- Vegas integration-------------------------
+                const int MAXCUHREDIM = 4;
                 int  NDIM  = w_lst.size();
                 //#define NCOMP 1
 #define USERDATA NULL
 #define EPSREL 1e-4
-#define EPSABS 1e-9
+#define EPSABS 1e-12
 #define VERBOSE 0
 #define LAST 4
 #define SEED 0
@@ -638,56 +663,78 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 #define MAXEVAL 1000000
 
 #define NSTART 1000
-#define NINCREASE 500
+#define NINCREASE 1000
 #define NBATCH 1000
 #define GRIDNO 0
 #define STATEFILE NULL
-                //SUAVE
-#define NNEW 1000
-#define FLATNESS 25.
 
-                //#define KEY1 47
-                //#define KEY2 1
-                //#define KEY3 1
-                //#define MAXPASS 5
-                //#define BORDER 0.
-                //#define MAXCHISQ 10.
-                //#define MINDEVIATION .25
-                //#define NGIVEN 0
-                //#define LDXGIVEN NDIM
-                //#define NEXTRA 0
-
-#define KEY 0
+#define KEY 9
                 const int NCOMP = 1;
-                int comp,  neval, fail;
+                int comp,  neval, fail,nregions;
                 double integral_real[NCOMP], error[NCOMP], prob[NCOMP];
+                if (NDIM == 1)
+                  {
+                    printf("-------------------- QAGS  --------------------\n");
+                    gsl_integration_workspace * w 
+                      = gsl_integration_workspace_alloc (1000);
+                    double result1d, error1d;
+                    
+                    gsl_function F;
+                    //                    F.function = &f;
+                    F.function = GSL1dintAdapter<RoMB::FUNCP_CUBA2>::f;
+                    F.params = reinterpret_cast<void *>(fp_real);
+                    
+                    gsl_integration_qags (&F, 0, 1, 1e-12, 1e-7, 1000,
+                                          w, &result1d, &error1d); 
+                    
+                    printf("QAGS RESULT:\t%.8f +- %.8f\t intervals = %d\n",
+                           result1d, error1d, w->size);
+                    
+                    gsl_integration_workspace_free (w);
+                    vegas_ex+=pow(get_symbol("eps"),i)*(result1d);//+I*integral_imag[0]);
+                    vegas_err+=pow(get_symbol("eps"),i)*(error1d);//+I*integral_imag[0]);
+                  }
+                else if(NDIM > MAXCUHREDIM )
+                  { 
+
+                    printf("-------------------- Vegas  --------------------\n");
+                    Vegas(NDIM, NCOMP, fp_real, USERDATA,
+                          EPSREL, EPSABS, VERBOSE, SEED,
+                          MINEVAL, MAXEVAL, 
+                          NSTART, NINCREASE, NBATCH, GRIDNO, STATEFILE,
+                          &neval, &fail, integral_real, error, prob);
+                    
+                    
+                    
+                    // printf("VEGAS RESULT:\tneval %d\tfail %d\n",
+                    
+                    for( comp = 0; comp < NCOMP; ++comp )
+                      printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
+                             integral_real[comp], error[comp], prob[comp]);
+                    
+                    // ------------------------------ Vegas integration--------------------              
+                    vegas_ex+=pow(get_symbol("eps"),i)*(integral_real[0]);//+I*integral_imag[0]);
+                    vegas_err+=pow(get_symbol("eps"),i)*(error[0]);//+I*integral_imag[0]);
+                  }
+                else
+                  {
+                    printf("-------------------- Cuhre  --------------------\n");
+                    Cuhre(NDIM, NCOMP, fp_real, USERDATA,
+                          EPSREL, EPSABS, VERBOSE,
+                          MINEVAL, MAXEVAL, KEY,
+                          &nregions, &neval, &fail, integral_real, error, prob);
                    
-                printf("-------------------- Vegas test --------------------\n");
-                /*              
-                                Vegas(NDIM, NCOMP, fp,
-                                EPSREL, EPSABS, VERBOSE, 
-                                MINEVAL, MAXEVAL,
-                                NSTART, NINCREASE,
-                                &neval, &fail, integral, error, prob);
-                */     
-	     
-                Vegas(NDIM, NCOMP, fp_real, USERDATA,
-                      EPSREL, EPSABS, VERBOSE, SEED,
-                      MINEVAL, MAXEVAL, 
-                      NSTART, NINCREASE, NBATCH, GRIDNO, STATEFILE,
-                      &neval, &fail, integral_real, error, prob);
+                    for( comp = 0; comp < NCOMP; ++comp )
+                      printf("CUHRE RESULT:\t%.8f +- %.8f\tp = %.3f\n",
+                             integral_real[comp], error[comp], prob[comp]);
+                    cout<<"Hi there"<<endl;
+                    // ----------------------------------- Cuhre integration-------------------------              
+                    vegas_ex+=pow(get_symbol("eps"),i)*(integral_real[0]);//+I*integral_imag[0]);
+                    vegas_err+=pow(get_symbol("eps"),i)*(error[0]);//+I*integral_imag[0]);
+               
+                  }
 
-
-          
-                // printf("VEGAS RESULT:\tneval %d\tfail %d\n",
-              
-                for( comp = 0; comp < NCOMP; ++comp )
-                  printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
-                         integral_real[comp], error[comp], prob[comp]);
-                       
-                // ----------------------------------- Vegas integration-------------------------              
-                vegas_ex+=pow(get_symbol("eps"),i)*(integral_real[0]);//+I*integral_imag[0]);
-                vegas_err+=pow(get_symbol("eps"),i)*(error[0]);//+I*integral_imag[0]);
+                
               }
             return std::make_pair(vegas_ex,vegas_err);
               }
@@ -699,6 +746,6 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
           }
       }catch(std::exception &p)
       {
-        throw std::logic_error(std::string("In function \"Expand_and_integrate\":\n |___> ")+p.what());
+        throw std::logic_error(std::string("In function \"Expand_and_integrate_map\":\n |___> ")+p.what());
       }
   }

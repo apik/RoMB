@@ -78,8 +78,21 @@ try
     // sunset_bub.integrate(lst(ms==1,m2s==1,m3s==1,s==0),0);
     
 //bubble 5-loop
-     RoMB_loop_by_loop sunset_bub5(lst(l3,k,l1,l2,l4), lst(-pow(l3,2)+ms,-pow(k,2)+ms,-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l4,2)+ms,-pow(k+l1+l2+l3+l4,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1,1));
-     sunset_bub5.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
+/*
+FRESULT for parameters: {ms==1,m2s==1,m3s==1,s==0}
+
+ FRESULT anl :           = 274.5475357301444122+1247/24*eps^(-3)+6/5*Pi^4+(125.67152533053854918)*eps^(-2)+3*eps^(-5)+33/2*eps^(-4)+(259.98755698571087874)*eps^(-1)-110/3*zeta(3)
+  FRESULT num:           = 347.3630251884288798+(51.958333333333333332)*eps^(-3)+(125.67152533053854918)*eps^(-2)+(3.0)*eps^(-5)+(16.5)*eps^(-4)+(259.98755698571087874)*eps^(-1)
+   eps^-5 term: 3 +/- 0
+    eps^-4 term: 33/2 +/- 0
+     eps^-3 term: 1247/24 +/- 0
+      eps^-2 term: 125.67152533053854918 +/- 5.2760713655226570643E-5
+       eps^-1 term: 259.98755698571087874 +/- 9.888628922902401464E-6
+        eps^0 term: 274.5475357301444122+6/5*Pi^4-110/3*zeta(3) +/- 0.043609817405085687474
+        
+*/
+//     RoMB_loop_by_loop sunset_bub5(lst(l3,k,l1,l2,l4), lst(-pow(l3,2)+ms,-pow(k,2)+ms,-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l4,2)+ms,-pow(k+l1+l2+l3+l4,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1,1));
+//     sunset_bub5.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
 
 
 
@@ -181,8 +194,8 @@ MEGA 5-LOOP BUBBLE with 12 propagators
 
 
     //double box
-/*    
-    RoMB_loop_by_loop dobox1loopm(lst(k1,k2),lst(-pow(k1,2),-pow(k1+p1,2),-pow(k1+p1+p2,2),
+    
+    RoMB_loop_by_loop dobox1loopm(lst(k2,k1),lst(-pow(k1,2),-pow(k1+p1,2),-pow(k1+p1+p2,2),
                                                      -pow(k1-k2,2),-pow(k2,2),-pow(k2+p1+p2,2),
                                                      -pow(k2-p3,2)),
 
@@ -194,8 +207,8 @@ MEGA 5-LOOP BUBBLE with 12 propagators
                                        p2*p3==-(s+t)/2 //
                                         ),
                                    lst(1,1,1,1,1,1,1),true);
-   dobox1loopm.integrate_map(lst(ms1==1,ms2==1,ms3==1,ms4==1,ms==1,s==-1/2,t==-3));
-    */
+   dobox1loopm.integrate_map(lst(ms1==1,ms2==1,ms3==1,ms4==1,ms==1,s==-3,t==-1/2));
+    
         
     /*
       4-loop  tadpole
