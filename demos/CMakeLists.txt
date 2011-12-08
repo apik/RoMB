@@ -69,6 +69,6 @@ TARGET_LINK_LIBRARIES(bubbles3loop_test ${ROMB_LIBS})
 ADD_EXECUTABLE(doubleBox_test doubleBox.cpp )
 TARGET_LINK_LIBRARIES(doubleBox_test ${ROMB_LIBS})
 
-## One-loop B0 function example
-#ADD_EXECUTABLE(B0_test B0.cpp )
-#TARGET_LINK_LIBRARIES(B0_test ${ROMB_LIBS})
+## 5loop Bubble  example
+ADD_EXECUTABLE(5loopBubble_test 5loopBubble.cpp )
+TARGET_LINK_LIBRARIES(5loopBubble_test ${ROMB_LIBS})
