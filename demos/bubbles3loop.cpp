@@ -52,7 +52,7 @@ try
     //  sunset_bub.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
 
     //     bubble sunset 3=loop
-#define TOPO 3
+#define TOPO 2
 #if TOPO==1    
 /******************************************************************    
  *    FRESULT for parameters: {ms==1,m2s==1,m3s==1,s==0}
@@ -67,6 +67,17 @@ try
            RoMB_loop_by_loop sunset_bub(lst(p,k,l), lst(-pow(p,2)+ms,-pow(k,2)+ms,-pow(l,2)+ms,-pow(-p-k-l,2)+ms),lst(pow(l3,2)==s),lst(1,1,1,1));
            sunset_bub.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
 #elif TOPO==2
+/*
+ FRESULT for parameters: {ms==1,m2s==1,m3s==1,s==0}
+ 
+  FRESULT anl :           = -9.479698134171810436-(5.666664508892764962)*eps^(-2)-(0.99999999153231419746)*eps^(-3)-11/3*Pi^2-1/18*(166.79380376559051281+11*Pi^2)*eps^(-1)-1/3*zeta(3)
+   FRESULT num:           = -46.06893323921932347-(5.666664508892764962)*eps^(-2)-(0.99999999153231419746)*eps^(-3)-(15.297747343198525424)*eps^(-1)
+    eps^-3 term: -0.99999999153231419746 +/- 2.7423148512599720476E-10
+     eps^-2 term: -5.666664508892764962 +/- 6.649727575468237366E-5
+      eps^-1 term: -9.266322431421695156-11/18*Pi^2 +/- 0.0046345045793517460847
+       eps^0 term: -9.479698134171810436-11/3*Pi^2-1/3*zeta(3) +/- 0.030081537902155973706
+       
+*/
  RoMB_loop_by_loop sunset_bub_d(lst(l1,l2,l3), lst(-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l3,2)+ms,-pow(l1+l2,2)+ms,-pow(l1+l2+l3,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1));
  sunset_bub_d.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
 #elif TOPO==3

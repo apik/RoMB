@@ -72,3 +72,7 @@ TARGET_LINK_LIBRARIES(doubleBox_test ${ROMB_LIBS})
 ## 5loop Bubble  example
 ADD_EXECUTABLE(5loopBubble_test 5loopBubble.cpp )
 TARGET_LINK_LIBRARIES(5loopBubble_test ${ROMB_LIBS})
+
+## pentaBox  example
+ADD_EXECUTABLE(pentaBox_test pentaBox.cpp )
+TARGET_LINK_LIBRARIES(pentaBox_test ${ROMB_LIBS})

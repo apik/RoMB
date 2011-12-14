@@ -142,7 +142,7 @@ MEGA 5-LOOP BUBBLE with 12 propagators
                                         
                                         p2*p4==t/2 //
                                         ),
-                                lst(1,1,1,1),true);
+                                lst(1,1,1,1),false);
         box1loopm.integrate_map(lst(ms1==1,ms2==1,ms3==1,ms4==1,ms==1,s==-3,t==-1),3);
     
     //triple box

@@ -194,20 +194,29 @@ MEGA 5-LOOP BUBBLE with 12 propagators
 
 
     //double box
-    
-    RoMB_loop_by_loop dobox1loopm(lst(k2,k1),lst(-pow(k1,2),-pow(k1+p1,2),-pow(k1+p1+p2,2),
-                                                     -pow(k1-k2,2),-pow(k2,2),-pow(k2+p1+p2,2),
+/*
+FRESULT for parameters: {ms1==1,ms2==1,ms3==1,ms4==1,ms==1,s==-2,t==-3}
+
+ FRESULT anl :           = -1.1308856615264005236+(0.09635412596108643146)*eps^(-2)-(0.106390522306243254236)*eps^(-1)
+  FRESULT num:           = -1.1308856615264005236+(0.09635412596108643146)*eps^(-2)-(0.106390522306243254236)*eps^(-1)
+   eps^-2 term: 0.09635412596108643146 +/- 9.516754647190050904E-6
+    eps^-1 term: -0.106390522306243254236 +/- 6.3521193751299645005E-5
+     eps^0 term: -1.1308856615264005236 +/- 0.0015177257237448666386
+     
+     */    
+    RoMB_loop_by_loop dobox1loopm(lst(k2,k1),lst(-pow(k1,2)+ms,-pow(k1+p1,2),-pow(k1+p1+p2,2)+ms,
+                                                     -pow(k1-k2,2),-pow(k2,2)+ms,-pow(k2+p1+p2,2)+ms,
                                                      -pow(k2-p3,2)),
 
-                                   lst(pow(p1,2)==0,pow(p2,2)==0,pow(p3,2)==0,pow(p4,2)==0,
-                                       p1*p2==s/2,//
+                                   lst(pow(p1,2)==ms,pow(p2,2)==ms,pow(p3,2)==ms,pow(p4,2)==ms,
+                                       p1*p2==s/2-ms,//
                                         
-                                      p1*p3==t/2,//
+                                      p1*p3==t/2-ms,//
                                         
-                                       p2*p3==-(s+t)/2 //
+                                       p2*p3==-(s+t)/2+ms //
                                         ),
                                    lst(1,1,1,1,1,1,1),true);
-   dobox1loopm.integrate_map(lst(ms1==1,ms2==1,ms3==1,ms4==1,ms==1,s==-3,t==-1/2));
+   dobox1loopm.integrate_map(lst(ms1==1,ms2==1,ms3==1,ms4==1,ms==1,s==-2,t==-3));
     
         
     /*

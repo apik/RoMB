@@ -517,6 +517,14 @@ try
     min_func = min_func.expand();
   cout<<"INEQL:"<<ineql<<endl;
   cout<<"FUNCS: "<< f_min<<endl;
+  cout<<"funcs exp"<<endl;
+  lst oldpl;  
+  for(int jk = 0; jk < pl.nops(); jk++)
+    {      
+      oldpl.append(pl.op(jk).subs(sm));
+    }
+  cout<<"OLD_POLES: "<<oldpl<<endl;
+
   for(lst::const_iterator wli = wl.begin(); wli != wl.end(); ++wli)
     {
       f_grad[*wli] = 2*f_min.diff(ex_to<symbol>(*wli));
@@ -605,12 +613,11 @@ try
   gsl_vector_free (x);
 
   lst newpl;
-  lst oldpl;
   
   for(int jk = 0; jk < pl.nops(); jk++)
     {      
       newpl.append(pl.op(jk).subs(sc));
-      oldpl.append(pl.op(jk).subs(sm));
+      //      oldpl.append(pl.op(jk).subs(sm));
     }
   cout<<"OLD_POLES: "<<oldpl<<endl;
   cout<<"NEW_POLES: "<<newpl<<endl;

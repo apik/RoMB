@@ -77,6 +77,6 @@ ADD_SUBDIRECTORY( demos )
 
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src )
 
-ADD_EXECUTABLE(romb_test main.cpp )
-TARGET_LINK_LIBRARIES(romb_test romb cuba ginac glpk boost_filesystem ${LEMON_LIBRARIES})
+#ADD_EXECUTABLE(romb_test main.cpp )
+#TARGET_LINK_LIBRARIES(romb_test romb cuba ginac glpk boost_filesystem ${LEMON_LIBRARIES})
 

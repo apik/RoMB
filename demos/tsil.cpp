@@ -4,7 +4,7 @@ int main()
 try
   {
 
-     symbol k("k"),q("q"),p("p"),p1("p1"),p2("p2"),p3("p3"),ms("ms"),l("l"),s("s"),m1s("m1s"),m2s("m2s"),m3s("m3s");
+     symbol k("k"),q("q"),p("p"),p1("p1"),p2("p2"),p3("p3"),ms("ms"),l("l"),s("s"),m1s("m1s"),m2s("m2s"),m3s("m3s"),n("n");
     symbol l1("l1"),l2("l2"),l3("l3"),l4("l4"),t("t"),p4("p4"),p5("p5"),tp("tp"),v1("v1"),v2("v2"),l5("l5");
     symbol k1("k1"),k2("k2"),k3("k3"),k4("k4"),k5("k5"),ms1("ms1"),ms2("ms2"),ms3("ms3"),ms4("ms4");
   // oneloop box
@@ -94,14 +94,52 @@ MEGA 5-LOOP BUBBLE with 12 propagators
 //-pow(k1+k3+k4,2)+ms,-pow(k2+k5-k3-k4,2)+ms),lst(pow(p,2)==0),lst(1,1,1,1,1,1,1));
 //l5c1.integrate_map(lst(ms==1),0);      
 
+#define topo 4
+
+#if topo==1
+/*
+ FRESULT for parameters: {s==-1,ms==1}
+ 
+  FRESULT anl :           = 1.3853523630813865813
+   FRESULT num:           = 1.3853523630813865813
+    eps^0 term: 1.3853523630813865813 +/- 0.095424692124534366514
+    
+*/
+     RoMB_loop_by_loop t2loop(lst(l,k), lst(-pow(k,2)+ms,-pow(p+k,2),-pow(p+k+l,2)+ms,-pow(k+l,2),-pow(l,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1),true);
+    t2loop.integrate_map(lst(s==-1,ms == 1),1);
+#elif topo==2    
+
+    /*
+     FRESULT for parameters: {s==-1,ms==1}
+     
+      FRESULT anl :           = 7.2123662727231475644+(24.004374696149453405)*eps
+       FRESULT num:           = 7.2123662727231475644+(24.004374696149453405)*eps
+        eps^0 term: 7.2123662727231475644 +/- 0.002143085096831929081
+         eps^1 term: 24.004374696149453405 +/- 0.046517416611704192907
+         
+    */
+    /*
+    FRESULT for parameters: {s==-1,ms==1}
+    
+     FRESULT anl :           = 7.2121978882129686994+(24.165180042579674335)*eps
+      FRESULT num:           = 7.2121978882129686994+(24.165180042579674335)*eps
+       eps^0 term: 7.2121978882129686994 +/- 7.2093641039575062385E-4
+        eps^1 term: 24.165180042579674335 +/- 0.0024125028482689932045
+        
+    */
+     RoMB_loop_by_loop t2loop(lst(l,k), lst(-pow(k,2),-pow(p+k,2),-pow(p+k+l,2),-pow(k+l,2),-pow(l,2)),lst(pow(p,2)==s),lst(1,1,1,1,1),true);
+    t2loop.integrate_map(lst(s==-1,ms == 1),4);
+#elif topo==3    
+     RoMB_loop_by_loop t2loop(lst(l,k), lst(-pow(k,2)+ms,-pow(p+k,2)+ms,-pow(p+k+l,2)+ms,-pow(k+l,2)+ms,-pow(l,2)+ms),lst(pow(p,2)==ms),lst(1,1,1,1,1),true);
+    t2loop.integrate_map(lst(s==-1,ms == 1),1);
+
+#elif topo==4   
+     RoMB_loop_by_loop t2loop(lst(l,k,n), lst(-pow(k,2),-pow(p+k,2),-pow(p+l,2),-pow(l-k,2),-pow(n,2),-pow(p+n,2),-pow(n-l,2)),lst(pow(p,2)==s),lst(1,1,1,1,1,1,1),true);
+    t2loop.integrate_map(lst(s==-1,ms == 1),3);
 
 
-     RoMB_loop_by_loop t2loop(lst(k,l), lst(-pow(k,2)+ms,-pow(p+k,2),-pow(p+k+l,2)+ms,-pow(k+l,2),-pow(l,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1),true);
-    t2loop.integrate_map(lst(s==-1,ms == 1),2);
-    
-//     RoMB_loop_by_loop t2loop(lst(k,l), lst(-pow(k,2),-pow(p+k,2),-pow(p+k+l,2),-pow(k+l,2),-pow(l,2)),lst(pow(p,2)==s),lst(1,1,1,1,1),true);
-//    t2loop.integrate_map(lst(s==-1,ms == 1),2);
-    
+
+#endif    
     
     /*     RoMB_loop_by_loop bubble_five_loop(lst(k,l1,l2,l3,l4), 
 	   lst(pow(k,2)-ms,pow(l1,2)-ms,pow(l2,2)-ms,pow(l3,2)-ms,pow(l4,2)-ms,pow(k+l1,2)-ms,pow(k+l1+l2,2)-ms,pow(k+l1+l2+l3,2)-ms,pow(k+l1+l2+l3+l4,2)-ms,pow(k+l1+l2+l3,2)-ms,pow(k+l1+l2,2)-ms,pow(k+l1,2)-ms),

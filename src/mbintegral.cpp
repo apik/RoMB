@@ -689,7 +689,7 @@ for(lst::const_iterator it = pole_list.begin(); it != pole_list.end(); ++it)
     /********************************
      *               EPS = 0 part                  *
      *******************************/
-    if(!zero_volume(constraints_wo_eps,w_con_eps0)) 
+    if(false && !zero_volume(constraints_wo_eps,w_con_eps0)) 
       {
         cout<<"!!! NO CONTINUATION eps=0"<<endl;
         subs_map[get_symbol("eps")] = 0;
@@ -716,18 +716,8 @@ for(lst::const_iterator it = pole_list.begin(); it != pole_list.end(); ++it)
             //simplex_zero(tmp_pole_list,tmp_w_list);
             // assert(false);
             std::pair<ex,ex> ret_pair;
-            if(wi == w_list.rbegin())  //  epsilon minimum
-              ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,den);
-            else  
-              ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,den);
+              ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,3.5);
 
-            if(point_set.count(ex_to<numeric>(ret_pair.second).to_double()) > 0)
-              do
-                {
-                  den +=1;
-                  ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,den);
-                }
-              while(point_set.count(ret_pair.second) > 0);
             subs_map[ret_pair.first] = ret_pair.second;
             point_set.insert(ex_to<numeric>(ret_pair.second).to_double());
             cout<<ret_pair.first<<" "<<ret_pair.second<<endl;
@@ -1119,7 +1109,7 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
                                   MBintegral res_int = it->res(var_to_get_res ==lsolve(*pit==n,var_to_get_res),*pit,get_symbol("eps")==eps_prime);
                                   res_int.set_level(1+it->get_level());
                                   res_int*=(2*Pi*I*csgn(pit->coeff(var_to_get_res))*csgn(F_epsi-F_eps0));
-                                  if(ca.test_single(pit->subs(get_symbol("eps") == 0)))res_int.set_optimizable(true);
+                                  //if(ca.test_single(pit->subs(get_symbol("eps") == 0)))res_int.set_optimizable(true);
                                   res_int.barnes1();
                                   res_int.barnes2();
                                   //R.push_back(res_int);

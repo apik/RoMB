@@ -57,10 +57,10 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 	{
           // Integral Normalization coefficient 
         //            MBlbl_int *= pow(I,k_lst.nops());
-          MBlbl_int *= 1/tgamma(1+get_symbol("eps"));
+           MBlbl_int *= 1/tgamma(1+get_symbol("eps"));
           //MBlbl_int *= pow(Pi,2-get_symbol("eps"));
-          // MBlbl_int *= exp(Euler*get_symbol("eps"));	  
-cout<<"PROP_POW_MAP "<<prop_pow_map<<endl;
+          //MBlbl_int *= exp(Euler*get_symbol("eps"));	  
+          cout<<"PROP_POW_MAP "<<prop_pow_map<<endl;
 	  /*
 	    temporary set of propagators, with all momentum,except deleted
 	  */
