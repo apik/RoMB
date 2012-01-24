@@ -18,6 +18,8 @@
  \return 
  *
  */
+
+
 RoMB_loop_by_loop:: RoMB_loop_by_loop(
 				      lst k_lst,
 				      lst p_lst,
@@ -430,7 +432,11 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
       else return e.map(*this);
     }
   };
-
+/** 
+ * 
+ * 
+ * @param mb_in 
+ */
   void print_mathematica(MBintegral mb_in)
   {
     exmap w_c(mb_in.get_w());

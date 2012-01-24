@@ -1011,7 +1011,7 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
       constr_acc ca(rootint.get_poles(),rootint.get_w_eps());
       // tree root creation 
       MBtree C;
-      MBtree::iterator last_child_it,root_it;
+      MBtree::iterator last_child_it;//,root_it;
       last_child_it= C.insert(C.begin(), rootint);
       size_t children_added = 0;  
       do
@@ -1061,67 +1061,67 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
                       else
                         {
 
-                      ex dir__ = csgn(F_eps0 - F_epsi);
-                      int dir = int( ex_to<numeric>(dir__).to_double());
+                          ex dir__ = csgn(F_eps0 - F_epsi);
+                          int dir = int( ex_to<numeric>(dir__).to_double());
 
-                      //              for(int n =0;n>std::min(F_eps0,F_epsi);n--)
+                          //              for(int n =0;n>std::min(F_eps0,F_epsi);n--)
 
-                      int pole;
+                          int pole;
               
-                      if(dir > 0)
-                        pole = int(ceil(ex_to<numeric>(F_epsi).to_double())); 
-                      else if(F_epsi < 0)
-                        pole = int(floor(ex_to<numeric>(F_epsi).to_double())); 
-                      else
-                        pole = 0;
+                          if(dir > 0)
+                            pole = int(ceil(ex_to<numeric>(F_epsi).to_double())); 
+                          else if(F_epsi < 0)
+                            pole = int(floor(ex_to<numeric>(F_epsi).to_double())); 
+                          else
+                            pole = 0;
 
-                      for(int n = pole; dir*(F_eps0 - n) >= 0 && n <= 0; n += dir)
-                        {
-                          //        if( n < std::max(F_eps0,F_epsi))
+                          for(int n = pole; dir*(F_eps0 - n) >= 0 && n <= 0; n += dir)
+                            {
+                              //        if( n < std::max(F_eps0,F_epsi))
                           
 			    
-                          // test on epsilon existance
-                          if(pit->subs(it->get_w()).has(get_symbol("eps")))
-                            {
-                              ex eps_prime = lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") );
-                              lst w_in_F  = it->has_w(*pit);
-                              if(w_in_F.nops()>0)
+                              // test on epsilon existance
+                              if(pit->subs(it->get_w()).has(get_symbol("eps")))
                                 {
-                                  cout<<endl<<endl<<endl<<"ASDASDASDASDSD "<<*pit<<" "<<ca.test_single(pit->subs(get_symbol("eps") == 0))<<endl<<endl<<endl;
-
-                                  cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
-                                  BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>=abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
-                                  // decide what var to get res
-                                  ex var_to_get_res = 0;
-                                  for(lst::const_iterator vgit = w_in_F.begin(); vgit != w_in_F.end();++vgit)
+                                  ex eps_prime = lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") );
+                                  lst w_in_F  = it->has_w(*pit);
+                                  if(w_in_F.nops()>0)
                                     {
-                                      if(pit->coeff(*vgit,1) == 1)
+                                      cout<<endl<<endl<<endl<<"ASDASDASDASDSD "<<*pit<<" "<<ca.test_single(pit->subs(get_symbol("eps") == 0))<<endl<<endl<<endl;
+
+                                      cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
+                                      BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>=abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
+                                      // decide what var to get res
+                                      ex var_to_get_res = 0;
+                                      for(lst::const_iterator vgit = w_in_F.begin(); vgit != w_in_F.end();++vgit)
                                         {
-                                          var_to_get_res = *vgit;
-                                          break;
+                                          if(pit->coeff(*vgit,1) == 1)
+                                            {
+                                              var_to_get_res = *vgit;
+                                              break;
+                                            }
+                                          if(pit->coeff(*vgit,1) == -1)
+                                            var_to_get_res = *vgit;
                                         }
-                                      if(pit->coeff(*vgit,1) == -1)
-                                        var_to_get_res = *vgit;
-                                    }
-                                  if( var_to_get_res ==0) var_to_get_res = w_in_F.op(w_in_F.nops()-1);
+                                      if( var_to_get_res ==0) var_to_get_res = w_in_F.op(w_in_F.nops()-1);
                                     
 
-                                  MBintegral res_int = it->res(var_to_get_res ==lsolve(*pit==n,var_to_get_res),*pit,get_symbol("eps")==eps_prime);
-                                  res_int.set_level(1+it->get_level());
-                                  res_int*=(2*Pi*I*csgn(pit->coeff(var_to_get_res))*csgn(F_epsi-F_eps0));
-                                  //if(ca.test_single(pit->subs(get_symbol("eps") == 0)))res_int.set_optimizable(true);
-                                  res_int.barnes1();
-                                  res_int.barnes2();
-                                  //R.push_back(res_int);
-                                  last_child_it = C.append_child(it,res_int);
-                                  children_added++;
+                                      MBintegral res_int = it->res(var_to_get_res ==lsolve(*pit==n,var_to_get_res),*pit,get_symbol("eps")==eps_prime);
+                                      res_int.set_level(1+it->get_level());
+                                      res_int*=(2*Pi*I*csgn(pit->coeff(var_to_get_res))*csgn(F_epsi-F_eps0));
+                                      //if(ca.test_single(pit->subs(get_symbol("eps") == 0)))res_int.set_optimizable(true);
+                                      res_int.barnes1();
+                                      res_int.barnes2();
+                                      //R.push_back(res_int);
+                                      last_child_it = C.append_child(it,res_int);
+                                      children_added++;
+                                    }
+                                  // else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no W dependence in pole");
                                 }
-                              // else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no W dependence in pole");
+                              else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no eps dependence in pole");
+                              //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
+                              // if n>max
                             }
-                          else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no eps dependence in pole");
-                          //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
-                          // if n>max
-                        }
                         }//else
                     }
                 }//same depth
