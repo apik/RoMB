@@ -1,3 +1,4 @@
+#define GMPRATIONAL
 #include <boost/assert.hpp>
 #include "mbintegral.h"
 #include "utils.h"
@@ -5,6 +6,8 @@
 #include "constracc.h"
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <setoper.h>
+#include <cdd.h>
 
 //#include "tree_util.hh"
 /**
@@ -636,6 +639,66 @@ lst MBintegral::has_w(const ex& gamma_arg)
 }
 
 
+/*exmap sp_cdd(MBintegral::w_lst_type pole_list,MBintegral::p_lst_type w_list)
+{
+}
+*/
+dd_MatrixPtr dd_ConstrList2Matrix (MBintegral::w_lst_type pole_list,MBintegral::p_lst_type w_list)//, dd_ErrorType *Error)
+{
+  dd_MatrixPtr M=NULL;
+  dd_rowrange m_input,i;
+  dd_colrange d_input,j;
+  dd_RepresentationType rep=dd_Inequality;
+  mytype value;
+  dd_boolean found=dd_FALSE, newformat=dd_FALSE, successful=dd_FALSE, linearity=dd_FALSE;
+  //  char command[dd_linelenmax], comsave[dd_linelenmax], numbtype[dd_wordlenmax];
+  dd_NumberType NT;
+#if !defined(GMPRATIONAL)
+  double rvalue;
+#endif
+
+  dd_init(value);
+  // (*Error)=dd_NoError;
+
+  //  M=dd_CreateMatrix(m_input, d_input);
+  M=dd_CreateMatrix(pole_list.size(), w_list.size()+1);
+  M->representation = dd_Inequality;
+  M->numbtype = dd_Rational;
+
+  i = 0;
+  //j = 1;
+  signed long a_num;
+  unsigned long b_den;
+     
+  for(MBintegral::p_lst_type::const_iterator pit = pole_list.begin();pit!= pole_list.end();++pit) 
+    {
+      ex b = *pit;
+      j = 1;
+      for(MBintegral::w_lst_type::const_iterator wi = w_list.begin();wi != w_list.end();++wi) 
+        {
+          a_num = numer(ex_to<numeric>(pit->coeff(*wi,1))).to_long();
+          b_den = denom(ex_to<numeric>(pit->coeff(*wi,1))).to_long();
+          cout<<"VAL = "<<a_num<<"/"<<b_den<<endl;
+
+          dd_set_si2(value,a_num,b_den);
+          dd_WriteNumber(stderr, value);
+          dd_set(M->matrix[i][j],value);
+          b = b.coeff(*wi,0);
+          j++;
+        }      
+      a_num = numer(ex_to<numeric>(b)).to_long(); 
+      b_den = denom(ex_to<numeric>(b)).to_long();
+      dd_set_si2(value,a_num,b_den);
+      dd_set(M->matrix[i][0],value);
+      i++;
+    }
+
+  dd_clear(value);
+  /* if (f!=NULL) fclose(f); */
+    return M;
+}
+
+
 exmap MBintegral::start_point_diff_w(MBintegral::w_lst_type pole_list,MBintegral::p_lst_type w_list)
 {
   try{
@@ -861,6 +924,32 @@ exmap MBintegral::new_point()
   w_lst_type var_list(w_lst);
   var_list.push_back(get_symbol("eps"));
   eps_w_current=start_point_diff_w(gamma_poles,var_list);
+
+  //                    start point from CDDLIB package
+  //  sp_cdd(gamma_poles,var_list);
+dd_set_global_constants();  /* First, this must be called. */
+dd_MatrixPtr mpmp =   dd_ConstrList2Matrix(gamma_poles,var_list);
+ dd_WriteMatrix(stderr, mpmp);
+ dd_ErrorType err;
+ /*
+ dd_PolyhedraPtr phpp = dd_DDMatrix2Poly(mpmp,&err);
+ dd_MatrixPtr mp34 =  dd_CopyGenerators(phpp);
+ dd_WriteMatrix(stderr, mp34);
+ phpp = dd_DDMatrix2Poly(mp34,&err);
+ mpmp =  dd_CopyInequalities(phpp);
+ dd_WriteMatrix(stderr, mpmp);*/
+ cout<<endl<<"CAnonicalized"<<endl;
+ dd_MatrixPtr dn_cmp;
+ dd_rowset dn_rs;
+ dd_rowset dn_rs2;
+ dd_rowindex dn_ri;
+ // dd_ErrorType *
+dd_boolean boo  = dd_MatrixCanonicalize(&mpmp, &dn_rs,&dn_rs2, &dn_ri, &err);
+ dd_WriteMatrix(stderr, mpmp);
+ dd_LPSolutionPtr lps;
+ dd_boolean boo2 =  dd_FindRelativeInterior(mpmp, &dn_rs,&dn_rs2, &lps, &err);
+ for(int cn_so = 0; cn_so < lps->d; cn_so++ )
+   dd_WriteNumber(stderr, lps->sol[cn_so]);
   // cout<<"Int: "<<  interior_point(set2lst(get_poles_set()),eps_w_current)<<endl;
   BOOST_ASSERT_MSG(interior_point(gamma_poles,eps_w_current),"Not a convex polyhedron interior point");
     
