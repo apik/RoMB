@@ -30,7 +30,7 @@ LINK_DIRECTORIES( ${LINK_DIRECTORIES} ${PROJECT_SOURCE_DIR}/cuba/ )
 #ADD_SUBDIRECTORY( src )
 
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src )
-SET(ROMB_LIBS romb cuba ginac glpk boost_filesystem gsl gslcblas romb cddgmp cdd ${LEMON_LIBRARIES})
+SET(ROMB_LIBS romb cuba ginac glpk boost_filesystem gsl gslcblas romb cddgmp cdd ppl ${LEMON_LIBRARIES})
 
 ## One-loop B0 function example
 ADD_EXECUTABLE(B0_test B0.cpp )

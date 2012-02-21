@@ -47,7 +47,7 @@ bool interior_point(MBintegral::p_lst_type ineq_lst, exmap subs_map)
 {
   for(lst::const_iterator it = ineq_lst.begin(); it != ineq_lst.end(); ++it)
     {
-      //cout<<"int point: "<<it->subs(subs_map)<<endl;
+        cout<<"int point: " << *it << " --> " <<it->subs(subs_map)<<endl;
        if((it->subs(subs_map) <0)) return false;
     }
   return true;

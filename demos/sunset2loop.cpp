@@ -48,8 +48,8 @@ try
   //                 sunset.integrate(lst(m1s==1,m2s==1,m3s==1,s==0),0);
 
     //     bubble sunset 2=loop
-                   RoMB_loop_by_loop sunset_bub(lst(k,l), lst(-pow(k,2)+ms,-pow(-k-l,2)+ms,-pow(l,2)+ms),lst(pow(p,2)==0),lst(1,1,1));
-      sunset_bub.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
+                   RoMB_loop_by_loop sunset_bub(lst(k,l), lst(-pow(k,2)+ms,-pow(-k-l,2)+m2s,-pow(l,2)+m3s),lst(pow(p,2)==0),lst(1,1,1));
+      sunset_bub.integrate_map(lst(ms==1,m2s==2,m3s==3,s==0),2);
 
     //     bubble sunset 3=loop
     //                     RoMB_loop_by_loop sunset_bub(lst(p,k,l), lst(-pow(p,2)+ms,-pow(k,2)+ms,-pow(l,2)+ms,-pow(-p-k-l,2)+ms),lst(pow(l3,2)==s),lst(1,1,1,1));

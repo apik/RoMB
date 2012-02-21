@@ -208,6 +208,30 @@ std::ostream & operator<<(std::ostream & os, const std::list<T>& e)
      return os;
  }
 
+template <typename T1, typename T2, typename C>
+    std::ostream & operator<<(std::ostream & os, const std::multimap<T1,T2,C>& e)
+ {
+     typename std::multimap<T1,T2,C>::const_iterator i = e.begin();
+     typename std::multimap<T1,T2,C>::const_iterator vend = e.end();
+ 
+     if (i==vend) {
+         os << "()";
+         return os;
+     }
+ 
+     os << "{";
+     while (true) {
+       os << i->first << "->" << i->second;
+         ++i;
+         if (i==vend)
+             break;
+         os << ",";
+     }
+     os << "}";
+ 
+     return os;
+ }
+
 
 
 #endif

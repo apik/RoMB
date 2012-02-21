@@ -7,7 +7,16 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <setoper.h>
+
+#include <ppl.hh>
+using namespace Parma_Polyhedra_Library;
+using namespace Parma_Polyhedra_Library::IO_Operators;
+
+extern "C" {
 #include <cdd.h>
+}
+
+
 
 //#include "tree_util.hh"
 /**
@@ -16,7 +25,12 @@
  *
  */
 
-MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l,bool subs_U, unsigned int displacement):tree_level(0),res_pole(0),opt_flag(false) // lst nu is a list of powers of propagators and l is a number of loops
+MBintegral::MBintegral(
+                       UFXmap fx_in,
+                       lst nu,
+                       numeric l,
+                       bool subs_U, 
+                       unsigned int displacement) :tree_level(0),res_pole(0),opt_flag(false) // lst nu is a list of powers of propagators and l is a number of loops
 {
   try
     {
@@ -526,23 +540,23 @@ MBintegral::MBintegral(UFXmap fx_in,lst nu,numeric l,bool subs_U, unsigned int d
 }
 void MBintegral::fix_inv()
 {
-  p_lst_type poles_before_inv(gamma_poles);
-      gamma_poles.clear();
-      ex expr_numer = full_int_expr.numer();
-      BOOST_FOREACH(ex epe, poles_before_inv)
-        {
-          if(expr_numer.has(tgamma(epe))) gamma_poles.push_back(epe);
-          else if(expr_numer.has(psi(epe))) gamma_poles.push_back(epe);
-          else if(expr_numer.has(psi(wild(),epe))) gamma_poles.push_back(epe);
-          else cout<<" UNUSED POLE:"<<epe<<endl<<endl;
-        }
-      w_lst_type w_before_inv(w_lst);
-      w_lst.clear();
-      // cerating comparator
-      std::list<symbol> w_lst_for_comparision;
-      BOOST_FOREACH(ex ewe, w_before_inv)
-        {
-          if(full_int_expr.has(ewe))
+    p_lst_type poles_before_inv(gamma_poles);
+    gamma_poles.clear();
+    ex expr_numer = full_int_expr.numer();
+    BOOST_FOREACH(ex epe, poles_before_inv)
+    {
+        if(expr_numer.has(tgamma(epe))) gamma_poles.push_back(epe);
+        else if(expr_numer.has(psi(epe))) gamma_poles.push_back(epe);
+        else if(expr_numer.has(psi(wild(),epe))) gamma_poles.push_back(epe);
+        else cout<<" UNUSED POLE:"<<epe<<endl<<endl;
+    }
+    w_lst_type w_before_inv(w_lst);
+    w_lst.clear();
+    // cerating comparator
+    std::list<symbol> w_lst_for_comparision;
+    BOOST_FOREACH(ex ewe, w_before_inv)
+    {
+        if(full_int_expr.has(ewe))
             {
               w_lst.push_back(ewe);
               if(is_a<symbol>(ewe)) w_lst_for_comparision.push_back(ex_to<symbol>(ewe));
@@ -678,10 +692,10 @@ dd_MatrixPtr dd_ConstrList2Matrix (MBintegral::w_lst_type pole_list,MBintegral::
         {
           a_num = numer(ex_to<numeric>(pit->coeff(*wi,1))).to_long();
           b_den = denom(ex_to<numeric>(pit->coeff(*wi,1))).to_long();
-          cout<<"VAL = "<<a_num<<"/"<<b_den<<endl;
+          //cout<<"VAL = "<<a_num<<"/"<<b_den<<endl;
 
           dd_set_si2(value,a_num,b_den);
-          dd_WriteNumber(stderr, value);
+          // dd_WriteNumber(stderr, value);
           dd_set(M->matrix[i][j],value);
           b = b.coeff(*wi,0);
           j++;
@@ -919,45 +933,309 @@ exset MBintegral::poles_from_ex(ex ie_)
   cout<<"Update poles "<<poles_set<<endl;
   }
 */
+
+void chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_type pIn)
+{
+
+    std::vector<Variable> varVector;
+    size_t varN = 0;
+    BOOST_FOREACH(ex w, wIn)
+    {
+        Variable vNew(varN);
+        varVector.push_back(vNew);
+        varN++;
+    }
+
+    
+// Sphere radius
+
+    Variable r(varN);
+
+    Constraint_System cs;
+
+
+// Add constraints to the system    
+
+    BOOST_FOREACH(ex p, pIn)
+    {
+        Linear_Expression l;
+        size_t dimN = 0;
+        ex bI = p;
+        ex aNormSquared;
+        BOOST_FOREACH(ex w, wIn)
+        {
+            ex linCoeff = p.coeff(w,1);
+            bI = bI.coeff(w,0);
+            aNormSquared += pow(linCoeff,2);
+            if(linCoeff.info(info_flags::integer))
+            {
+                mpz_class gmpInt(ex_to<numeric>(linCoeff).to_long());
+                l = sub_mul_assign(l, gmpInt, varVector[dimN]);
+                dimN++;
+            }
+            else throw std::logic_error(std::string( "Not an integer coefficient in Linear_Expression" ));
+        }
+// Add B_i        
+        if(bI.info(info_flags::integer))
+        {
+            mpz_class gmpInt(ex_to<numeric>(bI).to_long());
+            l -= gmpInt;
+        }
+        else throw std::logic_error(std::string( "Not an integer B_i in Linear_Expression" ));
+
+// Add radius
+        
+        GMP_Integer aNormSqrt;
+        if(aNormSquared.info(info_flags::integer))
+        {
+
+            mpz_class gmpInt(ex_to<numeric>(aNormSquared).to_long());
+
+// Assign integer value of sqare root: 
+//
+//      int(sqrt) < sqrt
+//
+            sqrt_assign(aNormSqrt, gmpInt);
+            aNormSqrt += 1;
+            cout << "SQRT: " << aNormSqrt << endl;
+        }
+        else throw std::logic_error(std::string( "Not an integer B_i in Linear_Expression" ));
+
+        l = add_mul_assign(l, aNormSqrt, r);
+        
+        cout << l << endl;
+        cs.insert(l <= 0);
+    }
+
+    NNC_Polyhedron ph(cs);
+    bool maxVal;
+    Coefficient supN,supD;
+    Generator g  = closure_point();
+    if( ph.maximize(r,supN,supD,maxVal,g) )
+    {
+        std::cout<< maxVal<<" then " << supN<<"/"<<supD<< "Generator: " << g << std::endl;
+        
+    }
+    Generator_System gs;
+    gs.insert(g);
+    NNC_Polyhedron ph2(gs);
+    if(ph.strictly_contains(ph2)) cout<< " Contains" <<endl;
+    
+    exmap intPtest;
+    size_t cncn = 0;
+    BOOST_FOREACH(ex w, wIn)
+    {
+      intPtest[w] = numeric(g.coefficient(varVector[cncn]).get_si(),g.divisor().get_si());
+      cncn++;
+    }
+    cout<< intPtest <<endl;
+
+     BOOST_ASSERT_MSG(interior_point(pIn,intPtest),"Not a convex polyhedron interior point");
+
+
+ 
+}
+
+bool compExmapSecond(exmap::value_type a, exmap::value_type b)
+{
+    return (a.second < b.second);
+}
+
+
+
+
+class CompExmapFirst : public std::binary_function<numeric,numeric,bool>
+{
+public:
+    bool operator()(const numeric& lh, const numeric& rh)
+        {
+//            if(is_a<numeric>(lh) && is_a<numeric>(rh))
+                return (lh < rh);
+                //           else
+                //  return lh.compare(rh);
+        }
+};
+
+template <typename T>
+bool alwaysTrue (T i) { return true; }
+
 exmap MBintegral::new_point()
 {
-  w_lst_type var_list(w_lst);
-  var_list.push_back(get_symbol("eps"));
-  eps_w_current=start_point_diff_w(gamma_poles,var_list);
-
-  //                    start point from CDDLIB package
-  //  sp_cdd(gamma_poles,var_list);
-dd_set_global_constants();  /* First, this must be called. */
-dd_MatrixPtr mpmp =   dd_ConstrList2Matrix(gamma_poles,var_list);
- dd_WriteMatrix(stderr, mpmp);
- dd_ErrorType err;
- /*
- dd_PolyhedraPtr phpp = dd_DDMatrix2Poly(mpmp,&err);
- dd_MatrixPtr mp34 =  dd_CopyGenerators(phpp);
- dd_WriteMatrix(stderr, mp34);
- phpp = dd_DDMatrix2Poly(mp34,&err);
- mpmp =  dd_CopyInequalities(phpp);
- dd_WriteMatrix(stderr, mpmp);*/
- cout<<endl<<"CAnonicalized"<<endl;
- dd_MatrixPtr dn_cmp;
- dd_rowset dn_rs;
- dd_rowset dn_rs2;
- dd_rowindex dn_ri;
- // dd_ErrorType *
-dd_boolean boo  = dd_MatrixCanonicalize(&mpmp, &dn_rs,&dn_rs2, &dn_ri, &err);
- dd_WriteMatrix(stderr, mpmp);
- dd_LPSolutionPtr lps;
- dd_boolean boo2 =  dd_FindRelativeInterior(mpmp, &dn_rs,&dn_rs2, &lps, &err);
- for(int cn_so = 0; cn_so < lps->d; cn_so++ )
-   dd_WriteNumber(stderr, lps->sol[cn_so]);
-  // cout<<"Int: "<<  interior_point(set2lst(get_poles_set()),eps_w_current)<<endl;
-  BOOST_ASSERT_MSG(interior_point(gamma_poles,eps_w_current),"Not a convex polyhedron interior point");
+    w_lst_type var_list(w_lst);
+    p_lst_type localPoles(gamma_poles);
+    var_list.push_back(get_symbol("eps"));
     
-  for(w_lst_type::const_iterator it = w_lst.begin();it!=w_lst.end();++it)
-    w_current[*it] = it->subs(eps_w_current);
-  eps_current = (get_symbol("eps")==eps_w_current[get_symbol("eps")]);
-  return eps_w_current;
+    eps_w_current=start_point_diff_w(gamma_poles,var_list);
+    
+    chebyshevSphere(var_list,localPoles);
+
+
+    //                    start point from CDDLIB package
+    //  sp_cdd(localPoles,var_list);
+    dd_set_global_constants();  /* First, this must be called. */
+    dd_MatrixPtr mpmp =   dd_ConstrList2Matrix(localPoles,var_list);
+    dd_WriteMatrix(stderr, mpmp);
+    dd_ErrorType err;
+    /*
+      dd_PolyhedraPtr phpp = dd_DDMatrix2Poly(mpmp,&err);
+      dd_MatrixPtr mp34 =  dd_CopyGenerators(phpp);
+      dd_WriteMatrix(stderr, mp34);
+      phpp = dd_DDMatrix2Poly(mp34,&err);
+      mpmp =  dd_CopyInequalities(phpp);
+      dd_WriteMatrix(stderr, mpmp);*/
+    cout<<endl<<"CAnonicalized"<<endl;
+    dd_MatrixPtr dn_cmp;
+    dd_rowset dn_rs;
+    dd_rowset dn_rs2;
+    dd_rowindex dn_ri;
+    // dd_ErrorType *
+    dd_boolean boo  = dd_MatrixCanonicalize(&mpmp, &dn_rs,&dn_rs2, &dn_ri, &err);
+    dd_WriteMatrix(stderr, mpmp);
+    dd_LPSolutionPtr lps;
+    dd_boolean boo2 =  dd_FindRelativeInterior(mpmp, &dn_rs,&dn_rs2, &lps, &err);
+
+    exmap wCdd;
+    
+
+    typedef multimap<numeric,ex,CompExmapFirst> exmultimap;  
+    exmultimap wInverted;
+    
+    exmap wFinal;
+    exmap wFinalInverted;
+
+    int cn_so = 1;
+
+// First iteration of start point finding
+    for(w_lst_type::const_iterator it = var_list.begin();it!=var_list.end();++it)
+    {
+        
+        if(*it == get_symbol("eps"))
+            wFinal[get_symbol("eps")] = numeric(mpz_get_si(mpq_numref(lps->sol[cn_so])), mpz_get_si(mpq_denref(lps->sol[cn_so])));
+
+        else
+        {
+            dd_WriteNumber(stderr, lps->sol[cn_so]);
+            
+            wCdd[*it] = numeric(mpz_get_si(mpq_numref(lps->sol[cn_so])), mpz_get_si(mpq_denref(lps->sol[cn_so])));
+            
+            wInverted.insert(pair<numeric,ex>(ex_to<numeric>(wCdd[*it]), (*it)));
+        }
+        
+        cn_so++;
+    }
+
+    cout<< "\nINVERTED: " << wInverted << endl;
+//    cout<< *wInverted.lower_bound() << endl;
+
+// inverted map, minimal element is the first
+//    exmap::iterator minElemIter = min_element(wCdd.begin(),wCdd.end(),compExmapSecond);
+    exmultimap::iterator minElemIter = wInverted.begin();
+
+//    cout << "\nMin: " << minElemIter->first << endl;
+//    wFinalInverted[minElemIter->first] = minElemIter->second;
+    //wCdd.erase(minElemIter);
+//   minElemIter = min_element(wCdd.begin(),wCdd.end(),compExmapSecond);
+    
+    while (wInverted.size() > 0)
+    {
+
+//        minElemIter = min_element(wCdd.begin(),wCdd.end(),compExmapSecond);
+        minElemIter = wInverted.begin();
+        cout<<"tmp\n";        
+
+        if (count_if (wInverted.equal_range(minElemIter->first).first,wInverted.equal_range(minElemIter->first).second,alwaysTrue<exmultimap::value_type>) == 1)
+        {
+            wFinalInverted[wInverted.begin()->first] = wInverted.begin()->second;
+            wFinal[wInverted.begin()->second] = wInverted.begin()->first;
+/*
+            BOOST_FOREACH(ex lp, localPoles)
+            {
+                lp.subs(wFinal);
+            }
+*/
+            wInverted.erase(minElemIter);
+            cout << " W_F: " << wFinalInverted << endl;
+        }
+        else // Contour duplication
+        {
+        cout<<"Dupl tmp\n";        
+//     Append inequalities : (w - w' >= 0)
+            exmultimap::const_iterator wIter,wIter_end;
+
+            for(tie(wIter,wIter_end) = wInverted.equal_range(wInverted.begin()->first); wIter != wIter_end; ++wIter)
+            {
+// Add first element 
+                if(wIter != wInverted.begin())
+                {
+                    localPoles.push_back(wIter->second - wIter->first);
+                    cout<< " Contour: " << *localPoles.rbegin() << endl;
+                }                
+            }
+            mpmp =   dd_ConstrList2Matrix(localPoles,var_list);
+            // dd_WriteMatrix(stderr, mpmp);
+
+            boo  = dd_MatrixCanonicalize(&mpmp, &dn_rs,&dn_rs2, &dn_ri, &err);
+//          dd_WriteMatrix(stderr, mpmp);
+            
+            boo2 =  dd_FindRelativeInterior(mpmp, &dn_rs,&dn_rs2, &lps, &err);
+
+            BOOST_ASSERT_MSG(err == dd_NoError,"Interior not feasible");
+            wFinalInverted[wInverted.begin()->first] = wInverted.begin()->second;
+            wFinal[wInverted.begin()->second] = wInverted.begin()->first;
+
+/*
+            BOOST_FOREACH(ex lp, localPoles)
+            {
+                lp.subs(wFinal);
+            }
+*/
+            wInverted.clear();
+            
+            cn_so = 1;
+            for(w_lst_type::const_iterator it = w_lst.begin();it!=w_lst.end();++it)
+            {
+                //   dd_WriteNumber(stderr, lps->sol[cn_so]);
+
+                if ( wFinal.count(*it) == 0 )
+                {
+                    wCdd[*it] = numeric(mpz_get_si(mpq_numref(lps->sol[cn_so])), mpz_get_si(mpq_denref(lps->sol[cn_so])));
+                    wInverted.insert(pair<numeric,ex>(ex_to<numeric>(wCdd[*it]), (*it)));
+                }
+
+                cn_so++;
+            }
+            
+            cout << " NEW CDD: " << wCdd << endl;
+            cout << " NEW INV: " << wInverted << endl;
+
+/*            minElemIter = min_element(wCdd.begin(),wCdd.end(),compExmapSecond);
+            
+            if (wFinal.count(minElemIter->second) == 0)
+            {
+                wFinal[minElemIter->second] = minElemIter->first;
+                wCdd.erase(minElemIter);
+            }
+*/
+        }
+        
+
+    }
+    
+    cout<< "Final w: " << localPoles << endl;
+// cout<<"Int: "<<  interior_point(set2lst(get_poles_set()),eps_w_current)<<endl;
+    cout<< "poles  " << gamma_poles <<endl;
+     BOOST_ASSERT_MSG(interior_point(gamma_poles,wFinal),"Not a convex polyhedron interior point");
+
+    cout << "\nCDD point" << endl;
+    // cout << wCdd << endl;
+    for(w_lst_type::const_iterator it = w_lst.begin();it!=w_lst.end();++it)
+        w_current[*it] = it->subs(wCdd);
+    eps_current = (get_symbol("eps")==wFinal[get_symbol("eps")]);
+    return eps_w_current;
 }
+
+
+
 
 
 
@@ -1089,142 +1367,216 @@ MBlst MBcontinue(MBintegral rootint,ex eps0)
 
 MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
 {
-  using namespace mbtree;
-  try
+    using namespace mbtree;
+    try 
     {
-      rootint.barnes1();
-      rootint.barnes2();
-
-      // accumulator for constraints
-      //  cout<<"start constrainta : "<<rootint.get_poles_set()<< " "<<rootint.get_w_eps_set()<<endl;
-      constr_acc ca(rootint.get_poles(),rootint.get_w_eps());
-      // tree root creation 
-      MBtree C;
-      MBtree::iterator last_child_it;//,root_it;
-      last_child_it= C.insert(C.begin(), rootint);
-      size_t children_added = 0;  
-      do
+        rootint.barnes1();
+        rootint.barnes2();
+        
+        //           accumulator for constraints
+        //  cout<<"start constrainta : "<<rootint.get_poles_set()<< " "<<rootint.get_w_eps_set()<<endl;
+        constr_acc ca(rootint.get_poles(),rootint.get_w_eps());
+        //            tree root creation 
+        MBtree C;
+        MBtree::iterator lastChildIt;//,root_it;
+        lastChildIt= C.insert(C.begin(), rootint);
+        size_t nChildrenAdded = 0;  
+        do 
         {
-          children_added = 0;           // no children added in new level
-          //      for(;it!=same_depth_start_iter;next_at_same_depth (it))
-          /* MBtree::fixed_depth_iterator it,it_end;
-             it = C.begin_fixed (root_it, C.max_depth ());
+            nChildrenAdded = 0;           // no children added in new level
+            //      for(;it!=same_depth_start_iter;next_at_same_depth (it))
+            /* MBtree::fixed_depth_iterator it,it_end;
+               it = C.begin_fixed (root_it, C.max_depth ());
     
-             it_end = C.end_fixed (root_it, C.max_depth ());*/
-          MBtree::leaf_iterator it,it_end;
-          it = C.begin_leaf();
-          it_end = C.end_leaf();
-          cout<<"work"<<endl;
-          for(it = C.begin_leaf();it != it_end; ++it )
+               it_end = C.end_fixed (root_it, C.max_depth ());*/
+            MBtree::leaf_iterator it,it_end;
+            it = C.begin_leaf();
+            it_end = C.end_leaf();
+            cout<<"work"<<endl;
+            for(it = C.begin_leaf();it != it_end; ++it ) 
             {
-              if((C.depth(it) == C.max_depth() && children_added == 0) || (C.depth(it) == C.max_depth()-1 && children_added > 0) )
+                if((C.depth(it) == C.max_depth() && nChildrenAdded == 0) || (C.depth(it) == C.max_depth()-1 && nChildrenAdded > 0) ) 
                 {
-                  cout<<"Leaf depth "<<C.depth(it)<<" Max depth "<<C.max_depth()<<endl;
-                  //   cout<<std::setw(15+it->get_level())<<std::right<<"shifted on "<<it->get_level()<<endl;
-                  //C.push_back(*it);//need review, multiple entries C=C U I
-                  MBintegral::pole_iterator pit,pit_end;
-                  ex eps_i = get_symbol("eps");
-                  //          cout<<"after barness lemas "<<it->get_eps()<<endl;
-                  eps_i = eps_i.subs(it->get_eps());
+                    cout<<"Leaf depth "<<C.depth(it)<<" Max depth "<<C.max_depth()<<endl;
+                    //   cout<<std::setw(15+it->get_level())<<std::right<<"shifted on "<<it->get_level()<<endl;
+                    //C.push_back(*it);//need review, multiple entries C=C U I
+                    MBintegral::pole_iterator pit,pit_end;
+                    ex eps_i = get_symbol("eps");
+                    //          cout<<"after barness lemas "<<it->get_eps()<<endl;
+                    eps_i = eps_i.subs(it->get_eps());
 
+                    // finding nearest EPS
 
+                    typedef multimap<ex,ex> EpsPolesMap;
+                    typedef EpsPolesMap::iterator mapIter;
+                    //                  while(no_continuat
 
-                  // Iterate over gamma arguments with eps dependence only!!!!!!!
-                  lst with_eps_lst(it->poles_with_eps());
-                  for(lst::const_iterator pit  = with_eps_lst.begin(); pit != with_eps_lst.end(); ++pit)
+                    EpsPolesMap epsPoles;
+
+                    //             Iterate over gamma arguments with eps dependence only!!!!!!!
+                    lst polesWithEps(it->poles_with_eps());
+                    lst polesMinEps;
+                    for(lst::const_iterator pit  = polesWithEps.begin(); pit != polesWithEps.end(); ++pit) 
                     {
-                      cout<<*pit<<endl;
-                      cout<<"F(eps_i) "<<pit->subs(it->get_w()).subs(it->get_eps())<<"F(eps=0) "<<pit->subs(it->get_w()).subs(get_symbol("eps")==eps0)<<"   min  "<<std::min(pit->subs(it->get_w()).subs(it->get_eps()),pit->subs(it->get_w()).subs(get_symbol("eps")==eps0))<<endl;
-                      cout<<"w current: "<<it->get_w()<<endl;
-             
-                      ex F_eps0 = pit->subs( it->get_w() ).subs( get_symbol("eps") == eps0) ;
-                      ex F_epsi =  pit->subs( it->get_w() ).subs( it->get_eps() ) ;
-
-                      if(F_eps0==F_epsi) 
+                        ex fEps0 = pit->subs( it->get_w() ).subs( get_symbol("eps") == eps0) ;
+                        ex fEpsI =  pit->subs( it->get_w() ).subs( it->get_eps() ) ;
+                        ex poleValue;
+                        if(fEpsI > fEps0) poleValue = int(floor(ex_to<numeric>(fEpsI).to_double()));
+                        else if(fEpsI < fEps0) poleValue = int(ceil(ex_to<numeric>(fEpsI).to_double()));
+                        if (poleValue <= 0) 
                         {
-                          cout<<"Terminating eps=0 achieved  "<<std::min(F_eps0,F_epsi)<<endl;
-                          throw std::logic_error(string("Contour hit the pole"));
-                          assert(false);
+                            cout << setw(5) << right << poleValue <<  " --------------->  " 
+                                 << setw(25) << left << *pit << endl;
+                            ex eps_pole_sol = lsolve(pit->subs(it->get_w()) == poleValue,get_symbol("eps") );
+                            polesMinEps.append(eps_pole_sol);
+                            epsPoles.insert ( pair<ex,ex>(eps_pole_sol,*pit) );
                         }
+                    }
+
+                    cout << " ______________POLES NEAREST_______________  " << endl;
+                    cout << "|                                          | " << endl;
+                    cout << "| " << setw(40) << std::left <<it->get_w() << endl;
+                    cout << "|        " << polesMinEps << endl;
+                    cout << "|__________________________________________| " << endl;
+                    cout << endl;//"*** min elem: "<<*min_element(polesMinEps.begin(),polesMinEps.end())<<endl;
+                    
+                    mapIter m_it, s_it;
+                    
+                    for (m_it = epsPoles.begin();  m_it != epsPoles.end();  m_it = s_it) 
+                    {
+                        ex theKey = (*m_it).first;
+                        
+                        cout << endl;
+                        cout << "  key = '" << theKey << "'" << endl;
+
+                        // working with key here:
                       
-                      else
+                      
+                        pair<mapIter, mapIter> keyRange = epsPoles.equal_range(theKey);
+                      
+                        // Iterate over all map elements with key == theKey
+                      
+                        for (s_it = keyRange.first;  s_it != keyRange.second;  ++s_it) 
                         {
-
-                          ex dir__ = csgn(F_eps0 - F_epsi);
-                          int dir = int( ex_to<numeric>(dir__).to_double());
-
-                          //              for(int n =0;n>std::min(F_eps0,F_epsi);n--)
-
-                          int pole;
-              
-                          if(dir > 0)
-                            pole = int(ceil(ex_to<numeric>(F_epsi).to_double())); 
-                          else if(F_epsi < 0)
-                            pole = int(floor(ex_to<numeric>(F_epsi).to_double())); 
-                          else
-                            pole = 0;
-
-                          for(int n = pole; dir*(F_eps0 - n) >= 0 && n <= 0; n += dir)
-                            {
-                              //        if( n < std::max(F_eps0,F_epsi))
+                            cout << "    value = " << (*s_it).second << endl;
                           
+                            lst wInPole = it->has_w((*s_it).second);
+                            wInPole.sort();
+                            
+                            if (epsPoles.count(theKey) > 1)                             
+                            {
+                                cout << endl;
+                                cout << endl;
+                                cout << "(((((((((((      w in pole " << wInPole << endl;
+                                cout << endl;
+                                cout << endl;
+                            }
+                        }
+                    }
+
+
+
+                    for(lst::const_iterator pit  = polesWithEps.begin(); pit != polesWithEps.end(); ++pit) 
+                    {
+                        cout<<"POLE EXPR:   "<< *pit <<endl;
+                        
+                        cout<<"F(eps_i) "<<pit->subs(it->get_w()).subs(it->get_eps())
+                            <<"F(eps=0) "<<pit->subs(it->get_w()).subs(get_symbol("eps")==eps0)
+                            <<"   min  "<<std::min(pit->subs(it->get_w()).subs(it->get_eps()),pit->subs(it->get_w()).subs(get_symbol("eps")==eps0))<<endl;
+                    
+                        cout<<"eps_i = "<<eps_i<<"  w current: "<<it->get_w()<<endl;
+                    
+                        ex fEps0 = pit->subs( it->get_w() ).subs( get_symbol("eps") == eps0) ;
+                        ex fEpsI =  pit->subs( it->get_w() ).subs( it->get_eps() ) ;
+                    
+                        if(fEps0==fEpsI) 
+                        {
+                            cout<<"Terminating, eps=0 achieved  "<<std::min(fEps0,fEpsI)<<endl;
+                            throw std::logic_error(string("Contour hit the pole"));
+                            assert(false);
+                        }
+
+                      
+                        else 
+                        {
+                      
+                            ex dir__ = csgn(fEps0 - fEpsI);
+                            int dir = int( ex_to<numeric>(dir__).to_double());
+                      
+                            //              for(int n =0;n>std::min(fEps0,fEpsI);n--)
+                      
+                            int pole;
+                      
+                            if(dir > 0)
+                                pole = int(ceil(ex_to<numeric>(fEpsI).to_double())); 
+                            else if(fEpsI < 0)
+                                pole = int(floor(ex_to<numeric>(fEpsI).to_double())); 
+                            else
+                                pole = 0;
+
+                            for(int n = pole; dir*(fEps0 - n) >= 0 && n <= 0; n += dir) 
+                            {
+                                //        if( n < std::max(fEps0,fEpsI))
+                            
 			    
-                              // test on epsilon existance
-                              if(pit->subs(it->get_w()).has(get_symbol("eps")))
+                                //             test on epsilon existance
+                                if(pit->subs(it->get_w()).has(get_symbol("eps"))) 
                                 {
-                                  ex eps_prime = lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") );
-                                  lst w_in_F  = it->has_w(*pit);
-                                  if(w_in_F.nops()>0)
+                                    ex eps_prime = lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") );
+                                    lst w_in_F  = it->has_w(*pit);
+                                    if(w_in_F.nops()>0) 
                                     {
-                                      cout<<endl<<endl<<endl<<"ASDASDASDASDSD "<<*pit<<" "<<ca.test_single(pit->subs(get_symbol("eps") == 0))<<endl<<endl<<endl;
-
-                                      cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
-                                      BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>=abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
-                                      // decide what var to get res
-                                      ex var_to_get_res = 0;
-                                      for(lst::const_iterator vgit = w_in_F.begin(); vgit != w_in_F.end();++vgit)
+                                        cout<<endl<<endl<<endl<<"ASDASDASDASDSD "<<*pit<<" "<<ca.test_single(pit->subs(get_symbol("eps") == 0))<<endl<<endl<<endl;
+                                        
+                                        cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
+                                        BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>=abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
+                                        
+                                        //             decide what var to get res
+                                        ex var_to_get_res = 0;
+                                        for(lst::const_iterator vgit = w_in_F.begin(); vgit != w_in_F.end();++vgit) 
                                         {
-                                          if(pit->coeff(*vgit,1) == 1)
+                                            if(pit->coeff(*vgit,1) == 1) 
                                             {
-                                              var_to_get_res = *vgit;
-                                              break;
+                                                var_to_get_res = *vgit;
+                                                break;
                                             }
-                                          if(pit->coeff(*vgit,1) == -1)
-                                            var_to_get_res = *vgit;
+                                            if(pit->coeff(*vgit,1) == -1)
+                                                var_to_get_res = *vgit;
                                         }
-                                      if( var_to_get_res ==0) var_to_get_res = w_in_F.op(w_in_F.nops()-1);
+                                        if( var_to_get_res ==0) var_to_get_res = w_in_F.op(w_in_F.nops()-1);
                                     
+                                        cout<<" POLE: " << *pit<< "       var to get res   "<<var_to_get_res<<endl;
 
-                                      MBintegral res_int = it->res(var_to_get_res ==lsolve(*pit==n,var_to_get_res),*pit,get_symbol("eps")==eps_prime);
-                                      res_int.set_level(1+it->get_level());
-                                      res_int*=(2*Pi*I*csgn(pit->coeff(var_to_get_res))*csgn(F_epsi-F_eps0));
-                                      //if(ca.test_single(pit->subs(get_symbol("eps") == 0)))res_int.set_optimizable(true);
-                                      res_int.barnes1();
-                                      res_int.barnes2();
-                                      //R.push_back(res_int);
-                                      last_child_it = C.append_child(it,res_int);
-                                      children_added++;
+                                        MBintegral res_int = it->res(var_to_get_res ==lsolve(*pit==n,var_to_get_res),*pit,get_symbol("eps")==eps_prime);
+                                        res_int.set_level(1+it->get_level());
+                                        res_int*=(2*Pi*I*csgn(pit->coeff(var_to_get_res))*csgn(fEpsI-fEps0));
+                                        //if(ca.test_single(pit->subs(get_symbol("eps") == 0)))res_int.set_optimizable(true);
+                                        res_int.barnes1();
+                                        res_int.barnes2();
+                                        //R.push_back(res_int);
+                                        //  if(eps_prime !=0)
+                                        lastChildIt = C.append_child(it,res_int);
+                                        nChildrenAdded++;
                                     }
-                                  // else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no W dependence in pole");
+                                    // else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no W dependence in pole");
                                 }
-                              else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no eps dependence in pole");
-                              //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
-                              // if n>max
+                                else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no eps dependence in pole");
+                                //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
+                                // if n>max
                             }
                         }//else
                     }
                 }//same depth
             }
-          //      O = R;
-        }
-      while(children_added > 0);
-      cout<<"Continue get "<<C.size()<<" integrals"<<endl;
-      // kptree::print_tree_bracketed(C);
+            //      O = R;
+        } while(nChildrenAdded > 0);
+        cout<<"Continue get "<<C.size()<<" integrals"<<endl;
+        // kptree::print_tree_bracketed(C);
 
-      return C;
+        return C;
     }catch(std::exception &p)
     {
-      throw std::logic_error(std::string("In function \"MBcontinue\":\n |___> ")+p.what());
+        throw std::logic_error(std::string("In function \"MBcontinue\":\n |___> ")+p.what());
     }
 }
 
@@ -1370,7 +1722,7 @@ ex expand_and_integrate_complex(MBintegral& int_in, lst num_subs, int expansion_
               RoMB::FUNCP_CUBA2 fp_real,fp_imag;
               RoMB::compile_ex_real(lst(int_expr),int_in.get_w_lst(), fp_real);
               RoMB::compile_ex_imag(lst(int_expr),int_in.get_w_lst(), fp_imag);
-
+              
               // ----------------------------------- Vegas integration-------------------------
               int  NDIM  = int_in.w_size();
               //#define NCOMP 1
@@ -1382,7 +1734,7 @@ ex expand_and_integrate_complex(MBintegral& int_in, lst num_subs, int expansion_
 #define SEED 0
 #define MINEVAL 0
 #define MAXEVAL 100000
-
+              
 #define NSTART 1000
 #define NINCREASE 500
 #define NBATCH 1000
@@ -1391,7 +1743,7 @@ ex expand_and_integrate_complex(MBintegral& int_in, lst num_subs, int expansion_
               //SUAVE
 #define NNEW 1000
 #define FLATNESS 25.
-
+              
               //#define KEY1 47
               //#define KEY2 1
               //#define KEY3 1
