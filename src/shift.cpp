@@ -10,7 +10,7 @@
 #include <limits>
 
 using namespace std;
-extern "C" {
+//extern "C" {
     double npsi(double x_in, int k_in)
     {
         double *x = &x_in;
@@ -293,7 +293,7 @@ extern "C" {
         return ret_val;
     } /* dpsipg_ */
     
-}
+//}
 
     
 
