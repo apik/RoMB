@@ -8,10 +8,10 @@
 #include <boost/filesystem/path.hpp>
 #include <setoper.h>
 
-#include <ppl.hh>
-using namespace Parma_Polyhedra_Library;
-using namespace Parma_Polyhedra_Library::IO_Operators;
-
+//#include <ppl.hh>
+//using namespace Parma_Polyhedra_Library;
+//using namespace Parma_Polyhedra_Library::IO_Operators;
+#include "ppl_interface.h"
 extern "C" {
 #include <cdd.h>
 }
@@ -933,7 +933,7 @@ exset MBintegral::poles_from_ex(ex ie_)
   cout<<"Update poles "<<poles_set<<endl;
   }
 */
-
+/*
 exmap chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_type pIn)
 {
 
@@ -1074,6 +1074,7 @@ exmap chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_type pIn)
      return intPtest;
 }
 
+*/
 bool compExmapSecond(exmap::value_type a, exmap::value_type b)
 {
     return (a.second < b.second);

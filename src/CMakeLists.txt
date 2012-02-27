@@ -19,6 +19,6 @@ LINK_DIRECTORIES( ${LINK_DIRECTORIES} ${PROJECT_SOURCE_DIR}/cuba/ )
 
 #INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/ara )
 
-ADD_LIBRARY(romb uf.cpp utils.cpp romb.cpp constracc.cpp mbintegral.cpp collect_square.cpp romb_excompiler.cpp code_generation.cc shift.cpp)
+ADD_LIBRARY(romb uf.cpp utils.cpp romb.cpp constracc.cpp mbintegral.cpp collect_square.cpp romb_excompiler.cpp code_generation.cc shift.cpp ppl_interface.cpp )
 #TARGET_LINK_LIBRARIES(romb cuba ginac glpk ${LEMON_LIBRARIES})
 
