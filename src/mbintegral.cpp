@@ -934,7 +934,7 @@ exset MBintegral::poles_from_ex(ex ie_)
   }
 */
 
-void chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_type pIn)
+exmap chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_type pIn)
 {
 
     std::vector<Variable> varVector;
@@ -1014,26 +1014,64 @@ void chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_type pIn)
     if( ph.maximize(r,supN,supD,maxVal,g) )
     {
         std::cout<< maxVal<<" then " << supN<<"/"<<supD<< "Generator: " << g << std::endl;
-        
+       
     }
+
+    ex rEx = numeric(supN.get_si(),supD.get_si());
     Generator_System gs;
     gs.insert(g);
     NNC_Polyhedron ph2(gs);
     if(ph.strictly_contains(ph2)) cout<< " Contains" <<endl;
     
+    
+// 168 first prime numbers
+    unsigned int primeNumbers[168] = {
+// no first 28
+//        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107,
+ 109, 113, 127, 131, 137, 
+        139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 
+        283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 
+        457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 
+        631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 
+        821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997 
+    };
+      
+    unsigned int* primeNumbersEnd = primeNumbers + 167 - 28;
+
+
+    cout<< " dimension " << g.space_dimension() << endl;
+    
+// no r variable
+    long int largestNumerator = 0;
+    for(dimension_type i = 0; i < g.space_dimension() - 2; i++)
+        if(largestNumerator < abs(g.coefficient(varVector[i]).get_si()))
+            largestNumerator = abs(g.coefficient(varVector[i]).get_si());
+    
+    cout << largestNumerator << endl;        
+    unsigned int* primeToDivide = upper_bound (primeNumbers, primeNumbersEnd, largestNumerator);
+
+    if (primeToDivide == primeNumbersEnd)
+        throw std::logic_error(string("Unavalable prime number to divide"));
+
     exmap intPtest;
     size_t cncn = 0;
     BOOST_FOREACH(ex w, wIn)
     {
-      intPtest[w] = numeric(g.coefficient(varVector[cncn]).get_si(),g.divisor().get_si());
-      cncn++;
+        intPtest[w] = ex_to<numeric>(numeric(g.coefficient(varVector[cncn]).get_si(),g.divisor().get_si()) + rEx/(*primeToDivide)).to_double();
+        primeToDivide++;
+        cncn++;
     }
-    cout<< intPtest <<endl;
+        
+//       if (binary_search (primeNumbers, primeNumbersEnd, g.coefficient(varVector[i]).get_si()))
 
+//        cout << "found!\n"; else cout << "not found.\n";
+    
+    cout<< intPtest <<endl;
+    
      BOOST_ASSERT_MSG(interior_point(pIn,intPtest),"Not a convex polyhedron interior point");
 
 
- 
+     return intPtest;
 }
 
 bool compExmapSecond(exmap::value_type a, exmap::value_type b)
@@ -1059,180 +1097,210 @@ public:
 template <typename T>
 bool alwaysTrue (T i) { return true; }
 
-exmap MBintegral::new_point()
+
+exmap MBintegral::newPoint()
 {
     w_lst_type var_list(w_lst);
-    p_lst_type localPoles(gamma_poles);
     var_list.push_back(get_symbol("eps"));
-    
-    eps_w_current=start_point_diff_w(gamma_poles,var_list);
-    
-    chebyshevSphere(var_list,localPoles);
+    exmap eps_w_current = chebyshevSphere(var_list,gamma_poles);
+
+    BOOST_ASSERT_MSG(interior_point(gamma_poles,eps_w_current),"Not a convex polyhedron interior point");
 
 
-    //                    start point from CDDLIB package
-    //  sp_cdd(localPoles,var_list);
-    dd_set_global_constants();  /* First, this must be called. */
-    dd_MatrixPtr mpmp =   dd_ConstrList2Matrix(localPoles,var_list);
-    dd_WriteMatrix(stderr, mpmp);
-    dd_ErrorType err;
-    /*
-      dd_PolyhedraPtr phpp = dd_DDMatrix2Poly(mpmp,&err);
-      dd_MatrixPtr mp34 =  dd_CopyGenerators(phpp);
-      dd_WriteMatrix(stderr, mp34);
-      phpp = dd_DDMatrix2Poly(mp34,&err);
-      mpmp =  dd_CopyInequalities(phpp);
-      dd_WriteMatrix(stderr, mpmp);*/
-    cout<<endl<<"CAnonicalized"<<endl;
-    dd_MatrixPtr dn_cmp;
-    dd_rowset dn_rs;
-    dd_rowset dn_rs2;
-    dd_rowindex dn_ri;
-    // dd_ErrorType *
-    dd_boolean boo  = dd_MatrixCanonicalize(&mpmp, &dn_rs,&dn_rs2, &dn_ri, &err);
-    dd_WriteMatrix(stderr, mpmp);
-    dd_LPSolutionPtr lps;
-    dd_boolean boo2 =  dd_FindRelativeInterior(mpmp, &dn_rs,&dn_rs2, &lps, &err);
-
-    exmap wCdd;
-    
-
-    typedef multimap<numeric,ex,CompExmapFirst> exmultimap;  
-    exmultimap wInverted;
-    
-    exmap wFinal;
-    exmap wFinalInverted;
-
-    int cn_so = 1;
-
-// First iteration of start point finding
-    for(w_lst_type::const_iterator it = var_list.begin();it!=var_list.end();++it)
-    {
-        
-        if(*it == get_symbol("eps"))
-            wFinal[get_symbol("eps")] = numeric(mpz_get_si(mpq_numref(lps->sol[cn_so])), mpz_get_si(mpq_denref(lps->sol[cn_so])));
-
-        else
-        {
-            dd_WriteNumber(stderr, lps->sol[cn_so]);
-            
-            wCdd[*it] = numeric(mpz_get_si(mpq_numref(lps->sol[cn_so])), mpz_get_si(mpq_denref(lps->sol[cn_so])));
-            
-            wInverted.insert(pair<numeric,ex>(ex_to<numeric>(wCdd[*it]), (*it)));
-        }
-        
-        cn_so++;
-    }
-
-    cout<< "\nINVERTED: " << wInverted << endl;
-//    cout<< *wInverted.lower_bound() << endl;
-
-// inverted map, minimal element is the first
-//    exmap::iterator minElemIter = min_element(wCdd.begin(),wCdd.end(),compExmapSecond);
-    exmultimap::iterator minElemIter = wInverted.begin();
-
-//    cout << "\nMin: " << minElemIter->first << endl;
-//    wFinalInverted[minElemIter->first] = minElemIter->second;
-    //wCdd.erase(minElemIter);
-//   minElemIter = min_element(wCdd.begin(),wCdd.end(),compExmapSecond);
-    
-    while (wInverted.size() > 0)
-    {
-
-//        minElemIter = min_element(wCdd.begin(),wCdd.end(),compExmapSecond);
-        minElemIter = wInverted.begin();
-        cout<<"tmp\n";        
-
-        if (count_if (wInverted.equal_range(minElemIter->first).first,wInverted.equal_range(minElemIter->first).second,alwaysTrue<exmultimap::value_type>) == 1)
-        {
-            wFinalInverted[wInverted.begin()->first] = wInverted.begin()->second;
-            wFinal[wInverted.begin()->second] = wInverted.begin()->first;
-/*
-            BOOST_FOREACH(ex lp, localPoles)
-            {
-                lp.subs(wFinal);
-            }
-*/
-            wInverted.erase(minElemIter);
-            cout << " W_F: " << wFinalInverted << endl;
-        }
-        else // Contour duplication
-        {
-        cout<<"Dupl tmp\n";        
-//     Append inequalities : (w - w' >= 0)
-            exmultimap::const_iterator wIter,wIter_end;
-
-            for(tie(wIter,wIter_end) = wInverted.equal_range(wInverted.begin()->first); wIter != wIter_end; ++wIter)
-            {
-// Add first element 
-                if(wIter != wInverted.begin())
-                {
-                    localPoles.push_back(wIter->second - wIter->first);
-                    cout<< " Contour: " << *localPoles.rbegin() << endl;
-                }                
-            }
-            mpmp =   dd_ConstrList2Matrix(localPoles,var_list);
-            // dd_WriteMatrix(stderr, mpmp);
-
-            boo  = dd_MatrixCanonicalize(&mpmp, &dn_rs,&dn_rs2, &dn_ri, &err);
-//          dd_WriteMatrix(stderr, mpmp);
-            
-            boo2 =  dd_FindRelativeInterior(mpmp, &dn_rs,&dn_rs2, &lps, &err);
-
-            BOOST_ASSERT_MSG(err == dd_NoError,"Interior not feasible");
-            wFinalInverted[wInverted.begin()->first] = wInverted.begin()->second;
-            wFinal[wInverted.begin()->second] = wInverted.begin()->first;
-
-/*
-            BOOST_FOREACH(ex lp, localPoles)
-            {
-                lp.subs(wFinal);
-            }
-*/
-            wInverted.clear();
-            
-            cn_so = 1;
-            for(w_lst_type::const_iterator it = w_lst.begin();it!=w_lst.end();++it)
-            {
-                //   dd_WriteNumber(stderr, lps->sol[cn_so]);
-
-                if ( wFinal.count(*it) == 0 )
-                {
-                    wCdd[*it] = numeric(mpz_get_si(mpq_numref(lps->sol[cn_so])), mpz_get_si(mpq_denref(lps->sol[cn_so])));
-                    wInverted.insert(pair<numeric,ex>(ex_to<numeric>(wCdd[*it]), (*it)));
-                }
-
-                cn_so++;
-            }
-            
-            cout << " NEW CDD: " << wCdd << endl;
-            cout << " NEW INV: " << wInverted << endl;
-
-/*            minElemIter = min_element(wCdd.begin(),wCdd.end(),compExmapSecond);
-            
-            if (wFinal.count(minElemIter->second) == 0)
-            {
-                wFinal[minElemIter->second] = minElemIter->first;
-                wCdd.erase(minElemIter);
-            }
-*/
-        }
-        
-
-    }
-    
-    cout<< "Final w: " << localPoles << endl;
-// cout<<"Int: "<<  interior_point(set2lst(get_poles_set()),eps_w_current)<<endl;
-    cout<< "poles  " << gamma_poles <<endl;
-     BOOST_ASSERT_MSG(interior_point(gamma_poles,wFinal),"Not a convex polyhedron interior point");
-
-    cout << "\nCDD point" << endl;
-    // cout << wCdd << endl;
     for(w_lst_type::const_iterator it = w_lst.begin();it!=w_lst.end();++it)
-        w_current[*it] = it->subs(wCdd);
-    eps_current = (get_symbol("eps")==wFinal[get_symbol("eps")]);
+        w_current[*it] = it->subs(eps_w_current);
+    eps_current = (get_symbol("eps")==eps_w_current[get_symbol("eps")]);
+
     return eps_w_current;
+    
 }
+
+
+
+
+//exmap MBintegral::new_point()
+
+// exmap npppp()   // Absolet function
+// {
+//     w_lst_type var_list(w_lst);
+//     p_lst_type localPoles(gamma_poles);
+//     var_list.push_back(get_symbol("eps"));
+    
+//     // eps_w_current=start_point_diff_w(gamma_poles,var_list);
+    
+//     exmap wch = chebyshevSphere(var_list,localPoles);
+//     eps_w_current = wch;
+
+//     //                    start point from CDDLIB package
+//     //  sp_cdd(localPoles,var_list);
+//     dd_set_global_constants();  /* First, this must be called. */
+//     dd_MatrixPtr mpmp =   dd_ConstrList2Matrix(localPoles,var_list);
+//     dd_WriteMatrix(stderr, mpmp);
+//     dd_ErrorType err;
+//     /*
+//       dd_PolyhedraPtr phpp = dd_DDMatrix2Poly(mpmp,&err);
+//       dd_MatrixPtr mp34 =  dd_CopyGenerators(phpp);
+//       dd_WriteMatrix(stderr, mp34);
+//       phpp = dd_DDMatrix2Poly(mp34,&err);
+//       mpmp =  dd_CopyInequalities(phpp);
+//       dd_WriteMatrix(stderr, mpmp);*/
+//     cout<<endl<<"CAnonicalized"<<endl;
+//     dd_MatrixPtr dn_cmp;
+//     dd_rowset dn_rs;
+//     dd_rowset dn_rs2;
+//     dd_rowindex dn_ri;
+//     // dd_ErrorType *
+//     dd_boolean boo  = dd_MatrixCanonicalize(&mpmp, &dn_rs,&dn_rs2, &dn_ri, &err);
+//     dd_WriteMatrix(stderr, mpmp);
+//     dd_LPSolutionPtr lps;
+//     dd_boolean boo2 =  dd_FindRelativeInterior(mpmp, &dn_rs,&dn_rs2, &lps, &err);
+
+//     exmap wCdd;
+    
+
+//     typedef multimap<numeric,ex,CompExmapFirst> exmultimap;  
+//     exmultimap wInverted;
+    
+//     exmap wFinal;
+//     exmap wFinalInverted;
+
+//     int cn_so = 1;
+
+// // First iteration of start point finding
+//     for(w_lst_type::const_iterator it = var_list.begin();it!=var_list.end();++it)
+//     {
+        
+//         if(*it == get_symbol("eps"))
+//             wFinal[get_symbol("eps")] = numeric(mpz_get_si(mpq_numref(lps->sol[cn_so])), mpz_get_si(mpq_denref(lps->sol[cn_so])));
+
+//         else
+//         {
+//             dd_WriteNumber(stderr, lps->sol[cn_so]);
+            
+//             wCdd[*it] = numeric(mpz_get_si(mpq_numref(lps->sol[cn_so])), mpz_get_si(mpq_denref(lps->sol[cn_so])));
+            
+//             wInverted.insert(pair<numeric,ex>(ex_to<numeric>(wCdd[*it]), (*it)));
+//         }
+        
+//         cn_so++;
+//     }
+
+//     cout<< "\nINVERTED: " << wInverted << endl;
+// //    cout<< *wInverted.lower_bound() << endl;
+
+// // inverted map, minimal element is the first
+// //    exmap::iterator minElemIter = min_element(wCdd.begin(),wCdd.end(),compExmapSecond);
+//     exmultimap::iterator minElemIter = wInverted.begin();
+
+// //    cout << "\nMin: " << minElemIter->first << endl;
+// //    wFinalInverted[minElemIter->first] = minElemIter->second;
+//     //wCdd.erase(minElemIter);
+// //   minElemIter = min_element(wCdd.begin(),wCdd.end(),compExmapSecond);
+    
+//     while (wInverted.size() > 0)
+//     {
+
+// //        minElemIter = min_element(wCdd.begin(),wCdd.end(),compExmapSecond);
+//         minElemIter = wInverted.begin();
+//         cout<<"tmp\n";        
+
+//         if (count_if (wInverted.equal_range(minElemIter->first).first,wInverted.equal_range(minElemIter->first).second,alwaysTrue<exmultimap::value_type>) == 1)
+//         {
+//             wFinalInverted[wInverted.begin()->first] = wInverted.begin()->second;
+//             wFinal[wInverted.begin()->second] = wInverted.begin()->first;
+// /*
+//             BOOST_FOREACH(ex lp, localPoles)
+//             {
+//                 lp.subs(wFinal);
+//             }
+// */
+//             wInverted.erase(minElemIter);
+//             cout << " W_F: " << wFinalInverted << endl;
+//         }
+//         else // Contour duplication
+//         {
+//         cout<<"Dupl tmp\n";        
+// //     Append inequalities : (w - w' >= 0)
+//             exmultimap::const_iterator wIter,wIter_end;
+
+//             for(tie(wIter,wIter_end) = wInverted.equal_range(wInverted.begin()->first); wIter != wIter_end; ++wIter)
+//             {
+// // Add first element 
+//                 if(wIter != wInverted.begin())
+//                 {
+//                     localPoles.push_back(wIter->second - wIter->first);
+//                     cout<< " Contour: " << *localPoles.rbegin() << endl;
+//                 }                
+//             }
+//             mpmp =   dd_ConstrList2Matrix(localPoles,var_list);
+//             // dd_WriteMatrix(stderr, mpmp);
+
+//             boo  = dd_MatrixCanonicalize(&mpmp, &dn_rs,&dn_rs2, &dn_ri, &err);
+// //          dd_WriteMatrix(stderr, mpmp);
+            
+//             boo2 =  dd_FindRelativeInterior(mpmp, &dn_rs,&dn_rs2, &lps, &err);
+
+//             BOOST_ASSERT_MSG(err == dd_NoError,"Interior not feasible");
+//             wFinalInverted[wInverted.begin()->first] = wInverted.begin()->second;
+//             wFinal[wInverted.begin()->second] = wInverted.begin()->first;
+
+// /*
+//             BOOST_FOREACH(ex lp, localPoles)
+//             {
+//                 lp.subs(wFinal);
+//             }
+// */
+//             wInverted.clear();
+            
+//             cn_so = 1;
+//             for(w_lst_type::const_iterator it = w_lst.begin();it!=w_lst.end();++it)
+//             {
+//                 //   dd_WriteNumber(stderr, lps->sol[cn_so]);
+
+//                 if ( wFinal.count(*it) == 0 )
+//                 {
+//                     wCdd[*it] = numeric(mpz_get_si(mpq_numref(lps->sol[cn_so])), mpz_get_si(mpq_denref(lps->sol[cn_so])));
+//                     wInverted.insert(pair<numeric,ex>(ex_to<numeric>(wCdd[*it]), (*it)));
+//                 }
+
+//                 cn_so++;
+//             }
+            
+//             cout << " NEW CDD: " << wCdd << endl;
+//             cout << " NEW INV: " << wInverted << endl;
+
+// /*            minElemIter = min_element(wCdd.begin(),wCdd.end(),compExmapSecond);
+            
+//             if (wFinal.count(minElemIter->second) == 0)
+//             {
+//                 wFinal[minElemIter->second] = minElemIter->first;
+//                 wCdd.erase(minElemIter);
+//             }
+// */
+//         }
+        
+
+//     }
+    
+//     cout<< "Final w: " << localPoles << endl;
+// // cout<<"Int: "<<  interior_point(set2lst(get_poles_set()),eps_w_current)<<endl;
+//     cout<< "poles  " << gamma_poles <<endl;
+//       BOOST_ASSERT_MSG(interior_point(gamma_poles,wch),"Not a convex polyhedron interior point");
+
+//     cout << "\nCDD point" << endl;
+//     // cout << wCdd << endl;
+// /*    for(w_lst_type::const_iterator it = w_lst.begin();it!=w_lst.end();++it)
+//         w_current[*it] = it->subs(wCdd);
+//     eps_current = (get_symbol("eps")==wFinal[get_symbol("eps")]);
+//     return eps_w_current;
+// */
+//     for(w_lst_type::const_iterator it = w_lst.begin();it!=w_lst.end();++it)
+//         w_current[*it] = it->subs(wch);
+//     eps_current = (get_symbol("eps")==wch[get_symbol("eps")]);
+
+//     return wch;
+
+// }
 
 
 
@@ -1467,7 +1535,7 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
                             {
                                 cout << endl;
                                 cout << endl;
-                                cout << "(((((((((((      w in pole " << wInPole << endl;
+                                cout << "(((((((((((       w in pole " << wInPole << endl;
                                 cout << endl;
                                 cout << endl;
                             }

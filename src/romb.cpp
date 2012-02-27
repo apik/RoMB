@@ -279,7 +279,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 
           if(MBlbl_int.w_size()>0)          
             {
-              MBlbl_int.new_point();
+              MBlbl_int.newPoint();
               w_shared = MBlbl_int.get_w();
               MBlbl_int.barnes1();
             }
@@ -678,7 +678,7 @@ struct  GSL1dintAdapter
                 const int NCOMP = 1;
                 int comp,  neval, fail,nregions;
                 double integral_real[NCOMP], error[NCOMP], prob[NCOMP];
-                if (NDIM == 1)
+                if (NDIM == -1)
                   {
                     printf("-------------------- QAGS  --------------------\n");
                     gsl_integration_workspace * w 
@@ -694,7 +694,7 @@ struct  GSL1dintAdapter
                                           w, &result1d, &error1d); 
                     
                     printf("QAGS RESULT:\t%.8f +- %.8f\t intervals = %d\n",
-                           result1d, error1d, w->size);
+                           result1d, error1d, int(w->size));
                     
                     gsl_integration_workspace_free (w);
                     vegas_ex+=pow(get_symbol("eps"),i)*(result1d);//+I*integral_imag[0]);

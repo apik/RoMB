@@ -188,7 +188,7 @@ public:
   
 
   exmap start_point_diff_w(w_lst_type,p_lst_type);
-  exmap new_point();
+  exmap newPoint();
 
   exmap get_point()
   {
