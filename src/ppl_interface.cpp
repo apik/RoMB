@@ -2,16 +2,19 @@
 
 //#undef PPL_NO_AUTOMATIC_INITIALIZATION 
 #include <ppl.hh>
-
-//include "ppl_c.h"
 using namespace Parma_Polyhedra_Library;
 using namespace Parma_Polyhedra_Library::IO_Operators;
+
+
+//include "ppl_c.h"
 
 exmap chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_type pIn) 
 {
 
 try
 {
+
+
     std::vector<Variable> varVector;
     size_t varN = 0;
     BOOST_FOREACH(ex w, wIn)
@@ -44,7 +47,10 @@ try
             aNormSquared += pow(linCoeff,2);
             if(linCoeff.info(info_flags::integer))
             {
-                mpz_class gmpInt(ex_to<numeric>(linCoeff).to_long());
+//                mpz_class 
+
+
+                GMP_Integer gmpInt(ex_to<numeric>(linCoeff).to_long());
                 l = sub_mul_assign(l, gmpInt, varVector[dimN]);
                 dimN++;
             }
@@ -53,7 +59,7 @@ try
 // Add B_i        
         if(bI.info(info_flags::integer))
         {
-            mpz_class gmpInt(ex_to<numeric>(bI).to_long());
+            GMP_Integer gmpInt(ex_to<numeric>(bI).to_long());
             l -= gmpInt;
         }
         else throw std::logic_error(std::string( "Not an integer B_i in Linear_Expression" ));
@@ -64,7 +70,7 @@ try
         if(aNormSquared.info(info_flags::integer))
         {
 
-            mpz_class gmpInt(ex_to<numeric>(aNormSquared).to_long());
+            GMP_Integer gmpInt(ex_to<numeric>(aNormSquared).to_long());
 
 // Assign integer value of sqare root: 
 //

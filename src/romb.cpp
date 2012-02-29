@@ -648,6 +648,22 @@ struct  GSL1dintAdapter
                     
                     int_expr = (I*int_expr.subs(wf==c_i - I*log( wf/( 1 - wf ) ) ) ) / wf/(1- wf);
                   }
+
+
+///////////////////////////
+                symbol x1("x");
+                ex myex = sin(x1)/x1;
+                
+                FUNCP_CUBA fp;
+                compile_ex(lst(myex), lst(x1), fp);
+                int nn = 0, nb = 0;
+                double to_c[] = {3.2};
+                double f_c[1];
+                fp(&nn,to_c,&nb,f_c);
+                std::cout << f_c[0] << std::endl;
+                
+///////////////////////////
+
                 
                 RoMB::FUNCP_CUBA2 fp_real;
                 std::string int_c_f(boost::filesystem::current_path().string());
