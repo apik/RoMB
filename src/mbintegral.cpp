@@ -12,9 +12,6 @@
 //using namespace Parma_Polyhedra_Library;
 //using namespace Parma_Polyhedra_Library::IO_Operators;
 #include "ppl_interface.h"
-extern "C" {
-#include <cdd.h>
-}
 
 
 
@@ -657,6 +654,8 @@ lst MBintegral::has_w(const ex& gamma_arg)
 {
 }
 */
+
+ /*
 dd_MatrixPtr dd_ConstrList2Matrix (MBintegral::w_lst_type pole_list,MBintegral::p_lst_type w_list)//, dd_ErrorType *Error)
 {
   dd_MatrixPtr M=NULL;
@@ -708,10 +707,10 @@ dd_MatrixPtr dd_ConstrList2Matrix (MBintegral::w_lst_type pole_list,MBintegral::
     }
 
   dd_clear(value);
-  /* if (f!=NULL) fclose(f); */
+  // if (f!=NULL) fclose(f); 
     return M;
 }
-
+*/
 
 exmap MBintegral::start_point_diff_w(MBintegral::w_lst_type pole_list,MBintegral::p_lst_type w_list)
 {
