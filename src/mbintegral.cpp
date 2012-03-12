@@ -712,146 +712,7 @@ dd_MatrixPtr dd_ConstrList2Matrix (MBintegral::w_lst_type pole_list,MBintegral::
 }
 */
 
-exmap MBintegral::start_point_diff_w(MBintegral::w_lst_type pole_list,MBintegral::p_lst_type w_list)
-{
-  try{
 
-  /* 
-     test part x_0= (A'*A)^(-1)*A'*b 
-  
-  matrix A(pole_list.nops(),w_list.nops());
-  matrix B(pole_list.nops(),1);
-  size_t i,j;
-  i = 0;
-  j = 0;
-for(lst::const_iterator it = pole_list.begin(); it != pole_list.end(); ++it)
-    {
-      ex b = *it;
-      i = 0;
-      for(lst::const_iterator xit = w_list.begin(); xit != w_list.end(); ++xit)
-	{
-	  A(j,i) = (it->coeff(*xit,1));  // (row,col) 
-	  i++;
-	  b = b.coeff(*xit,0);
-	}
-      B(j,0) = b;
-      j++;
-    }
- matrix x0 =  ex_to<matrix>( (pow(A.transpose()*A,-1)*A.transpose()*B).evalm());
- cout<<"AB: "<<(pow(A.transpose()*A,-1)*A.transpose()*B).evalm()<<endl;
- exmap x0_w;
- for(size_t ct = 0; ct < x0.rows();ct++)
-   x0_w[w_list.op(ct)] = x0(ct,0);
- cout<<x0_w<<"   int point  "<<interior_point(pole_list,x0_w)<<endl;
-  // end test
-*/
-    lst constraints, constraints_wo_eps;
-    lst w_con,w_con_eps0;
-    BOOST_FOREACH(ex ce,pole_list)
-      {
-        constraints.append(ce);
-        constraints_wo_eps.append(ce.subs(get_symbol("eps") == 0));
-      }
-    BOOST_FOREACH(ex we,w_list)
-      {
-        w_con.append(we);
-        if(we != get_symbol("eps"))
-          w_con_eps0.append(we);
-      }
-    cout<<constraints<<endl;
-    // BOOST_ASSERT_MSG(!zero_volume(constraints,w_con)," ZERO VOLUME AT START");
-    exmap subs_map;
-
-    /********************************
-     *               EPS = 0 part                  *
-     *******************************/
-    if(false && !zero_volume(constraints_wo_eps,w_con_eps0)) 
-      {
-        cout<<"!!! NO CONTINUATION eps=0"<<endl;
-        subs_map[get_symbol("eps")] = 0;
-        constraints = constraints_wo_eps;
-        exset point_set;
-        ex den = 2.75;
-        for(MBintegral::w_lst_type::const_reverse_iterator wi = w_list.rbegin();wi != w_list.rend();++wi) 
-          {
-            lst tmp_pole_list;
-            lst tmp_w_list;
-            for(MBintegral::p_lst_type::const_iterator pit = pole_list.begin();pit!= pole_list.end();++pit)
-              if(!((*pit).subs(subs_map)>0))
-                tmp_pole_list.append((*pit).subs(subs_map));
-            cout<<"tmp_pole_list"<<tmp_pole_list<<endl;
-            for(MBintegral::w_lst_type::const_reverse_iterator wi2 = wi;wi2 != w_list.rend();++wi2) 
-              if((*wi2 != get_symbol("eps")) && (subs_map.count(*wi2) ==0) )tmp_w_list.append(*wi2);
-            if(subs_map.count(*wi) ==0)
-              {
-            //      std::pair<ex,double> ret_pair = 
-            //  cout<<" Hyper test   "<<hyper_cube_den(tmp_pole_list,tmp_w_list,den).second;
-            cout<<"Simplex called for:"<<endl;
-            cout<<"w set: "<<tmp_w_list<<endl;
-            cout<<"Poles set: "<<tmp_pole_list<<endl;
-            //simplex_zero(tmp_pole_list,tmp_w_list);
-            // assert(false);
-            std::pair<ex,ex> ret_pair;
-              ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,3.5);
-
-            subs_map[ret_pair.first] = ret_pair.second;
-            point_set.insert(ex_to<numeric>(ret_pair.second).to_double());
-            cout<<ret_pair.first<<" "<<ret_pair.second<<endl;
-              }
-          }
-        
-      }
-
-    /********************************
-     *               EPS != 0 part                  *
-     *******************************/
-    else
-      {
-        exset point_set;
-        ex den = 2.75;
-        for(MBintegral::w_lst_type::const_reverse_iterator wi = w_list.rbegin();wi != w_list.rend();++wi) 
-          {
-            lst tmp_pole_list;
-            lst tmp_w_list;
-            for(MBintegral::p_lst_type::const_iterator pit = pole_list.begin();pit!= pole_list.end();++pit)
-              if(!((*pit).subs(subs_map)>0))
-                tmp_pole_list.append((*pit).subs(subs_map));
-            cout<<"tmp_pole_list"<<tmp_pole_list<<endl;
-            for(MBintegral::w_lst_type::const_reverse_iterator wi2 = wi;wi2 != w_list.rend();++wi2) 
-              tmp_w_list.append(*wi2);
-            
-            //      std::pair<ex,double> ret_pair = 
-            //  cout<<" Hyper test   "<<hyper_cube_den(tmp_pole_list,tmp_w_list,den).second;
-            cout<<"Simplex called for:"<<endl;
-            cout<<"w set: "<<tmp_w_list<<endl;
-            cout<<"Poles set: "<<tmp_pole_list<<endl;
-            //simplex_zero(tmp_pole_list,tmp_w_list);
-            // assert(false);
-            std::pair<ex,ex> ret_pair;
-            if(wi == w_list.rbegin())  //  epsilon minimum
-              ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,den);
-            else  
-              ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,den);
-
-            if(point_set.count(ret_pair.second) > 0)
-              do
-                {
-                  den +=1;
-                  ret_pair = hyper_cube_den(tmp_pole_list,tmp_w_list,den);
-                }
-              while(point_set.count(ret_pair.second) > 0);
-            subs_map[ret_pair.first] = ret_pair.second;
-            point_set.insert(ret_pair.second);
-            cout<<ret_pair.first<<" "<<ret_pair.second<<endl;
-          }
-      }
-    cout<<"START POINT SUBS  "<<subs_map<<endl;
-    return subs_map;
-  }catch(std::exception &p)
-    {
-      throw std::logic_error(std::string("In function \"start_point_diff_w\":\n |___> ")+p.what());
-    }
-}
 
 
 exset MBintegral::poles_from_ex(ex ie_)
@@ -1598,7 +1459,7 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
                                     lst w_in_F  = it->has_w(*pit);
                                     if(w_in_F.nops()>0) 
                                     {
-                                        cout<<endl<<endl<<endl<<"ASDASDASDASDSD "<<*pit<<" "<<ca.test_single(pit->subs(get_symbol("eps") == 0))<<endl<<endl<<endl;
+                                        //                                   cout<<endl<<endl<<endl<<"ASDASDASDASDSD "<<*pit<<" "<<ca.test_single(pit->subs(get_symbol("eps") == 0))<<endl<<endl<<endl;
                                         
                                         cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
                                         BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>=abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
