@@ -42,13 +42,16 @@
 #include <iterator>
 #include <functional>
 
-#include <gmpxx.h>
+//#include <gmpxx.h>
 
 
 #include "romb_excompiler.h"
 #include "collect_square.h"
 //#include "sim.h"
+extern "C"
+{
 #include <cuba.h>
+}
 // binder
 #include <boost/mem_fn.hpp>
 #include <boost/bind.hpp>

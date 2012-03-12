@@ -1,4 +1,4 @@
-#define GMPRATIONAL
+//#define GMPRATIONAL
 #include <boost/assert.hpp>
 #include "mbintegral.h"
 #include "utils.h"
@@ -6,7 +6,7 @@
 #include "constracc.h"
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
-#include <setoper.h>
+//#include <setoper.h>
 
 //#include <ppl.hh>
 //using namespace Parma_Polyhedra_Library;
@@ -1102,7 +1102,11 @@ exmap MBintegral::newPoint()
 {
     w_lst_type var_list(w_lst);
     var_list.push_back(get_symbol("eps"));
+
+    
     exmap eps_w_current = chebyshevSphere(var_list,gamma_poles);
+
+//exmap eps_w_current = start_point_diff_w(gamma_poles,var_list);
 
     BOOST_ASSERT_MSG(interior_point(gamma_poles,eps_w_current),"Not a convex polyhedron interior point");
 

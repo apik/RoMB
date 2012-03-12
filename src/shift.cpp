@@ -3,14 +3,18 @@
 #include <cmath>
 #include <boost/foreach.hpp>
 #include <boost/assert.hpp>
-#include "compat.h"
+//#include "compat.h"
+extern "C"
+{
 #include <gsl/gsl_multimin.h>
 #include <gsl/gsl_sf_psi.h>
+}
+
 #include <boost/math/special_functions/digamma.hpp>
 #include <limits>
 
 using namespace std;
-//extern "C" {
+extern "C" {
     double npsi(double x_in, int k_in)
     {
         double *x = &x_in;
@@ -32,11 +36,11 @@ using namespace std;
             double e_9[20];
             double fill_10[1];
             double e_11[21];
-	} equiv_31 = { .334838697910949386, -.055187482048730095, 
+	} equiv_31 = { {.334838697910949386, -.055187482048730095, 
                        .004510190736011502, -3.65705888303721e-4, 2.9434627468223e-5,
                        -2.352776815151e-6, 1.86853176633e-7, -1.4750720184e-8, 
                        1.157993337e-9, -9.0439179e-11, 7.029627e-12, -5.43989e-13, 
-                       4.1925e-14, -3.219e-15, 2.46e-16, -1.9e-17, 1e-18, {0}, 
+                       4.1925e-14, -3.219e-15, 2.46e-16, -1.9e-17, 1e-18}, {0}, 
                        -.11259293534547383, .036557001742820941, 
                        -.004435942496027282, 4.75475854728926e-4, 
                        -4.7471836382632e-5, 4.521815237353e-6, -4.1630007962e-7, 
@@ -293,7 +297,7 @@ using namespace std;
         return ret_val;
     } /* dpsipg_ */
     
-//}
+}
 
     
 
@@ -582,8 +586,8 @@ try
 
   // X::get_my_func(3,my_func);
   // my_func.params = par;
-  gsl_multimin_fdfminimizer_set (s, &my_func , x, 0.01, 0.1);
-  const size_t ITER_MAX = 1000;
+  gsl_multimin_fdfminimizer_set (s, &my_func , x, 0.1, 0.01);
+  const size_t ITER_MAX = 10000;
   do
     {
       iter++;

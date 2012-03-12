@@ -3,7 +3,10 @@
 #include "shift.h"
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+extern "C"
+{
 #include <gsl/gsl_integration.h>
+}
 /**
  *
  *  loop momentums,propagator expressions,
@@ -417,10 +420,20 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
     ex operator()(const ex &e)
     {
       exmap repls;
-      if(e.match(tgamma(wild()),repls))
+      if(e.match(log(wild()),repls))
+      {
+          stringstream str;
+          str<< "Log[" << wild().subs(repls) <<"]";
+          return get_symbol(str.str());
+      }     
+      else if(e.match(tgamma(wild()),repls))
         {
           stringstream str;
-          str<<"Gamma["<<wild().subs(repls)<<"]";
+//          str<<"Gamma["<<wild().subs(repls)<<"]";
+          str << "Gamma[";
+          str << (wild().subs(repls)).map(*this);
+          str<<"]";
+
           return get_symbol(str.str());
         }
       else if(e.match(exp(wild()),repls))
@@ -429,7 +442,28 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
           str<<"Exp["<<wild().subs(repls)<<"]";
           return get_symbol(str.str());
         }
+      else if(e.match(psi(wild()),repls))
+      {
+          stringstream str;
+          str<<"PolyGamma[0,"<<wild().subs(repls).map(*this)<<"]";
+          return get_symbol(str.str());
+      }
+      else if(e.match(psi(wild(),wild(1)),repls))
+      {
+          stringstream str;
+          str<<"PolyGamma[";
+          str<<wild().subs(repls) << "," << wild(1).subs(repls).map(*this) <<"]";
+          return get_symbol(str.str());
+      }
+      else if (e.info(info_flags::polynomial))
+      {
+          stringstream str;
+          str << e;
+          return get_symbol(str.str());
+      }
+
       else return e.map(*this);
+      
     }
   };
 /** 
@@ -437,7 +471,24 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
  * 
  * @param mb_in 
  */
-  void print_mathematica(MBintegral mb_in)
+  void print_mathematica_ex(ex mfin)
+  {
+      //mfin = mb_in.get_expr();
+//    mfin = mfin.subs(w_to_z);
+    mfin = mfin.subs(Euler == get_symbol("EulerGamma"));
+    mathematica_replace math_map;
+    ex rpm = math_map(mfin);
+
+ 
+
+    cout<<endl<<"(********* Begin of Mathematica output **********)"<<endl;
+    cout<<"fin="<<rpm<<endl;
+    cout<<"(*********  End of Mathematica output   **********)"<<endl<<endl;
+
+  }
+
+
+void print_mathematica(MBintegral mb_in)
   {
     exmap w_c(mb_in.get_w());
     exmap w_to_z;
@@ -474,6 +525,8 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
     cout<<"(*********  End of Mathematica output   **********)"<<endl<<endl;
 
   }
+
+
   void RoMB_loop_by_loop::integrate(lst number_subs_list, int exp_order)
   {
     ex int_expr_out = 0;
@@ -538,8 +591,12 @@ struct  GSL1dintAdapter
     // get pointer to data from gsl_vector
     
     //    typedef int (*FUNCP_CUBA2) (const int*, const double[], const int*, double[],void*);
-    double x_in[1];
-    x_in[0] = x;
+//    double x_in[1];
+//    x_in[0] = x;
+
+    double x_in[] = {x};
+//    x_in[0] = x;
+
     int n_d = 1;
     int n_d_f = 1;
     double f_out[1];
@@ -550,17 +607,17 @@ struct  GSL1dintAdapter
 
 
 
-  std::pair<ex,ex> expand_and_integrate_map(ex int_in,MBintegral::w_lst_type w_lst,exmap w_curr, lst num_subs, int expansion_order) // up to O(eps^1) 
-  {
+std::pair<ex,ex> expand_and_integrate_map(ex int_in,MBintegral::w_lst_type w_lst,exmap w_curr, lst num_subs, int expansion_order) // up to O(eps^1) 
+{
     try
-      {
+    {
         ex out_ex;
 
         //            cout<<(it->get_pole_lst().subs(it->get_w())).subs(get_symbol("eps")==0)<<endl;
         //         cout<<endl <<"series:  " << it->get_gamma_expr().series(get_symbol("eps")==0,expansion_order)<<endl<<endl;
 
         if(w_lst.size() > 0)// expanding and integrating
-          {
+        {
             //int_in.barnes1();
             // int_in.barnes2();
             
@@ -573,201 +630,249 @@ struct  GSL1dintAdapter
             
             out_ex = series_to_poly( int_in.series(get_symbol("eps"),expansion_order) ).expand().subs(num_subs);
             if (!out_ex.is_zero())
-              {
+            {
              
-            //out_ex = series_to_poly( int_in.get_expr().series(int_in.get_eps(),expansion_order) ).subs(num_subs);
-            // loop over W_i, converting integration contour
-            //          for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
+                //out_ex = series_to_poly( int_in.get_expr().series(int_in.get_eps(),expansion_order) ).subs(num_subs);
+                // loop over W_i, converting integration contour
+                //          for(lst::const_iterator wit = w_lst.begin(); wit != w_lst.end(); ++wit)
            
 //            cout<<"current : "<<out_ex<<endl;
-            ex wo_eps_part = out_ex;
-            ex vegas_ex = 0;
-            ex vegas_err = 0;
-            for(int i = out_ex.ldegree( get_symbol("eps") ); i <expansion_order/* out_ex.degree( get_symbol("eps") )*/; i++)
-              {
+                ex wo_eps_part = out_ex;
+                ex vegas_ex = 0;
+                ex vegas_err = 0;
+                for(int i = out_ex.ldegree( get_symbol("eps") ); i <expansion_order/* out_ex.degree( get_symbol("eps") )*/; i++)
+                {
                 
 
-                cout<<"eps^ "<<i<<"  : "<<endl;//<< out_ex.coeff(get_symbol("eps"),i)<<endl;
-                ex int_expr =  out_ex.coeff(get_symbol("eps"),i);
+                    cout<<"eps^ "<<i<<"  : "<<endl;//<< out_ex.coeff(get_symbol("eps"),i)<<endl;
+                    ex int_expr =  out_ex.coeff(get_symbol("eps"),i);
 
-            lst psl;
-            exset f_gammapsi;
-            // GAMMA(Z)
-            exset fnd_tgamma;
-            int_expr.find(tgamma(wild()),fnd_tgamma);
-            //cout<<" TOSHIFT: "<<fnd.subs(w_curr)<<endl<<endl;
-            f_gammapsi.insert(fnd_tgamma.begin(), fnd_tgamma.end());
-            BOOST_FOREACH(ex Fe,fnd_tgamma)
-            {
-              exmap repls_fe;
-              if(Fe.match(tgamma(wild()),repls_fe))
-                {
-
-                  psl.append(wild().subs(repls_fe).subs(get_symbol("eps")==0));
-                }
-            }
-            // PSI(Z)
-            exset fnd_psi;
-            int_expr.find(psi(wild()),fnd_psi);
-            //cout<<" TOSHIFT: "<<fnd.subs(w_curr)<<endl<<endl;
-            f_gammapsi.insert(fnd_psi.begin(), fnd_psi.end());
-            BOOST_FOREACH(ex Fe,fnd_psi)
-            {
-              exmap repls_fe;
-              if(Fe.match(psi(wild()),repls_fe))
-                {
-
-                  psl.append(wild().subs(repls_fe).subs(get_symbol("eps")==0));
-                }
-            }
-            // PSI(K,Z)
-            exset fnd_psi_i;
-            int_expr.find(psi(wild(1),wild()),fnd_psi_i);
-            //cout<<" TOSHIFT: "<<fnd.subs(w_curr)<<endl<<endl;
-            f_gammapsi.insert(fnd_psi_i.begin(), fnd_psi_i.end());
-            BOOST_FOREACH(ex Fe,fnd_psi_i)
-            {
-              exmap repls_fe;
-              if(Fe.match(psi(wild(1),wild()),repls_fe))
-                {
-
-                  psl.append(wild().subs(repls_fe).subs(get_symbol("eps")==0));
-                }
-            }
-
-            exmap sc_map = shift_contours(f_gammapsi,psl,w_curr);
+                    cout <<" \n\n\n\t INT EXPR\n" ;
 
 
+                    print_mathematica_ex(int_expr);
 
-                lst w_for_pointer;
-                BOOST_FOREACH(ex wf,w_lst)
-                  {
-                    w_for_pointer.append(wf);
-                    //ex c_i = wf.subs(w_curr);
-                    ex c_i = wf.subs(sc_map);
+                    cout <<" \n\t INT EXPR\n" ;
+
+
+                    lst psl;
+                    exset f_gammapsi;
+                    // GAMMA(Z)
+                    exset fnd_tgamma;
+                    int_expr.find(tgamma(wild()),fnd_tgamma);
+                    //cout<<" TOSHIFT: "<<fnd.subs(w_curr)<<endl<<endl;
+                    f_gammapsi.insert(fnd_tgamma.begin(), fnd_tgamma.end());
+                    BOOST_FOREACH(ex Fe,fnd_tgamma)
+                    {
+                        exmap repls_fe;
+                        if(Fe.match(tgamma(wild()),repls_fe))
+                        {
+
+                            psl.append(wild().subs(repls_fe).subs(get_symbol("eps")==0));
+                        }
+                    }
+                    // PSI(Z)
+                    exset fnd_psi;
+                    int_expr.find(psi(wild()),fnd_psi);
+                    //cout<<" TOSHIFT: "<<fnd.subs(w_curr)<<endl<<endl;
+                    f_gammapsi.insert(fnd_psi.begin(), fnd_psi.end());
+                    BOOST_FOREACH(ex Fe,fnd_psi)
+                    {
+                        exmap repls_fe;
+                        if(Fe.match(psi(wild()),repls_fe))
+                        {
+
+                            psl.append(wild().subs(repls_fe).subs(get_symbol("eps")==0));
+                        }
+                    }
+                    // PSI(K,Z)
+                    exset fnd_psi_i;
+                    int_expr.find(psi(wild(1),wild()),fnd_psi_i);
+                    //cout<<" TOSHIFT: "<<fnd.subs(w_curr)<<endl<<endl;
+                    f_gammapsi.insert(fnd_psi_i.begin(), fnd_psi_i.end());
+                    BOOST_FOREACH(ex Fe,fnd_psi_i)
+                    {
+                        exmap repls_fe;
+                        if(Fe.match(psi(wild(1),wild()),repls_fe))
+                        {
+
+                            psl.append(wild().subs(repls_fe).subs(get_symbol("eps")==0));
+                        }
+                    }
+
+//                    exmap sc_map = shift_contours(f_gammapsi,psl,w_curr);
+
+
+
+                    lst w_for_pointer;
+                    BOOST_FOREACH(ex wf,w_lst)
+                    {
+                        w_for_pointer.append(wf);
+                        ex c_i = wf.subs(w_curr);
+                        //  ex c_i = wf.subs(sc_map);
                     
-                    int_expr = (I*int_expr.subs(wf==c_i - I*log( wf/( 1 - wf ) ) ) ) / wf/(1- wf);
-                  }
+                        int_expr = (I*int_expr.subs(wf==c_i - I*log( wf/( 1 - wf ) ) ) ) / wf/(1- wf);
+                    }
 
 
 ///////////////////////////
-                symbol x1("x");
-                ex myex = sin(x1)/x1;
+                    symbol x1("x");
+                    ex myex = sin(x1)/x1;
                 
-                FUNCP_CUBA fp;
-                compile_ex(lst(myex), lst(x1), fp);
-                int nn = 0, nb = 0;
-                double to_c[] = {3.2};
-                double f_c[1];
-                fp(&nn,to_c,&nb,f_c);
-                std::cout << f_c[0] << std::endl;
+                    RoMB::FUNCP_CUBA2 fp;
+                    RoMB::compile_ex_real(lst(myex), lst(x1), fp);
+                    int nn = 0, nb = 0;
+                    double to_c1[] = {0};
+                    double to_c2[] = {0.2};
+                    double to_c3[] = {0.3};
+                    double to_c4[] = {0.4};
+                    double to_c5[] = {0.5};
+                    double to_c6[] = {0.6};
+                    double to_c7[] = {0.7};
+                    double to_c8[] = {0.8};
+                    double to_c9[] = {1};
+                    double f_c[1];
+                    fp(&nn,to_c1,&nb,f_c,0);
+                    std::cout << f_c[0] << std::endl;
                 
 ///////////////////////////
 
                 
-                RoMB::FUNCP_CUBA2 fp_real;
-                std::string int_c_f(boost::filesystem::current_path().string());
-                int_c_f+="/int_c_f";
-                cout<<"\n\n\n"<<evalf(int_expr)<<"\n\n\n\n"<<endl;
-                RoMB::compile_ex_real(lst(evalf(int_expr)),w_for_pointer, fp_real);//,int_c_f);
+                    RoMB::FUNCP_CUBA2 fp_real;
+                    std::string int_c_f(boost::filesystem::current_path().string());
+                    int_c_f+="/int_c_f";
+                    cout<<"\n\n\n"<<evalf(int_expr)<<"\n\n\n\n"<<endl;
 
-                // ----------------------------------- Vegas integration-------------------------
-                const int MAXCUHREDIM = 4;
-                int  NDIM  = w_lst.size();
-                //#define NCOMP 1
-#define USERDATA NULL
-#define EPSREL 1e-4
-#define EPSABS 1e-12
-#define VERBOSE 0
-#define LAST 4
-#define SEED 0
-#define MINEVAL 0
-#define MAXEVAL 1000000
+                    print_mathematica_ex(evalf(int_expr));
 
-#define NSTART 1000
-#define NINCREASE 1000
-#define NBATCH 1000
-#define GRIDNO 0
-#define STATEFILE NULL
+                    cout<< w_for_pointer << endl;
+                    RoMB::compile_ex_real(lst(evalf(int_expr)),w_for_pointer, fp_real);//,int_c_f);
+                    fp_real(&nn,to_c1,&nb,f_c,0);
+                    std::cout << f_c[0] << std::endl;
 
-#define KEY 9
-                const int NCOMP = 1;
-                int comp,  neval, fail,nregions;
-                double integral_real[NCOMP], error[NCOMP], prob[NCOMP];
-                if (NDIM == -1)
-                  {
-                    printf("-------------------- QAGS  --------------------\n");
-                    gsl_integration_workspace * w 
-                      = gsl_integration_workspace_alloc (1000);
-                    double result1d, error1d;
-                    
-                    gsl_function F;
-                    //                    F.function = &f;
-                    F.function = GSL1dintAdapter<RoMB::FUNCP_CUBA2>::f;
-                    F.params = reinterpret_cast<void *>(fp_real);
-                    
-                    gsl_integration_qags (&F, 0, 1, 1e-12, 1e-7, 1000,
-                                          w, &result1d, &error1d); 
-                    
-                    printf("QAGS RESULT:\t%.8f +- %.8f\t intervals = %d\n",
-                           result1d, error1d, int(w->size));
-                    
-                    gsl_integration_workspace_free (w);
-                    vegas_ex+=pow(get_symbol("eps"),i)*(result1d);//+I*integral_imag[0]);
-                    vegas_err+=pow(get_symbol("eps"),i)*(error1d);//+I*integral_imag[0]);
-                  }
-                else if(NDIM > MAXCUHREDIM )
-                  { 
+                    fp_real(&nn,to_c2,&nb,f_c,0);
+                    std::cout << f_c[0] << std::endl;
 
-                    printf("-------------------- Vegas  --------------------\n");
-                    Vegas(NDIM, NCOMP, fp_real, USERDATA,
-                          EPSREL, EPSABS, VERBOSE, SEED,
-                          MINEVAL, MAXEVAL, 
-                          NSTART, NINCREASE, NBATCH, GRIDNO, STATEFILE,
-                          &neval, &fail, integral_real, error, prob);
+                    fp_real(&nn,to_c3,&nb,f_c,0);
+                    std::cout << f_c[0] << std::endl;
+
+                    fp_real(&nn,to_c4,&nb,f_c,0);
+                    std::cout << f_c[0] << std::endl;
+
+                    fp_real(&nn,to_c5,&nb,f_c,0);
+                    std::cout << f_c[0] << std::endl;
+
+                    fp_real(&nn,to_c6,&nb,f_c,0);
+                    std::cout << f_c[0] << std::endl;
+
+                    fp_real(&nn,to_c7,&nb,f_c,0);
+                    std::cout << f_c[0] << std::endl;
+
+                    fp_real(&nn,to_c8,&nb,f_c,0);
+                    std::cout << f_c[0] << std::endl;
+
+                    fp_real(&nn,to_c9,&nb,f_c,0);
+                    std::cout << f_c[0] << std::endl;
+
+
+                    // ----------------------------------- Vegas integration-------------------------
+                    const int MAXCUHREDIM = 4;
+                    int  NDIM  = w_lst.size();
+                    //#define NCOMP 1
+#define USERDATA___ NULL
+#define EPSREL___ 1e-4
+#define EPSABS___ 1e-12
+#define VERBOSE___ 0
+#define LAST___ 4
+#define SEED___ 0
+#define MINEVAL___ 0
+#define MAXEVAL___ 1000000
+
+#define NSTART___ 1000
+#define NINCREASE___ 1000
+#define NBATCH___ 1000
+#define GRIDNO___ 0
+#define STATEFILE___ NULL
+
+#define KEY___ 9
+                    const int NCOMP = 1;
+                    int comp,  neval, fail,nregions;
+                    double integral_real[NCOMP], error[NCOMP], prob[NCOMP];
+                    if (NDIM == 1)
+                    {
+                        printf("-------------------- QAGS  --------------------\n");
+                        gsl_integration_workspace * w 
+                            = gsl_integration_workspace_alloc (1000);
+                        double result1d, error1d;
+                    
+                        gsl_function F;
+                        //                    F.function = &f;
+                        F.function = GSL1dintAdapter<RoMB::FUNCP_CUBA2>::f;
+                        F.params = reinterpret_cast<void *>(fp_real);
+                    
+                        gsl_integration_qags (&F, 0, 1, 1e-12, 1e-7, 1000,
+                                              w, &result1d, &error1d); 
+                    
+                        printf("QAGS RESULT:\t%.8f +- %.8f\t intervals = %d\n",
+                               result1d, error1d, int(w->size));
+                    
+                        gsl_integration_workspace_free (w);
+                        vegas_ex+=pow(get_symbol("eps"),i)*(result1d);//+I*integral_imag[0]);
+                        vegas_err+=pow(get_symbol("eps"),i)*(error1d);//+I*integral_imag[0]);
+                    }
+                    else if(NDIM > MAXCUHREDIM )
+                    { 
+
+                        printf("-------------------- Vegas  --------------------\n");
+                        Vegas(NDIM, NCOMP, fp_real, USERDATA___,
+                              EPSREL___, EPSABS___, VERBOSE___, SEED___,
+                              MINEVAL___, MAXEVAL___, 
+                              NSTART___, NINCREASE___, NBATCH___, GRIDNO___, STATEFILE___,
+                              &neval, &fail, integral_real, error, prob);
                     
                     
                     
-                    // printf("VEGAS RESULT:\tneval %d\tfail %d\n",
+                        // printf("VEGAS RESULT:\tneval %d\tfail %d\n",
                     
-                    for( comp = 0; comp < NCOMP; ++comp )
-                      printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
-                             integral_real[comp], error[comp], prob[comp]);
+                        for( comp = 0; comp < NCOMP; ++comp )
+                            printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
+                                   integral_real[comp], error[comp], prob[comp]);
                     
-                    // ------------------------------ Vegas integration--------------------              
-                    vegas_ex+=pow(get_symbol("eps"),i)*(integral_real[0]);//+I*integral_imag[0]);
-                    vegas_err+=pow(get_symbol("eps"),i)*(error[0]);//+I*integral_imag[0]);
-                  }
-                else
-                  {
-                    printf("-------------------- Cuhre  --------------------\n");
-                    Cuhre(NDIM, NCOMP, fp_real, USERDATA,
-                          EPSREL, EPSABS, VERBOSE,
-                          MINEVAL, MAXEVAL, KEY,
-                          &nregions, &neval, &fail, integral_real, error, prob);
+                        // ------------------------------ Vegas integration--------------------              
+                        vegas_ex+=pow(get_symbol("eps"),i)*(integral_real[0]);//+I*integral_imag[0]);
+                        vegas_err+=pow(get_symbol("eps"),i)*(error[0]);//+I*integral_imag[0]);
+                    }
+                    else
+                    {
+                        printf("-------------------- Cuhre  --------------------\n");
+                        Cuhre(NDIM, NCOMP, fp_real, USERDATA___,
+                              EPSREL___, EPSABS___, VERBOSE___,
+                              MINEVAL___, MAXEVAL___, KEY___,
+                              &nregions, &neval, &fail, integral_real, error, prob);
                    
-                    for( comp = 0; comp < NCOMP; ++comp )
-                      printf("CUHRE RESULT:\t%.8f +- %.8f\tp = %.3f\n",
-                             integral_real[comp], error[comp], prob[comp]);
-                    cout<<"Hi there"<<endl;
-                    // ----------------------------------- Cuhre integration-------------------------              
-                    vegas_ex+=pow(get_symbol("eps"),i)*(integral_real[0]);//+I*integral_imag[0]);
-                    vegas_err+=pow(get_symbol("eps"),i)*(error[0]);//+I*integral_imag[0]);
-               
-                  }
+                        for( comp = 0; comp < NCOMP; ++comp )
+                            printf("CUHRE RESULT:\t%.8f +- %.8f\tp = %.3f\n",
+                                   integral_real[comp], error[comp], prob[comp]);
+                        cout<<"Hi there"<<endl;
 
+                        // ----------------------------------- Cuhre integration-------------------------              
+                        vegas_ex+=pow(get_symbol("eps"),i)*(integral_real[0]);//+I*integral_imag[0]);
+                        vegas_err+=pow(get_symbol("eps"),i)*(error[0]);//+I*integral_imag[0]);
+                        
+                    }
+                    cout<< " END int " << endl;
                 
-              }
-            return std::make_pair(vegas_ex,vegas_err);
-              }
+                }
+                return std::make_pair(vegas_ex,vegas_err);
+            }
             else return std::make_pair(0,0);
-          }
+        }
         else // expanding only
-          {
+        {
             return  std::make_pair(series_to_poly( int_in.series(get_symbol("eps"),expansion_order) ).subs(num_subs), 0);
-          }
-      }catch(std::exception &p)
-      {
+        }
+    }catch(std::exception &p)
+    {
         throw std::logic_error(std::string("In function \"Expand_and_integrate_map\":\n |___> ")+p.what());
-      }
-  }
+    }
+}

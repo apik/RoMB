@@ -1,6 +1,9 @@
 #include "ppl_interface.h"
 
 //#undef PPL_NO_AUTOMATIC_INITIALIZATION 
+
+
+//#define PPL_NO_AUTOMATIC_INITIALIZATION#include <ppl.hh>
 #include <ppl.hh>
 using namespace Parma_Polyhedra_Library;
 using namespace Parma_Polyhedra_Library::IO_Operators;
@@ -153,7 +156,7 @@ try
 //     BOOST_ASSERT_MSG(interior_point(pIn,intPtest),"Not a convex polyhedron interior point");
 
 
-
+    Parma_Polyhedra_Library::restore_pre_PPL_rounding();
     return intPtest;
  }catch(std::exception &p)
     {
