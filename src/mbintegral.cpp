@@ -11,7 +11,7 @@
 //#include <ppl.hh>
 //using namespace Parma_Polyhedra_Library;
 //using namespace Parma_Polyhedra_Library::IO_Operators;
-#include "ppl_interface.h"
+//#include "ppl_interface.h"
 
 
 
@@ -1308,7 +1308,8 @@ MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
         
         //           accumulator for constraints
         //  cout<<"start constrainta : "<<rootint.get_poles_set()<< " "<<rootint.get_w_eps_set()<<endl;
-        constr_acc ca(rootint.get_poles(),rootint.get_w_eps());
+        ConstrAcc ca(rootint.get_poles(),rootint.get_w_eps());
+
         //            tree root creation 
         MBtree C;
         MBtree::iterator lastChildIt;//,root_it;

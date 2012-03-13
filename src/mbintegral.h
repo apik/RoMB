@@ -60,7 +60,11 @@ extern "C"
 #include "uf.h"
 #include "tree.hh"
 #include "constants.h"
+
+//#include "constracc.h"
+
 #include "compat.h"
+
 using namespace GiNaC;
 using namespace boost;
 using std::cout;
@@ -158,7 +162,7 @@ public:
 
   //  lst get_poles();
   
-  p_lst_type  get_poles()
+  const p_lst_type&  get_poles() const
   {
     return gamma_poles;
   }
@@ -170,7 +174,7 @@ public:
   } 
   */
   
-  w_lst_type  get_w_lst()
+  const w_lst_type&  get_w_lst() const
   {
     return w_lst;
   }

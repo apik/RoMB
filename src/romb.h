@@ -1,7 +1,7 @@
 #ifndef __ROMB_H__
 #define __ROMB_H__
 #include "mbintegral.h"
-
+#include "constracc.h"
 struct int_map_comparator : public std::binary_function<MBintegral::w_lst_type,MBintegral::w_lst_type, bool>
 {
   bool operator()(const MBintegral::w_lst_type& a ,const MBintegral::w_lst_type& b) const

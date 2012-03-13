@@ -406,7 +406,7 @@ namespace GiNaC {
   sf_subs[psi(1,wild(1))] = wpsipg(wild(1),unit_sym);
   sf_subs[psi(2,wild(2))] = wpsipg(wild(2),two_sym);
   sf_subs[psi(3,wild(3))] = wpsipg(wild(3),three_sym);
-  sf_subs[psi(1,wild(4))] = wpsipg(wild(4),four_sym);
+  sf_subs[psi(4,wild(4))] = wpsipg(wild(4),four_sym);
   sf_subs[psi(wild())]    = wpsipg(wild(),zero_symb);
   sf_subs[tgamma(wild(5))]= wgamma(wild(5));
     lst lhs_lst = ex_to<lst>(lhs);

@@ -26,7 +26,7 @@ int main()
                        p3*p4 == s34/2,
                        p3*p5 == (s12-s34-s45)/2,
                        p4*p5 == s45/2);
-#define topo 2
+#define topo 1
 #if topo==1      
 
   /*                            1+eps normalization
@@ -62,7 +62,7 @@ int main()
                                          -pow(k1-p5,2),-pow(k2,2),-pow(k2+p1,2),-pow(k2+p1+p2,2)),
                              inv_l,
                              lst(1,1,1,1,1,1,1,1),true);
-      pent.integrate_map(lst(s12==-2,s23==-4,s34==-5,s45==-6,s15==-0.5,ms==1),0);
+      pent.integrate_map(lst(s12==-2,s23==-4,s34==-5,s45==-6,s15==-0.5,ms==1),-3);
       
       
       

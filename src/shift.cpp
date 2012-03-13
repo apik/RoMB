@@ -586,8 +586,8 @@ try
 
   // X::get_my_func(3,my_func);
   // my_func.params = par;
-  gsl_multimin_fdfminimizer_set (s, &my_func , x, 0.1, 0.01);
-  const size_t ITER_MAX = 10000;
+  gsl_multimin_fdfminimizer_set (s, &my_func , x, 0.01, 0.1);
+  const size_t ITER_MAX = 1000;
   do
     {
       iter++;

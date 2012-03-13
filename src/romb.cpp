@@ -3,6 +3,7 @@
 #include "shift.h"
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+
 extern "C"
 {
 #include <gsl/gsl_integration.h>
@@ -33,6 +34,9 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
 {
   try
     {
+
+
+
       /* 
 	 empty integral
       */
@@ -279,6 +283,12 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
           cout<<"Poles: "<<MBlbl_int.get_poles()<<endl;
           cout<<"W's : "<<MBlbl_int.get_w_lst()<<endl;
           cout<<"Expr : "<<MBlbl_int.get_expr()<<endl;
+
+
+
+// Constraints needed for start point 
+          
+          ConstrAcc constraints(MBlbl_int);
 
           if(MBlbl_int.w_size()>0)          
             {
@@ -700,7 +710,7 @@ std::pair<ex,ex> expand_and_integrate_map(ex int_in,MBintegral::w_lst_type w_lst
                         }
                     }
 
-//                    exmap sc_map = shift_contours(f_gammapsi,psl,w_curr);
+                    exmap sc_map = shift_contours(f_gammapsi,psl,w_curr);
 
 
 
@@ -708,8 +718,8 @@ std::pair<ex,ex> expand_and_integrate_map(ex int_in,MBintegral::w_lst_type w_lst
                     BOOST_FOREACH(ex wf,w_lst)
                     {
                         w_for_pointer.append(wf);
-                        ex c_i = wf.subs(w_curr);
-                        //  ex c_i = wf.subs(sc_map);
+                        //ex c_i = wf.subs(w_curr);
+                          ex c_i = wf.subs(sc_map);
                     
                         int_expr = (I*int_expr.subs(wf==c_i - I*log( wf/( 1 - wf ) ) ) ) / wf/(1- wf);
                     }
