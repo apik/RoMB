@@ -604,11 +604,11 @@ MBintegral MBintegral::res(relational w_relation,ex pole,relational new_eps)
         // new_no_gamma_part  = pow(-1,pole.subs(w_relation))/factorial(pole.subs(w_relation))*full_int_expr.subs(w_relation)
         cout<< new_no_gamma_part<<endl;
       */
-      exmap new_w_current(w_current);
+      //   exmap new_w_current(w_current);
       //   cout<<" Not modif:  "<<new_w_current<<endl;
 
-      new_w_current.erase(w_relation.lhs());
-      MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),res_loran,new_w_current,new_eps,tree_level+1);
+      //new_w_current.erase(w_relation.lhs());
+      MBintegral resINT(lst(cut_w_vec.begin(),cut_w_vec.end()),res_loran,new_eps,tree_level+1);
       resINT.set_respole(pole); // save gamma argument, generated residue
       return resINT;
     }catch(std::exception &p)
@@ -958,18 +958,18 @@ public:
 template <typename T>
 bool alwaysTrue (T i) { return true; }
 
-
+/*
 exmap MBintegral::newPoint()
 {
     w_lst_type var_list(w_lst);
     var_list.push_back(get_symbol("eps"));
 
     
-    exmap eps_w_current = chebyshevSphere(var_list,gamma_poles);
+//    exmap eps_w_current = chebyshevSphere(var_list,gamma_poles);
 
 //exmap eps_w_current = start_point_diff_w(gamma_poles,var_list);
 
-    BOOST_ASSERT_MSG(interior_point(gamma_poles,eps_w_current),"Not a convex polyhedron interior point");
+    //  BOOST_ASSERT_MSG(interior_point(gamma_poles,eps_w_current),"Not a convex polyhedron interior point");
 
 
     for(w_lst_type::const_iterator it = w_lst.begin();it!=w_lst.end();++it)
@@ -980,7 +980,7 @@ exmap MBintegral::newPoint()
     
 }
 
-
+*/
 
 
 //exmap MBintegral::new_point()
@@ -1172,7 +1172,7 @@ exmap MBintegral::newPoint()
 
 
 
-
+ /*
 
 MBlst MBcontinue(MBintegral rootint,ex eps0)
 {
@@ -1297,224 +1297,9 @@ MBlst MBcontinue(MBintegral rootint,ex eps0)
     }
 }
 
+*/
 
-MBtree MBcontinue_tree(MBintegral rootint,ex eps0)
-{
-    using namespace mbtree;
-    try 
-    {
-        rootint.barnes1();
-        rootint.barnes2();
-        
-        //           accumulator for constraints
-        //  cout<<"start constrainta : "<<rootint.get_poles_set()<< " "<<rootint.get_w_eps_set()<<endl;
-        ConstrAcc ca(rootint.get_poles(),rootint.get_w_eps());
-
-        //            tree root creation 
-        MBtree C;
-        MBtree::iterator lastChildIt;//,root_it;
-        lastChildIt= C.insert(C.begin(), rootint);
-        size_t nChildrenAdded = 0;  
-        do 
-        {
-            nChildrenAdded = 0;           // no children added in new level
-            //      for(;it!=same_depth_start_iter;next_at_same_depth (it))
-            /* MBtree::fixed_depth_iterator it,it_end;
-               it = C.begin_fixed (root_it, C.max_depth ());
-    
-               it_end = C.end_fixed (root_it, C.max_depth ());*/
-            MBtree::leaf_iterator it,it_end;
-            it = C.begin_leaf();
-            it_end = C.end_leaf();
-            cout<<"work"<<endl;
-            for(it = C.begin_leaf();it != it_end; ++it ) 
-            {
-                if((C.depth(it) == C.max_depth() && nChildrenAdded == 0) || (C.depth(it) == C.max_depth()-1 && nChildrenAdded > 0) ) 
-                {
-                    cout<<"Leaf depth "<<C.depth(it)<<" Max depth "<<C.max_depth()<<endl;
-                    //   cout<<std::setw(15+it->get_level())<<std::right<<"shifted on "<<it->get_level()<<endl;
-                    //C.push_back(*it);//need review, multiple entries C=C U I
-                    MBintegral::pole_iterator pit,pit_end;
-                    ex eps_i = get_symbol("eps");
-                    //          cout<<"after barness lemas "<<it->get_eps()<<endl;
-                    eps_i = eps_i.subs(it->get_eps());
-
-                    // finding nearest EPS
-
-                    typedef multimap<ex,ex> EpsPolesMap;
-                    typedef EpsPolesMap::iterator mapIter;
-                    //                  while(no_continuat
-
-                    EpsPolesMap epsPoles;
-
-                    //             Iterate over gamma arguments with eps dependence only!!!!!!!
-                    lst polesWithEps(it->poles_with_eps());
-                    lst polesMinEps;
-                    for(lst::const_iterator pit  = polesWithEps.begin(); pit != polesWithEps.end(); ++pit) 
-                    {
-                        ex fEps0 = pit->subs( it->get_w() ).subs( get_symbol("eps") == eps0) ;
-                        ex fEpsI =  pit->subs( it->get_w() ).subs( it->get_eps() ) ;
-                        ex poleValue;
-                        if(fEpsI > fEps0) poleValue = int(floor(ex_to<numeric>(fEpsI).to_double()));
-                        else if(fEpsI < fEps0) poleValue = int(ceil(ex_to<numeric>(fEpsI).to_double()));
-                        if (poleValue <= 0) 
-                        {
-                            cout << setw(5) << right << poleValue <<  " --------------->  " 
-                                 << setw(25) << left << *pit << endl;
-                            ex eps_pole_sol = lsolve(pit->subs(it->get_w()) == poleValue,get_symbol("eps") );
-                            polesMinEps.append(eps_pole_sol);
-                            epsPoles.insert ( pair<ex,ex>(eps_pole_sol,*pit) );
-                        }
-                    }
-
-                    cout << " ______________POLES NEAREST_______________  " << endl;
-                    cout << "|                                          | " << endl;
-                    cout << "| " << setw(40) << std::left <<it->get_w() << endl;
-                    cout << "|        " << polesMinEps << endl;
-                    cout << "|__________________________________________| " << endl;
-                    cout << endl;//"*** min elem: "<<*min_element(polesMinEps.begin(),polesMinEps.end())<<endl;
-                    
-                    mapIter m_it, s_it;
-                    
-                    for (m_it = epsPoles.begin();  m_it != epsPoles.end();  m_it = s_it) 
-                    {
-                        ex theKey = (*m_it).first;
-                        
-                        cout << endl;
-                        cout << "  key = '" << theKey << "'" << endl;
-
-                        // working with key here:
-                      
-                      
-                        pair<mapIter, mapIter> keyRange = epsPoles.equal_range(theKey);
-                      
-                        // Iterate over all map elements with key == theKey
-                      
-                        for (s_it = keyRange.first;  s_it != keyRange.second;  ++s_it) 
-                        {
-                            cout << "    value = " << (*s_it).second << endl;
-                          
-                            lst wInPole = it->has_w((*s_it).second);
-                            wInPole.sort();
-                            
-                            if (epsPoles.count(theKey) > 1)                             
-                            {
-                                cout << endl;
-                                cout << endl;
-                                cout << "(((((((((((       w in pole " << wInPole << endl;
-                                cout << endl;
-                                cout << endl;
-                            }
-                        }
-                    }
-
-
-
-                    for(lst::const_iterator pit  = polesWithEps.begin(); pit != polesWithEps.end(); ++pit) 
-                    {
-                        cout<<"POLE EXPR:   "<< *pit <<endl;
-                        
-                        cout<<"F(eps_i) "<<pit->subs(it->get_w()).subs(it->get_eps())
-                            <<"F(eps=0) "<<pit->subs(it->get_w()).subs(get_symbol("eps")==eps0)
-                            <<"   min  "<<std::min(pit->subs(it->get_w()).subs(it->get_eps()),pit->subs(it->get_w()).subs(get_symbol("eps")==eps0))<<endl;
-                    
-                        cout<<"eps_i = "<<eps_i<<"  w current: "<<it->get_w()<<endl;
-                    
-                        ex fEps0 = pit->subs( it->get_w() ).subs( get_symbol("eps") == eps0) ;
-                        ex fEpsI =  pit->subs( it->get_w() ).subs( it->get_eps() ) ;
-                    
-                        if(fEps0==fEpsI) 
-                        {
-                            cout<<"Terminating, eps=0 achieved  "<<std::min(fEps0,fEpsI)<<endl;
-                            throw std::logic_error(string("Contour hit the pole"));
-                            assert(false);
-                        }
-
-                      
-                        else 
-                        {
-                      
-                            ex dir__ = csgn(fEps0 - fEpsI);
-                            int dir = int( ex_to<numeric>(dir__).to_double());
-                      
-                            //              for(int n =0;n>std::min(fEps0,fEpsI);n--)
-                      
-                            int pole;
-                      
-                            if(dir > 0)
-                                pole = int(ceil(ex_to<numeric>(fEpsI).to_double())); 
-                            else if(fEpsI < 0)
-                                pole = int(floor(ex_to<numeric>(fEpsI).to_double())); 
-                            else
-                                pole = 0;
-
-                            for(int n = pole; dir*(fEps0 - n) >= 0 && n <= 0; n += dir) 
-                            {
-                                //        if( n < std::max(fEps0,fEpsI))
-                            
-			    
-                                //             test on epsilon existance
-                                if(pit->subs(it->get_w()).has(get_symbol("eps"))) 
-                                {
-                                    ex eps_prime = lsolve(pit->subs(it->get_w()) ==n,get_symbol("eps") );
-                                    lst w_in_F  = it->has_w(*pit);
-                                    if(w_in_F.nops()>0) 
-                                    {
-                                        //                                   cout<<endl<<endl<<endl<<"ASDASDASDASDSD "<<*pit<<" "<<ca.test_single(pit->subs(get_symbol("eps") == 0))<<endl<<endl<<endl;
-                                        
-                                        cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
-                                        BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>=abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
-                                        
-                                        //             decide what var to get res
-                                        ex var_to_get_res = 0;
-                                        for(lst::const_iterator vgit = w_in_F.begin(); vgit != w_in_F.end();++vgit) 
-                                        {
-                                            if(pit->coeff(*vgit,1) == 1) 
-                                            {
-                                                var_to_get_res = *vgit;
-                                                break;
-                                            }
-                                            if(pit->coeff(*vgit,1) == -1)
-                                                var_to_get_res = *vgit;
-                                        }
-                                        if( var_to_get_res ==0) var_to_get_res = w_in_F.op(w_in_F.nops()-1);
-                                    
-                                        cout<<" POLE: " << *pit<< "       var to get res   "<<var_to_get_res<<endl;
-
-                                        MBintegral res_int = it->res(var_to_get_res ==lsolve(*pit==n,var_to_get_res),*pit,get_symbol("eps")==eps_prime);
-                                        res_int.set_level(1+it->get_level());
-                                        res_int*=(2*Pi*I*csgn(pit->coeff(var_to_get_res))*csgn(fEpsI-fEps0));
-                                        //if(ca.test_single(pit->subs(get_symbol("eps") == 0)))res_int.set_optimizable(true);
-                                        res_int.barnes1();
-                                        res_int.barnes2();
-                                        //R.push_back(res_int);
-                                        //  if(eps_prime !=0)
-                                        lastChildIt = C.append_child(it,res_int);
-                                        nChildrenAdded++;
-                                    }
-                                    // else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no W dependence in pole");
-                                }
-                                else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no eps dependence in pole");
-                                //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
-                                // if n>max
-                            }
-                        }//else
-                    }
-                }//same depth
-            }
-            //      O = R;
-        } while(nChildrenAdded > 0);
-        cout<<"Continue get "<<C.size()<<" integrals"<<endl;
-        // kptree::print_tree_bracketed(C);
-
-        return C;
-    }catch(std::exception &p)
-    {
-        throw std::logic_error(std::string("In function \"MBcontinue\":\n |___> ")+p.what());
-    }
-}
-
-
+  /*
 
 ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order) // up to O(eps^1) 
 {
@@ -1540,7 +1325,9 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order) /
           cout<<"current : "<<out_ex<<endl;
           ex wo_eps_part = out_ex;
           ex vegas_ex = 0;
-          for(int i = out_ex.ldegree( get_symbol("eps") ); i <expansion_order/* out_ex.degree( get_symbol("eps") )*/; i++)
+          for(int i = out_ex.ldegree( get_symbol("eps") ); i <expansion_order
+// out_ex.degree( get_symbol("eps") )
+; i++)
             {
               cout<<"Ord( "<<i<<" ) coeff : "<< out_ex.coeff(get_symbol("eps"),i)<<endl;
               ex int_expr =  out_ex.coeff(get_symbol("eps"),i);
@@ -1585,14 +1372,7 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order) /
               double integral_real[NCOMP], error[NCOMP], prob[NCOMP];
                    
               printf("-------------------- Vegas test --------------------\n");
-	      /*              
-			      Vegas(NDIM, NCOMP, fp,
-			      EPSREL, EPSABS, VERBOSE, 
-			      MINEVAL, MAXEVAL,
-			      NSTART, NINCREASE,
-			      &neval, &fail, integral, error, prob);
-              */     
-	     
+	      
 	      Vegas(NDIM, NCOMP, fp_real, USERDATA,
 		    EPSREL, EPSABS, VERBOSE, SEED,
                     MINEVAL, MAXEVAL, 
@@ -1624,6 +1404,7 @@ ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order) /
     }
 }
 
+  
 
 ex expand_and_integrate_complex(MBintegral& int_in, lst num_subs, int expansion_order) // up to O(eps^1) 
 {
@@ -1649,7 +1430,9 @@ ex expand_and_integrate_complex(MBintegral& int_in, lst num_subs, int expansion_
           cout<<"current : "<<out_ex<<endl;
           ex wo_eps_part = out_ex;
           ex vegas_ex = 0;
-          for(int i = out_ex.ldegree( get_symbol("eps") ); i <expansion_order/* out_ex.degree( get_symbol("eps") )*/; i++)
+          for(int i = out_ex.ldegree( get_symbol("eps") ); i <expansion_order
+// out_ex.degree( get_symbol("eps") )
+; i++)
             {
               cout<<"Ord( "<<i<<" ) coeff : "<< out_ex.coeff(get_symbol("eps"),i)<<endl;
               ex int_expr =  out_ex.coeff(get_symbol("eps"),i);
@@ -1695,13 +1478,6 @@ ex expand_and_integrate_complex(MBintegral& int_in, lst num_subs, int expansion_
               double integral[NCOMP],integral_real[NCOMP],integral_imag[NCOMP], error[NCOMP], prob[NCOMP];
                    
               printf("-------------------- Vegas test --------------------\n");
-	      /*              
-			      Vegas(NDIM, NCOMP, fp,
-			      EPSREL, EPSABS, VERBOSE, 
-			      MINEVAL, MAXEVAL,
-			      NSTART, NINCREASE,
-			      &neval, &fail, integral, error, prob);
-              */     
 	     
 	      Vegas(NDIM, NCOMP, fp_real, USERDATA,
 		    EPSREL, EPSABS, VERBOSE, SEED,
@@ -1717,43 +1493,6 @@ ex expand_and_integrate_complex(MBintegral& int_in, lst num_subs, int expansion_
                 printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
                        integral_real[comp], error[comp], prob[comp]);
                        
-              /*   TEMPORARY no IMAGE PART
-                   Vegas(NDIM, NCOMP, fp_imag, USERDATA,
-                   EPSREL, EPSABS, VERBOSE, SEED,
-                   MINEVAL, MAXEVAL, 
-                   NSTART, NINCREASE, NBATCH, GRIDNO, STATEFILE,
-                   &neval, &fail, integral_imag, error, prob);
-                   for( comp = 0; comp < NCOMP; ++comp )
-                   printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
-                   integral_imag[comp], error[comp], prob[comp]);
-              */
-
-            
-              /*
-                printf("\n-------------------- Suave test real--------------------\n");
-               
-                Suave(NDIM, NCOMP, fp_real, USERDATA,
-                EPSREL, EPSABS, VERBOSE | LAST, SEED,
-                MINEVAL, MAXEVAL, NNEW, FLATNESS,
-                &nregions, &neval, &fail, integral_real, error, prob);
-                             
-                printf("SUAVE RESULT:\tnregions %d\tneval %d\tfail %d\n",
-                nregions, neval, fail);
-                                   
-                for( comp = 0; comp < NCOMP; ++comp )
-                printf("VEGAS RESULT:\t%.8f +- %.8f\tp = %.3f\n",
-                integral_real[comp], error[comp], prob[comp]);
-
-
-                printf("\n-------------------- Suave test imag--------------------\n");
-               
-                Suave(NDIM, NCOMP, fp_imag, USERDATA,
-                EPSREL, EPSABS, VERBOSE | LAST, SEED,
-                MINEVAL, MAXEVAL, NNEW, FLATNESS,
-                &nregions, &neval, &fail, integral_imag, error, prob);
-                             
-                printf("SUAVE RESULT:\tnregions %d\tneval %d\tfail %d\n",
-                nregions, neval, fail);*/
                                    
              
               // ----------------------------------- Vegas integration-------------------------              
@@ -1772,4 +1511,4 @@ ex expand_and_integrate_complex(MBintegral& int_in, lst num_subs, int expansion_
       throw std::logic_error(std::string("In function \"Expand_int_complex\":\n |___> ")+p.what());
     }
 }
-
+*/

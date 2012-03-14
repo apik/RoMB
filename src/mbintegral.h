@@ -85,8 +85,8 @@ class MBintegral
   exlist w_lst;
   exlist gamma_poles;
   ex full_int_expr;
-  exmap eps_w_current;
-  exmap w_current;
+//  exmap eps_w_current;
+//  exmap w_current;
   relational eps_current;
   int tree_level;
   ex res_pole;
@@ -197,18 +197,28 @@ public:
   exmap start_point_diff_w(w_lst_type,p_lst_type);
   exmap newPoint();
 
+/*
   exmap get_point()
   {
     return eps_w_current;
   }
+
   exmap get_w()
   {
     return w_current;
   }
+
+*/
   relational get_eps()
   {
     return eps_current;
   }
+
+  void SetEps(relational eps_rel_in)
+  {
+      eps_current = eps_rel_in;
+  }
+
 
   MBintegral res(relational,ex,relational);
   static lst has_w(const ex& ,w_lst_type ); 
@@ -306,7 +316,7 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
     }
   
   // Constructor for Residue
- MBintegral(lst w_lst_in,ex full_int_expr_in,exmap w_current_in,relational eps_in,size_t tree_lvl):full_int_expr(full_int_expr_in),w_current(w_current_in),eps_current(eps_in),tree_level(tree_lvl),res_pole(0),opt_flag(false)
+ MBintegral(lst w_lst_in,ex full_int_expr_in,relational eps_in,size_t tree_lvl):full_int_expr(full_int_expr_in),eps_current(eps_in),tree_level(tree_lvl),res_pole(0),opt_flag(false)
   {
     w_lst.assign(w_lst_in.begin(),w_lst_in.end());
     //update_poles_from_ex();
@@ -330,7 +340,7 @@ typedef std::list<MBintegral> MBlst;
 typedef mbtree::tree<MBintegral> MBtree;
 
 MBlst MBcontinue(MBintegral rootint,ex eps0 = 0);
-MBtree MBcontinue_tree(MBintegral rootint,ex eps0 = 0);
+
 
 ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order = 1); // up to O(eps^1) 
 

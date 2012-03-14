@@ -13,6 +13,9 @@
 #include <map>
 #include <exception>
 #include <ginac/ginac.h>
+
+#include <sstream>
+
 #include <boost/lexical_cast.hpp>
 #include <boost/utility.hpp>
 #include <boost/foreach.hpp>
@@ -232,6 +235,13 @@ template <typename T1, typename T2, typename C>
      return os;
  }
 
+template <typename T>
+std::string S(T t)
+{
+    std::stringstream ss;
+    ss << t;
+    return ss.str();
+}
 
 
 #endif

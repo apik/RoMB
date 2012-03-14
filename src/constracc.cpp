@@ -1,77 +1,126 @@
 #include "constracc.h"
 #include "utils.h"
 
-#include <ppl.hh>
-using namespace Parma_Polyhedra_Library;
-using namespace Parma_Polyhedra_Library::IO_Operators;
 
-/*constr_acc::constr_acc(lst constr_lst,lst w_lst_in) : constraints(constr_lst),w_lst(w_lst_in)
+/*constr_acc::constr_acc(lst constr_lst,lst w_lst_in) : constraints_(constr_lst),ws_(w_lst_in)
 {
 }
 */
+
+ConstrAcc::ConstrAcc()
+{
+}
 
  // Constructor  from MBIntegral
 
 ConstrAcc::ConstrAcc(const MBintegral& mbIn)
 {
-    BOOST_FOREACH(ex ce,mbIn.get_poles())
+ 
+/*   BOOST_FOREACH(ex ce,mbIn.get_poles())
     {
-        constraints.append(ce);
+        constraints_.append(ce);
     }
     BOOST_FOREACH(ex we, mbIn.get_w_lst())
     {
-        w_lst.append(we);
+        ws_.append(we);
     }
+
+*/
+
+    *this = ConstrAcc(mbIn.get_poles(), mbIn.get_w_lst());
 }
 
 
 
 // Constructor  from explicit poles and arg lists
 
-ConstrAcc::ConstrAcc(MBintegral::p_lst_type constr_lst,MBintegral::w_lst_type w_lst_in)
+ConstrAcc::ConstrAcc(const MBintegral::p_lst_type& constr_lst,const MBintegral::w_lst_type& w_lst_in)
 {
+
+/* 
+ *
+ *   DANGER!!! eps by hand!!!
+ *
+ *
+ */ 
+    
+    MBintegral::w_lst_type wsAndEps(w_lst_in);
+    wsAndEps.push_back(get_symbol("eps"));
+
+    epsAndWsCurrent_ = chebyshevSphere(wsAndEps, constr_lst);
+
+    cout << "test" << epsAndWsCurrent_ << endl;
+    PrintPoint();
+
+    
     BOOST_FOREACH(ex ce,constr_lst)
     {
-        constraints.append(ce);
+        constraints_.append(ce);
     }
     BOOST_FOREACH(ex we,w_lst_in)
     {
-        w_lst.append(we);
+        ws_.append(we);
+
+        if(we != get_symbol("eps"))
+            WsCurrent_[we] = epsAndWsCurrent_[we]; 
     }
+
+
+
 }
 
+
+const exmap& ConstrAcc::GetPoint() const
+{
+    return epsAndWsCurrent_;
+}
+
+const exmap& ConstrAcc::GetWs() const
+{
+    return WsCurrent_;
+}
+
+void ConstrAcc::PrintPoint() 
+{
+    cout << "Print in constr\n\t" <<  epsAndWsCurrent_ << endl;
+}
+
+void ConstrAcc::PrintWs() 
+{
+    cout << "Print in constr\n\t" <<  WsCurrent_ << endl;
+}
 
 
 /*
 bool ConstrAcc::add_single(const ex& constr)
 {
-  lst add_lst(constraints);
+  lst add_lst(constraints_);
   add_lst.append(constr);
-  if(zero_volume(add_lst,w_lst))return false;
+  if(zero_volume(add_lst,ws_))return false;
   else
     {
-      constraints.append(constr);
+      constraints_.append(constr);
       return true;
     }
 }
 bool ConstrAcc::test_single(const ex& constr)
 {
-  lst add_lst(constraints);
+  lst add_lst(constraints_);
   add_lst.append(constr);
-  return !zero_volume(add_lst,w_lst);
+  return !zero_volume(add_lst,ws_);
 }
 bool ConstrAcc::test_lst(lst& cl)
 {
-  lst add_lst(constraints);
+  lst add_lst(constraints_);
   for(lst::const_iterator lit = cl.begin(); lit != cl.end(); ++lit)
     add_lst.append(*lit);
-  return !zero_volume(add_lst,w_lst);
+  return !zero_volume(add_lst,ws_);
 }
 */
 
 
 
-exmap chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_type pIn) 
+exmap ConstrAcc::chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_type pIn) 
 {
 
     try
@@ -151,11 +200,11 @@ exmap chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_type pIn)
             cs.insert(l <= 0);
         }
         cout << " System created " << cs << endl;
-        NNC_Polyhedron ph(cs);
+        ph_ = NNC_Polyhedron(cs);
         bool maxVal;
         Coefficient supN,supD;
         Generator g  = closure_point();
-        if( ph.maximize(r,supN,supD,maxVal,g) )
+        if( ph_.maximize(r,supN,supD,maxVal,g) )
         {
             std::cout<< maxVal<<" then " << supN<<"/"<<supD<< "Generator: " << g << std::endl;
        
@@ -166,7 +215,7 @@ exmap chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_type pIn)
         Generator_System gs;
         gs.insert(g);
         NNC_Polyhedron ph2(gs);
-        if(ph.strictly_contains(ph2)) cout<< " Contains" <<endl;
+        if(ph_.strictly_contains(ph2)) cout<< " Contains" <<endl;
     
     
 // 168 first prime numbers

@@ -23,6 +23,7 @@ class RoMB_loop_by_loop
   MBlst int_lst;
   std::map<MBintegral::w_lst_type,ex,int_map_comparator> intmap;
   exmap w_shared;
+  ConstrAcc constraints_;
 public:
   /**
    *
@@ -41,8 +42,14 @@ public:
   RoMB_loop_by_loop(lst,lst,lst,lst,bool subs_U = true);
   void merge();
   void integrate(lst,int exp_order = 1);
-void integrate_map(lst,int exp_order = 1);
+  void integrate_map(lst,int exp_order = 1);
+
+  std::pair<ex,ex> expand_and_integrate_map(ex ,MBintegral::w_lst_type,exmap, lst, int ); // up to O(eps^1) 
+
+  void print_mathematica(MBintegral);
+
+  MBtree MBcontinue_tree(MBintegral rootint,ex eps0 = 0);
 };
-void print_mathematica(MBintegral);
-std::pair<ex,ex> expand_and_integrate_map(ex ,MBintegral::w_lst_type,exmap, lst, int ); // up to O(eps^1) 
+
+
 #endif // __ROMB_H__

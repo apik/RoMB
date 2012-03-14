@@ -2,21 +2,45 @@
 #define __CONSTRACC_H__
 #include <ginac/ginac.h>
 #include "mbintegral.h"
+
+#include <ppl.hh>
+using namespace Parma_Polyhedra_Library;
+using namespace Parma_Polyhedra_Library::IO_Operators;
+
 using namespace GiNaC;
+
 class ConstrAcc
 {
 
-    lst constraints;
+    lst constraints_;
     
-    lst w_lst;
+    lst ws_;
+
+    exmap epsAndWsCurrent_;
+
+    exmap WsCurrent_;
+
+    NNC_Polyhedron ph_;
+
+    exmap chebyshevSphere(MBintegral::w_lst_type, MBintegral::p_lst_type);
     
 public:
     
 
+    ConstrAcc();
     
-    ConstrAcc(MBintegral::p_lst_type,MBintegral::w_lst_type);
+    ConstrAcc(const MBintegral::p_lst_type&, const MBintegral::w_lst_type&);
 
     ConstrAcc(const MBintegral&);
+
+    const exmap& GetPoint() const;
+
+    const exmap& GetWs() const;
+
+    void PrintPoint();
+        
+    void PrintWs();
+
     
     //  constr_acc(MBintegral::w_lst_type,MBintegral::w_lst_type);
     
@@ -30,8 +54,6 @@ public:
     
 };
 
-
-exmap chebyshevSphere(MBintegral::w_lst_type, MBintegral::p_lst_type);
 
 
 // function test exmap is suitable solution of system of inequalities
