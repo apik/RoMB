@@ -339,7 +339,7 @@ if( full_int_expr.match(tgamma(wild(1)+wild())*tgamma(wild(2)+wild())*tgamma(wil
 typedef std::list<MBintegral> MBlst;
 typedef mbtree::tree<MBintegral> MBtree;
 
-MBlst MBcontinue(MBintegral rootint,ex eps0 = 0);
+
 
 
 ex expand_and_integrate(MBintegral& int_in, lst num_subs, int expansion_order = 1); // up to O(eps^1) 

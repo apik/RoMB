@@ -17,6 +17,25 @@ struct int_map_comparator : public std::binary_function<MBintegral::w_lst_type,M
 };
 
 
+
+struct NearestPoleParams
+{
+    bool isContinued;
+    numeric EpsilonValue;
+    numeric PoleValue;
+    ex Arg;
+    void Print()
+        {
+            cout << endl;
+            cout << "IC " << isContinued <<endl;
+            cout << "EV " << EpsilonValue <<endl;
+            cout << "PV " << PoleValue <<endl;
+            cout << "AR " << Arg <<endl;
+            cout << endl;
+        }
+};
+
+
 class RoMB_loop_by_loop
 {
   lst nu_sym;
@@ -49,6 +68,11 @@ public:
   void print_mathematica(MBintegral);
 
   MBtree MBcontinue_tree(MBintegral rootint,ex eps0 = 0);
+
+  MBlst MBcontinue(MBintegral rootint,ex eps0 = 0);
+
+// utils
+  NearestPoleParams GetLeadingEps(MBintegral, numeric, numeric eps0 = 0);
 };
 
 

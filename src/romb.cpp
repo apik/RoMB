@@ -328,56 +328,12 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
           //                assert(false);
 
           //        MBlst int_lst = MBcontinue(MBlbl_int);
-          MBtree inttr = MBcontinue_tree(MBlbl_int);
-          int opt_sum = 0;
-          MBtree::breadth_first_queued_iterator last_it;
-          for(MBtree::breadth_first_queued_iterator bfit = inttr.begin_breadth_first(); bfit != inttr.end_breadth_first(); ++bfit)
-            {
-              if(bfit->get_optimizable())
-                {
-                  cout<<"SIZE: "<<inttr.size(bfit)<<endl;
-                  last_it  = bfit;
-                  //inttr.erase(bfit);
-                  cout<< inttr.size()<<endl;
-                  //break;   
-		
-                  //opt_sum +=inttr.size(bfit);
-                }
-            }
-          /*     
-                 MBtree::sibling_iterator sit_gen(last_it);
-                 // loop over neighbours
-                 std::vector<MBtree::iterator> v_it;
-                 for(MBtree::iterator sit = sit_gen.range_first(); sit != sit_gen.range_last(); ++ sit)
-                 {
-                 if(sit->get_optimizable())
-                 {
-                 v_it.push_back(sit);
-                 }
-                 }
+          
 
-                 //combination code
-                 const int r = 3;
-                 const int n = 10;
-                 std::vector<int> v_int(n);
-                 for (int i = 0; i < n; ++i) { v_int[i] = i; }
-                 int N = 0;
-                 do {
-                 ++N;
-                 if (N < 10 || N > 117) {
-                 std::cout << "[ " << v_int[0];
-                 for (int j = 1; j < r; ++j) { std::cout << ", " << v_int[j]; }
-                 std::cout << " ]" << std::endl;
-                 } else if (N == 10) {
-                 std::cout << "  . . ." << std::endl;
-                 }
-                 } while (next_combination(v_int.begin(), v_int.begin() + r, v_int.end()));
-                 // end of combination code
-                 */
-          cout<< "Min int: "<<inttr.size()-opt_sum<<endl;
-          int_lst.assign(inttr.begin(),inttr.end());
+          int_lst = MBcontinue(MBlbl_int);
+
           //exit(5);//assert(false);
-          //int_lst = MBcontinue(MBlbl_int);
+          
           cout<<int_lst.size()<<endl;
           /*BOOST_FOREACH(MBintegral mbint, int_lst)
             {
@@ -389,7 +345,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
             <<"LEVEL: "<<mbint.get_level()<<endl<<endl;
             }*/
           cout<<"Integrals MBC "<<int_lst.size()<<endl;
-          cout<<"Integrals MBT "<<inttr.size()<<endl;
+//          cout<<"Integrals MBT "<<inttr.size()<<endl;
           merge();
           cout<< endl<<" Next step?  [Y/n]: ";
   
@@ -905,6 +861,204 @@ std::pair<ex,ex> RoMB_loop_by_loop::expand_and_integrate_map(ex int_in,MBintegra
 }
 
 
+NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsCurrent, numeric eps0)
+{
+    try
+    {
+        NearestPoleParams poleParams;
+
+        poleParams.isContinued = true;
+    
+        if(epsCurrent == eps0) 
+            throw std::logic_error( string("Continue from EpsI = Eps0") );
+        else
+            poleParams.EpsilonValue = 0;
+
+        lst polesWithEps(mbIn.poles_with_eps());
+    
+        for(lst::const_iterator pit  = polesWithEps.begin(); pit != polesWithEps.end(); ++pit) 
+        {
+        
+            numeric poleValue;
+        
+            ex fEps0 = pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == eps0) ;
+            ex fEpsI =  pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == epsCurrent ) ;
+        
+            // Important FF
+
+            if(fEpsI > fEps0) 
+            {
+                poleValue = int(floor(ex_to<numeric>(fEpsI).to_double()));
+                
+// to disable cycling 
+                if(poleValue == fEpsI)
+                    poleValue--;
+                cout << " fEpsi: " << fEpsI << " and pole: " << poleValue << endl;
+            }
+            else if(fEpsI < fEps0) 
+            {
+                poleValue = int(ceil(ex_to<numeric>(fEpsI).to_double()));
+                if(poleValue == fEpsI)
+                    poleValue++;
+                cout << " fEpsi: " << fEpsI << " and pole: " << poleValue << endl;
+            }
+
+            if (poleValue <= 0) 
+            {
+                //   cout << setw(5) << right << poleValue <<  " --------------->  " 
+                //     << setw(25) << left << *pit << endl;
+                numeric eps_pole_sol = ex_to<numeric>(lsolve(pit->subs(this->constraints_.GetWs()) == poleValue,get_symbol("eps") ));
+
+                if( epsCurrent < eps0 ) 
+                {           
+                    if(poleParams.EpsilonValue > eps_pole_sol)
+                    {
+                        poleParams.EpsilonValue = eps_pole_sol;
+                        poleParams.PoleValue = poleValue;
+                        poleParams.Arg = (*pit);
+                        poleParams.isContinued = false;
+                    }
+                }
+                else if( epsCurrent > eps0 )            
+                {
+                    if(poleParams.EpsilonValue < eps_pole_sol)
+                    {
+                        poleParams.EpsilonValue = eps_pole_sol;
+                        poleParams.PoleValue = poleValue;
+                        poleParams.Arg = (*pit);
+                        poleParams.isContinued = false;
+                    }
+                }
+
+            }
+        }
+    
+    
+        return poleParams;
+    }
+    catch(std::exception &p)
+    {
+        throw std::logic_error(std::string("In function \"GetLeadingEps\":\n |___> ")+p.what());
+    }
+}
+
+
+
+
+
+MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
+{
+    try
+    {
+        // integrals to be continued
+        MBlst O(1,rootint);
+        
+        // final set of continued integrals
+        MBlst C;
+
+        while(O.size()>0)
+        {
+            
+            // integral from residues
+            MBlst R;
+            
+            for(MBlst::iterator it = O.begin();it!=O.end();++it)
+            {
+                C.push_back(*it);
+
+
+//         Eps starting value
+
+                ex eps_i = ex(get_symbol("eps")).subs(it->get_eps());
+
+                
+//         Sliding eps value
+
+                ex epsSliding = eps_i;
+
+
+//         Global list of (*it) poles
+
+                lst polesWithEps(it->poles_with_eps());
+
+                bool mayBeContinued = true;
+
+
+//         Iterate over all residues 
+//         of current integral (*it)
+
+                while(mayBeContinued)
+                {
+                    mayBeContinued = false;
+
+
+//         Nearest pole               
+
+                    NearestPoleParams nearestPoleParams = GetLeadingEps(*it, ex_to<numeric>(epsSliding), ex_to<numeric>(eps0));
+
+                    nearestPoleParams.Print();
+
+//
+// Place test on reduce HERE
+//
+                    
+                    ex poleF =  nearestPoleParams.Arg;
+                    
+                    lst w_in_F  = it->has_w(poleF );
+                    
+                    if(w_in_F.nops()>0 && !nearestPoleParams.isContinued) 
+                    {
+                        epsSliding = nearestPoleParams.EpsilonValue;
+//                              
+                        //             decide what var to get res
+                        ex var_to_get_res = 0;
+                        for(lst::const_iterator vgit = w_in_F.begin(); vgit != w_in_F.end();++vgit) 
+                        {
+                            if(poleF.coeff(*vgit,1) == 1) 
+                            {
+                                var_to_get_res = *vgit;
+                                break;
+                            }
+                            if(poleF.coeff(*vgit,1) == -1)
+                                var_to_get_res = *vgit;
+                        }
+                        if( var_to_get_res ==0) var_to_get_res = w_in_F.op(w_in_F.nops()-1);
+                        
+                        cout<<" POLE: " << poleF<< "       var to get res   "<<var_to_get_res<<endl;
+                        
+                        ex fEps0 = poleF.subs(constraints_.GetWs()).subs(get_symbol("eps") == eps0);
+                        ex fEpsI = poleF.subs(constraints_.GetWs()).subs(get_symbol("eps") == epsSliding);
+    
+                        MBintegral res_int = 
+                            it->res(var_to_get_res ==
+                                    lsolve(poleF == nearestPoleParams.PoleValue, var_to_get_res),
+                                    poleF,get_symbol("eps")==epsSliding);
+                        res_int.set_level(1+it->get_level());
+                        res_int*=(2*Pi*I*csgn(poleF.coeff(var_to_get_res))*csgn(fEpsI - fEps0));
+                        
+                                             
+                        R.push_back(res_int);
+                        
+                        mayBeContinued = true;
+                    }
+                    
+                } // WHILE(mayBeContinued)
+                
+            }   
+            
+            // continue integrals only from the last level of residue tree
+            O = R;
+        }
+        return C;
+    } 
+    catch(std::exception &p)
+    {
+        throw std::logic_error(std::string("In function \"MBcontinue\":\n |___> ")+p.what());
+    }
+    
+}
+    
+
 MBtree RoMB_loop_by_loop::MBcontinue_tree(MBintegral rootint,ex eps0)
 {
     using namespace mbtree;
@@ -939,6 +1093,15 @@ MBtree RoMB_loop_by_loop::MBcontinue_tree(MBintegral rootint,ex eps0)
                 if((C.depth(it) == C.max_depth() && nChildrenAdded == 0) || (C.depth(it) == C.max_depth()-1 && nChildrenAdded > 0) ) 
                 {
                     cout<<"Leaf depth "<<C.depth(it)<<" Max depth "<<C.max_depth()<<endl;
+
+                    cout<< " $$$" <<endl;
+                    cout<< " $$$" <<endl;
+                    cout<< " $$$" <<endl;
+                    cout<< " $$$" <<endl;
+                    cout<< " $$$" <<endl;
+                    cout<< " $$$" <<endl;
+                    cout<< " $$$$$$$$" <<endl;
+                    cout<< " $$$$$$$$" <<endl;
                     //   cout<<std::setw(15+it->get_level())<<std::right<<"shifted on "<<it->get_level()<<endl;
                     //C.push_back(*it);//need review, multiple entries C=C U I
                     MBintegral::pole_iterator pit,pit_end;
@@ -946,179 +1109,144 @@ MBtree RoMB_loop_by_loop::MBcontinue_tree(MBintegral rootint,ex eps0)
                     //          cout<<"after barness lemas "<<it->get_eps()<<endl;
                     eps_i = eps_i.subs(it->get_eps());
 
+
+                    ex epsSliding = eps_i;
+
+                    bool mayBeContinued = true;
+
                     // finding nearest EPS
 
                     typedef multimap<ex,ex> EpsPolesMap;
                     typedef EpsPolesMap::iterator mapIter;
-                    //                  while(no_continuat
 
-                    EpsPolesMap epsPoles;
 
-                    //             Iterate over gamma arguments with eps dependence only!!!!!!!
                     lst polesWithEps(it->poles_with_eps());
-                    lst polesMinEps;
-                    for(lst::const_iterator pit  = polesWithEps.begin(); pit != polesWithEps.end(); ++pit) 
-                    {
-                        ex fEps0 = pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == eps0) ;
-                        ex fEpsI =  pit->subs( this->constraints_.GetWs() ).subs( it->get_eps() ) ;
-                        ex poleValue;
-                        if(fEpsI > fEps0) poleValue = int(floor(ex_to<numeric>(fEpsI).to_double()));
-                        else if(fEpsI < fEps0) poleValue = int(ceil(ex_to<numeric>(fEpsI).to_double()));
-                        if (poleValue <= 0) 
-                        {
-                            cout << setw(5) << right << poleValue <<  " --------------->  " 
-                                 << setw(25) << left << *pit << endl;
-                            ex eps_pole_sol = lsolve(pit->subs(this->constraints_.GetWs()) == poleValue,get_symbol("eps") );
-                            polesMinEps.append(eps_pole_sol);
-                            epsPoles.insert ( pair<ex,ex>(eps_pole_sol,*pit) );
-                        }
-                    }
-
-                    cout << " ______________POLES NEAREST_______________  " << endl;
-                    cout << "|                                          | " << endl;
-                    cout << "| " << setw(40) << std::left <<S(this->constraints_.GetWs()) << endl;
-                    cout << "|        " << polesMinEps << endl;
-                    cout << "|__________________________________________| " << endl;
-                    cout << endl;//"*** min elem: "<<*min_element(polesMinEps.begin(),polesMinEps.end())<<endl;
+                      
                     
-                    mapIter m_it, s_it;
-                    
-                    for (m_it = epsPoles.begin();  m_it != epsPoles.end();  m_it = s_it) 
+                    while(mayBeContinued)
                     {
-                        ex theKey = (*m_it).first;
-                        
-                        cout << endl;
-                        cout << "  key = '" << theKey << "'" << endl;
 
-                        // working with key here:
-                      
-                      
-                        pair<mapIter, mapIter> keyRange = epsPoles.equal_range(theKey);
-                      
-                        // Iterate over all map elements with key == theKey
-                      
-                        for (s_it = keyRange.first;  s_it != keyRange.second;  ++s_it) 
+                        // By defualt if no residues added integral can't be continued
+                        mayBeContinued = false;
+
+
+
+                        EpsPolesMap epsPoles;
+
+                        //             Iterate over gamma arguments with eps dependence only!!!!!!!
+                        lst polesMinEps;
+                        for(lst::const_iterator pit  = polesWithEps.begin(); pit != polesWithEps.end(); ++pit) 
                         {
-                            cout << "    value = " << (*s_it).second << endl;
-                          
-                            lst wInPole = it->has_w((*s_it).second);
-                            wInPole.sort();
-                            
-                            if (epsPoles.count(theKey) > 1)                             
+
+                            ex poleValue;
+
+                            ex fEps0 = pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == eps0) ;
+                            ex fEpsI =  pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == epsSliding ) ;
+
+                            if(fEpsI > fEps0) poleValue = int(floor(ex_to<numeric>(fEpsI).to_double()));
+                            else if(fEpsI < fEps0) poleValue = int(ceil(ex_to<numeric>(fEpsI).to_double()));
+                            if (poleValue <= 0) 
                             {
-                                cout << endl;
-                                cout << endl;
-                                cout << "(((((((((((       w in pole " << wInPole << endl;
-                                cout << endl;
-                                cout << endl;
+                                cout << setw(5) << right << poleValue <<  " --------------->  " 
+                                     << setw(25) << left << *pit << endl;
+                                ex eps_pole_sol = lsolve(pit->subs(this->constraints_.GetWs()) == poleValue,get_symbol("eps") );
+                                polesMinEps.append(eps_pole_sol);
+                                epsPoles.insert ( pair<ex,ex>(eps_pole_sol,*pit) );
                             }
                         }
-                    }
 
-
-
-                    for(lst::const_iterator pit  = polesWithEps.begin(); pit != polesWithEps.end(); ++pit) 
-                    {
-                        cout<<"POLE EXPR:   "<< *pit <<endl;
-                        cout<<std::setfill('_')
-                            << std::setw(96)<< " _" << endl;
-                        cout <<setfill(' ') <<"| "<< setw(30) << "F(eps_i) " <<"| "<< setw(30) << "F(eps=0) " <<"| "<< setw(30) << "min" <<"|"<<endl;
-
-                        cout<<std::setfill('-')
-                            << std::setw(96)<< "- " << endl;
-
-                        cout <<setfill(' ')<< "| "<<setw(30) << S(pit->subs(this->constraints_.GetWs()).subs(it->get_eps()))<<"| "
-                             << setw(30) << S(pit->subs(this->constraints_.GetWs()).subs(get_symbol("eps")==eps0)) <<"| "<< setw(30) << S(std::min(pit->subs(this->constraints_.GetWs()).subs(it->get_eps()),pit->subs(this->constraints_.GetWs()).subs(get_symbol("eps")==eps0))) <<"|"<<endl;
+                        cout << " ______________POLES NEAREST_______________  " << endl;
+                        cout << "|                                          | " << endl;
+                        cout << "| " << setw(40) << std::left <<S(this->constraints_.GetWs()) << endl;
+                        cout << "|        " << polesMinEps << endl;
+                        cout << "|__________________________________________| " << endl;
+                        cout << endl;//"*** min elem: "<<*min_element(polesMinEps.begin(),polesMinEps.end())<<endl;
+                    
+                        mapIter m_it, s_it;
+                    
+                        for (m_it = epsPoles.begin();  m_it != epsPoles.end();  m_it = s_it) 
+                        {
+                            ex theKey = (*m_it).first;
                         
-//                        cout<<"F(eps_i) "<<pit->subs(this->constraints_.GetWs()).subs(it->get_eps())
-//                            <<"F(eps=0) "<<pit->subs(this->constraints_.GetWs()).subs(get_symbol("eps")==eps0)
-//                            <<"   min  "<<std::min(pit->subs(this->constraints_.GetWs()).subs(it->get_eps()),pit->subs(this->constraints_.GetWs()).subs(get_symbol("eps")==eps0))<<endl;
-                    
-                        cout<<std::setfill('-')
-                            << std::setw(96)<< "-" << endl;
+                            cout << endl;
+                            cout << "  key = '" << theKey << "'" << endl;
 
-                        cout<<setfill(' ')<<"eps_i = "<<eps_i<<"  w current: "<<this->constraints_.GetWs()<<endl;
-                    
-                        ex fEps0 = pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == eps0) ;
-                        ex fEpsI =  pit->subs( this->constraints_.GetWs() ).subs( it->get_eps() ) ;
-                    
-                        if(fEps0==fEpsI) 
-                        {
-                            cout<<"Terminating, eps=0 achieved  "<<std::min(fEps0,fEpsI)<<endl;
-                            throw std::logic_error(string("Contour hit the pole"));
-                            assert(false);
-                        }
-
-                      
-                        else 
-                        {
-                      
-                            ex dir__ = csgn(fEps0 - fEpsI);
-                            int dir = int( ex_to<numeric>(dir__).to_double());
-                      
-                            //              for(int n =0;n>std::min(fEps0,fEpsI);n--)
-                      
-                            int pole;
-                      
-                            if(dir > 0)
-                                pole = int(ceil(ex_to<numeric>(fEpsI).to_double())); 
-                            else if(fEpsI < 0)
-                                pole = int(floor(ex_to<numeric>(fEpsI).to_double())); 
-                            else
-                                pole = 0;
-
-                            for(int n = pole; dir*(fEps0 - n) >= 0 && n <= 0; n += dir) 
-                            {
-                                //        if( n < std::max(fEps0,fEpsI))
+// Storing max eps to Sliding Eps
+                            epsSliding = theKey;
                             
-			    
-                                //             test on epsilon existance
-                                if(pit->subs(this->constraints_.GetWs()).has(get_symbol("eps"))) 
+                            ex poleF =  m_it->second.op(0);
+                            
+                            lst w_in_F  = it->has_w(poleF );
+                            
+                            if(w_in_F.nops()>0) 
+                            {
+//                                   cout<<endl<<endl<<endl<<"ASDASDASDASDSD "<<*pit<<" "<<ca.test_single(pit->subs(get_symbol("eps") == 0))<<endl<<endl<<endl;
+                                
+//                                cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
+//                                BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>=abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
+                                
+                                //             decide what var to get res
+                                ex var_to_get_res = 0;
+                                for(lst::const_iterator vgit = w_in_F.begin(); vgit != w_in_F.end();++vgit) 
                                 {
-                                    ex eps_prime = lsolve(pit->subs(this->constraints_.GetWs()) ==n,get_symbol("eps") );
-                                    lst w_in_F  = it->has_w(*pit);
-                                    if(w_in_F.nops()>0) 
+                                    if(poleF.coeff(*vgit,1) == 1) 
                                     {
-                                        //                                   cout<<endl<<endl<<endl<<"ASDASDASDASDSD "<<*pit<<" "<<ca.test_single(pit->subs(get_symbol("eps") == 0))<<endl<<endl<<endl;
-                                        
-                                        cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
-                                        BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>=abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
-                                        
-                                        //             decide what var to get res
-                                        ex var_to_get_res = 0;
-                                        for(lst::const_iterator vgit = w_in_F.begin(); vgit != w_in_F.end();++vgit) 
-                                        {
-                                            if(pit->coeff(*vgit,1) == 1) 
-                                            {
-                                                var_to_get_res = *vgit;
-                                                break;
-                                            }
-                                            if(pit->coeff(*vgit,1) == -1)
-                                                var_to_get_res = *vgit;
-                                        }
-                                        if( var_to_get_res ==0) var_to_get_res = w_in_F.op(w_in_F.nops()-1);
-                                    
-                                        cout<<" POLE: " << *pit<< "       var to get res   "<<var_to_get_res<<endl;
-
-                                        MBintegral res_int = it->res(var_to_get_res ==lsolve(*pit==n,var_to_get_res),*pit,get_symbol("eps")==eps_prime);
-                                        res_int.set_level(1+it->get_level());
-                                        res_int*=(2*Pi*I*csgn(pit->coeff(var_to_get_res))*csgn(fEpsI-fEps0));
-                                        //if(ca.test_single(pit->subs(get_symbol("eps") == 0)))res_int.set_optimizable(true);
-                                        res_int.barnes1();
-                                        res_int.barnes2();
-                                        //R.push_back(res_int);
-                                        //  if(eps_prime !=0)
-                                        lastChildIt = C.append_child(it,res_int);
-                                        nChildrenAdded++;
+                                        var_to_get_res = *vgit;
+                                        break;
                                     }
-                                    // else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no W dependence in pole");
+                                    if(poleF.coeff(*vgit,1) == -1)
+                                        var_to_get_res = *vgit;
                                 }
-                                else BOOST_ASSERT_MSG(false,"EEEEEERRRRRRRROOOORR: no eps dependence in pole");
-                                //cout<<endl<<endl<<"EEEEEERRRRRRRROOOORR: no W dependence in pole"<<endl<<endl;
-                                // if n>max
+                                if( var_to_get_res ==0) var_to_get_res = w_in_F.op(w_in_F.nops()-1);
+                                    
+                                cout<<" POLE: " << poleF<< "       var to get res   "<<var_to_get_res<<endl;
+
+                                MBintegral res_int = it->res(var_to_get_res ==lsolve(poleF==poleF.subs(constraints_.GetWs()).subs(get_symbol("eps") == epsSliding), var_to_get_res),poleF,get_symbol("eps")==epsSliding);
+                                res_int.set_level(1+it->get_level());
+                                res_int*=(2*Pi*I*csgn(poleF.coeff(var_to_get_res))*csgn(epsSliding-poleF.subs(constraints_.GetWs()).subs(get_symbol("eps") == 0)));
+                                //if(ca.test_single(poleF.subs(get_symbol("eps") == 0)))res_int.set_optimizable(true);
+                                res_int.barnes1();
+                                res_int.barnes2();
+                                //R.push_back(res_int);
+                                //  if(eps_prime !=0)
+                                lastChildIt = C.append_child(it,res_int);
+                                nChildrenAdded++;
                             }
-                        }//else
-                    }
+
+
+                            // working with key here:
+                      
+                      
+                            pair<mapIter, mapIter> keyRange = epsPoles.equal_range(theKey);
+                      
+                            // Iterate over all map elements with key == theKey
+                      
+                            for (s_it = keyRange.first;  s_it != keyRange.second;  ++s_it) 
+                            {
+                                cout << "    value = " << (*s_it).second << endl;
+                          
+                                lst wInPole = it->has_w((*s_it).second);
+                                wInPole.sort();
+                            
+                                if (epsPoles.count(theKey) > 1)                             
+                                {
+                                    cout << endl;
+                                    cout << endl;
+                                    cout << "(((((((((((       w in pole " << wInPole << endl;
+                                    cout << endl;
+                                    cout << endl;
+                                }
+                            }
+                        }
+                        
+                        if (polesMinEps.nops() == 0) mayBeContinued = false;
+                        else cout << "Poles MIN eps for test: " << polesMinEps << endl << endl;
+
+                    } // WHILE(mayBeContinued)
+
+/*
+  LOOP over all gamma arguments to find nearest poles
+*/
                 }//same depth
             }
             //      O = R;
@@ -1132,3 +1260,5 @@ MBtree RoMB_loop_by_loop::MBcontinue_tree(MBintegral rootint,ex eps0)
         throw std::logic_error(std::string("In function \"MBcontinue\":\n |___> ")+p.what());
     }
 }
+
+
