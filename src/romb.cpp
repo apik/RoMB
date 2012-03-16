@@ -955,6 +955,7 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
         
         // final set of continued integrals
         MBlst C;
+        size_t nRej = 0;
 
         while(O.size()>0)
         {
@@ -1002,11 +1003,14 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
 // Place test on reduce HERE
 //
                     
+                    bool isRejected = constraints_.Restrict(nearestPoleParams);
+                    if (isRejected) nRej++;
+                    
                     ex poleF =  nearestPoleParams.Arg;
                     
                     lst w_in_F  = it->has_w(poleF );
                     
-                    if(w_in_F.nops()>0 && !nearestPoleParams.isContinued) 
+                    if(w_in_F.nops()>0 && !nearestPoleParams.isContinued && !isRejected) 
                     {
                         epsSliding = nearestPoleParams.EpsilonValue;
 //                              
@@ -1049,6 +1053,7 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
             // continue integrals only from the last level of residue tree
             O = R;
         }
+        cout << "REJ= " << nRej <<endl;
         return C;
     } 
     catch(std::exception &p)

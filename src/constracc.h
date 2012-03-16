@@ -9,6 +9,9 @@ using namespace Parma_Polyhedra_Library::IO_Operators;
 
 using namespace GiNaC;
 
+
+
+
 class ConstrAcc
 {
 
@@ -20,7 +23,16 @@ class ConstrAcc
 
     exmap WsCurrent_;
 
+
+// PPL part
+
     NNC_Polyhedron ph_;
+
+    std::vector<Variable> varVector;
+
+// Converts ex to linear expression
+
+    Linear_Expression ExToLe(ex);
 
     exmap chebyshevSphere(MBintegral::w_lst_type, MBintegral::p_lst_type);
     
@@ -41,7 +53,10 @@ public:
         
     void PrintWs();
 
+    bool Restrict(NearestPoleParams);
+
     
+
     //  constr_acc(MBintegral::w_lst_type,MBintegral::w_lst_type);
     
     bool add_single(const ex&);

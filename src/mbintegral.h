@@ -78,6 +78,25 @@ using std::pair;
 using std::accumulate;
 
 
+struct NearestPoleParams
+{
+    bool isContinued;
+    numeric EpsilonValue;
+    numeric PoleValue;
+    ex Arg;
+    void Print()
+        {
+            cout << endl;
+            cout << "IC " << isContinued <<endl;
+            cout << "EV " << EpsilonValue <<endl;
+            cout << "PV " << PoleValue <<endl;
+            cout << "AR " << Arg <<endl;
+            cout << endl;
+        }
+};
+
+
+
 class MBintegral
 {
 

@@ -126,8 +126,6 @@ exmap ConstrAcc::chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_t
     try
     {
 
-
-        std::vector<Variable> varVector;
         size_t varN = 0;
         BOOST_FOREACH(ex w, wIn)
         {
@@ -273,7 +271,94 @@ exmap ConstrAcc::chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_t
     }
 }
 
+GMP_Integer exToGmp(ex e)
+{
+    stringstream ss;
+    if(e.info(info_flags::integer))
+        ss << e;
+    else throw std::invalid_argument(string("Not an integer number conversion to mpz_class"));
+    return GMP_Integer(ss.str());
+}
 
+
+Linear_Expression ConstrAcc::ExToLe(ex p)
+{
+
+// Converting coefficients to integer
+
+// Temporary value of LCM
+
+    ex lcmBuf = 1;
+    ex bBuf = p;
+    for(lst::const_iterator wi = ws_.begin(); wi != ws_.end(); ++wi)
+    {
+        if(p.coeff(*wi,1).info(info_flags::rational))
+            lcmBuf = lcm(lcmBuf, denom(p.coeff(*wi,1)));
+        else
+            throw std::invalid_argument( string("Not rational coefficient in constriant") );
+        bBuf = bBuf.coeff(*wi,0);
+    }
+    if(bBuf.info(info_flags::rational))
+        lcmBuf = lcm(lcmBuf, denom(bBuf));
+    else
+        throw std::invalid_argument( string("Not rational coefficient in constriant") );
+    
+    cout <<"p " <<  p << endl << "LCM " << lcmBuf << endl;
+
+
+// To conserve sign of inequality
+// in p stored inequality with integer coefficients
+    
+    p *= abs(lcmBuf);
+
+    Linear_Expression l;
+
+    size_t dimN = 0;
+    ex bI = p;
+    for(lst::const_iterator wi = ws_.begin(); wi != ws_.end(); ++wi)
+    {
+        ex linCoeff = p.coeff(*wi,1);
+        bI = bI.coeff(*wi,0);
+        if(linCoeff.info(info_flags::integer))
+        {
+//                mpz_class 
+            
+//            GMP_Integer gmpInt(ex_to<numeric>(linCoeff).to_long());
+            GMP_Integer gmpInt(exToGmp(linCoeff));
+            l = sub_mul_assign(l, gmpInt, varVector[dimN]);
+            dimN++;
+        }
+        else throw std::logic_error(std::string( "Not an integer coefficient in Linear_Expression" ));
+    }
+// Add B_i        
+    if(bI.info(info_flags::integer))
+    {
+        //       GMP_Integer gmpInt(ex_to<numeric>(bI).to_long());
+        GMP_Integer gmpInt(exToGmp(bI));
+        l -= gmpInt;
+    }
+    return l;
+}
+
+
+bool ConstrAcc::Restrict(NearestPoleParams nearestPoleParams)
+{
+    ex cs = nearestPoleParams.Arg;
+    cs = cs.subs(get_symbol("eps") == nearestPoleParams.EpsilonValue);
+
+    Linear_Expression le = ExToLe(cs);
+    cout << le << endl;   
+    
+    Constraint constr = le > 0;
+
+// Test strict intersection of constraint and existing polyhedron
+    if (ph_.relation_with(constr) == Poly_Con_Relation::strictly_intersects())
+    {
+        
+        return true;
+    }
+    else return false;
+}
 
 
 bool interior_point(MBintegral::p_lst_type ineq_lst, exmap subs_map)
