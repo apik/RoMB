@@ -19,6 +19,8 @@ class ConstrAcc
     
     lst ws_;
 
+    MBintegral::w_lst_type wsAndEps_;
+
     exmap epsAndWsCurrent_;
 
     exmap WsCurrent_;
@@ -26,15 +28,34 @@ class ConstrAcc
 
 // PPL part
 
+    // Polyhedron with constrints
+    // Ax>b
+
     NNC_Polyhedron ph_;
 
+
+// Polyhedron for LP on Chebyshev sphere
+// Ax+An*r>b
+    
+    NNC_Polyhedron phR_;
+
+// All variables except radius(R)
     std::vector<Variable> varVector;
+
+    Variable* R_;
 
 // Converts ex to linear expression
 
-    Linear_Expression ExToLe(ex);
+    Linear_Expression ExToLe(const ex&);
+
+// Converts ex to LE -sqrt(a^2)
+
+    Linear_Expression ExToLeMinusA(const ex&);
+    
+    
 
     exmap chebyshevSphere(MBintegral::w_lst_type, MBintegral::p_lst_type);
+    exmap chebyshevSphere();
     
 public:
     
@@ -53,7 +74,7 @@ public:
         
     void PrintWs();
 
-    bool Restrict(NearestPoleParams);
+    bool Restrict(const NearestPoleParams&);
 
     
 

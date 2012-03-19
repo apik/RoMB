@@ -1037,6 +1037,7 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
                             it->res(var_to_get_res ==
                                     lsolve(poleF == nearestPoleParams.PoleValue, var_to_get_res),
                                     poleF,get_symbol("eps")==epsSliding);
+                        
                         res_int.set_level(1+it->get_level());
                         res_int*=(2*Pi*I*csgn(poleF.coeff(var_to_get_res))*csgn(fEpsI - fEps0));
                         
