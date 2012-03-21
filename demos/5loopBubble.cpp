@@ -76,7 +76,7 @@ try
     //bubble 4-loop
     //            RoMB_loop_by_loop sunset_bub(lst(k,l1,l2,l3), lst(-pow(k,2)+ms,-pow(l2,2)+ms,-pow(l1,2)+ms,-pow(l3,2)+ms,-pow(k+l1+l2+l3,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1));
     // sunset_bub.integrate(lst(ms==1,m2s==1,m3s==1,s==0),0);
-#define TOPO 5
+#define TOPO 1
 #if TOPO==1    
 //bubble 5-loop
 /*
@@ -93,7 +93,7 @@ FRESULT for parameters: {ms==1,m2s==1,m3s==1,s==0}
         
 */
      RoMB_loop_by_loop sunset_bub5(lst(l3,k,l1,l2,l4), lst(-pow(l3,2)+ms,-pow(k,2)+ms,-pow(l1,2)+ms,-pow(l2,2)+ms,-pow(l4,2)+ms,-pow(k+l1+l2+l3+l4,2)+ms),lst(pow(p,2)==s),lst(1,1,1,1,1,1));
-     sunset_bub5.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),1);
+     sunset_bub5.integrate_map(lst(ms==1,m2s==1,m3s==1,s==0),-1);
 
 #elif TOPO==2
 

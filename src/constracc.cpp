@@ -1,5 +1,11 @@
+
 #include "constracc.h"
 #include "utils.h"
+
+#include <boost/numeric/interval.hpp> 
+//#include <boost/numeric/interval/compare/lexicographic.hpp>
+#include <boost/numeric/interval/compare/explicit.hpp>
+
 
 
 /*constr_acc::constr_acc(lst constr_lst,lst w_lst_in) :
@@ -227,7 +233,7 @@ exmap ConstrAcc::chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_t
 //                mpz_class 
 
 
-                    GMP_Integer gmpInt(ex_to<numeric>(linCoeff).to_long());
+                    GMP_Integer gmpInt(ex_to<GiNaC::numeric>(linCoeff).to_long());
                     l = sub_mul_assign(l, gmpInt, varVector[dimN]);
                     dimN++;
                 }
@@ -236,7 +242,7 @@ exmap ConstrAcc::chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_t
 // Add B_i        
             if(bI.info(info_flags::integer))
             {
-                GMP_Integer gmpInt(ex_to<numeric>(bI).to_long());
+                GMP_Integer gmpInt(ex_to<GiNaC::numeric>(bI).to_long());
                 l -= gmpInt;
             }
             else throw std::logic_error(std::string( "Not an integer B_i in Linear_Expression" ));
@@ -247,7 +253,7 @@ exmap ConstrAcc::chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_t
             if(aNormSquared.info(info_flags::integer))
             {
 
-                GMP_Integer gmpInt(ex_to<numeric>(aNormSquared).to_long());
+                GMP_Integer gmpInt(ex_to<GiNaC::numeric>(aNormSquared).to_long());
 
 // Assign integer value of sqare root: 
 //
@@ -273,12 +279,12 @@ exmap ConstrAcc::chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_t
         if( ph_.maximize(*R_,supN,supD,maxVal,g) )
         {
             std::cout<< maxVal<<" then " << supN<<"/"
-                     <<supD<< "Generator: " << g << std::endl;
+                     <<supD<< " Generator: " << g << std::endl;
        
         }
         else throw std::logic_error(std::string( "No solution for Chebyshev Sphere" ));
 
-        ex rEx = numeric(supN.get_si(),supD.get_si());
+        ex rEx = GiNaC::numeric(supN.get_si(),supD.get_si());
 
         Generator_System gs;
         gs.insert(g);
@@ -324,7 +330,7 @@ exmap ConstrAcc::chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_t
         size_t cncn = 0;
         BOOST_FOREACH(ex w, wIn)
         {
-            intPtest[w] = numeric(g.coefficient(varVector[cncn]).get_si(),
+            intPtest[w] = GiNaC::numeric(g.coefficient(varVector[cncn]).get_si(),
                                   g.divisor().get_si()) + rEx/(*primeToDivide);
             primeToDivide++;
             cncn++;
@@ -348,6 +354,119 @@ exmap ConstrAcc::chebyshevSphere(MBintegral::w_lst_type wIn, MBintegral::p_lst_t
 }
 
 
+struct classcomp {
+    bool operator() (const boost::numeric::interval<mpq_class>& lhs, const boost::numeric::interval<mpq_class>& rhs) const
+        {return  boost::numeric::interval_lib::cerlt(lhs,rhs);}
+};
+
+
+exmap ConstrAcc::DiffContours(const Generator& generator, const mpq_class& r)
+{
+    using namespace boost::numeric;
+
+        
+//    cout << "In diff: " << generator  << " R " << r <<endl;
+
+    typedef interval<mpq_class> IntervalQ;
+    typedef std::multimap<interval<mpq_class>, ex,classcomp> IntervalMap;
+
+    IntervalMap contourIntervals;
+ 
+    size_t cncn = 0;
+    BOOST_FOREACH(ex w, wsAndEps_)
+//        for(lst::const_iterator wii = ws_.begin(); wii != ws_.end(); ++wii)
+    {
+//            intPtest[w] = numeric(g.coefficient(varVector[cncn]).get_si(),
+//                                  g.divisor().get_si()) + rEx/(*primeToDivide);
+        
+        //intPtest[w] = GiNaC::numeric(g.coefficient(varVector[cncn]).get_str().c_str())/
+        //    GiNaC::numeric(g.divisor().get_str().c_str()) + rEx/(*primeToDivide);
+
+// rational coordinate
+        mpq_class w_mpq(generator.coefficient(varVector[cncn]),generator.divisor());
+        
+
+        IntervalMap::iterator it = contourIntervals.insert(IntervalMap::value_type(IntervalQ(w_mpq - r, w_mpq + r), w));
+
+//        cout << "W: " << width(it->first) << " [" << it->first.lower() << ", " << it->first.upper() << "]" <<endl;
+
+        //       cout << " ORDERED:" << endl;
+        
+        
+//        primeToDivide++;
+        cncn++;
+    }
+
+/*for (IntervalMap::iterator im = contourIntervals.begin(); im != contourIntervals.end(); ++im)
+        {
+//            cout << "W: " << width(im->first) << " [" << im->first.lower() << ", " << im->first.upper() << "]" <<endl;
+
+        }
+*/
+
+// New map for non intersecting intervals
+    
+//    IntervalMap contourIntervalsDiff;
+    
+    typedef IntervalMap::iterator mapIter;
+    
+
+    exmap outContours;
+
+// Upper bound of last interval
+
+    mpq_class lastMax;
+
+    mapIter m_it, s_it;
+                    
+    for (m_it = contourIntervals.begin();  m_it != contourIntervals.end();  m_it = s_it) 
+    {
+        IntervalMap::key_type theKey = m_it->first;
+                        
+        //       cout << endl;
+        //  cout << "  key = '" << theKey << "'" << endl;
+
+        // working with key here:
+
+        size_t nWithKey = contourIntervals.count(theKey);                      
+                      
+        pair<mapIter, mapIter> keyRange = contourIntervals.equal_range(theKey);
+                      
+        // Iterate over all map elements with key == theKey
+        
+        size_t nInRange = 1;
+                      
+        for (s_it = keyRange.first;  s_it != keyRange.second;  ++s_it) 
+        {
+            // absolute lower bound
+            if(s_it == contourIntervals.begin())
+                lastMax = s_it->first.lower();
+
+            
+            mpq_class lb = std::max(lastMax, s_it->first.lower());
+
+            lastMax = lb +  width(s_it->first) * mpq_class(nInRange,nWithKey);
+
+//            cout << "lb: " << lb << " ub: " << lastMax<< " w: " << s_it->second << endl;
+            
+            
+            mpq_class median_q((lb + lastMax)/2);
+            
+            //           cout << "Med " << median_q <<endl;
+            
+            outContours[s_it->second] = GiNaC::numeric(median_q.get_num().get_str().c_str())/
+                GiNaC::numeric(median_q.get_den().get_str().c_str());
+      
+            nInRange++;
+            
+        }
+    }
+
+//    cout << outContours <<endl;
+    return outContours;   
+}
+
+
 
 exmap ConstrAcc::chebyshevSphere()
 {
@@ -361,12 +480,19 @@ exmap ConstrAcc::chebyshevSphere()
         if( phR_.maximize(*R_,supN,supD,maxVal,g) )
         {
             std::cout<< maxVal<<" then " << supN<<"/"
-                     <<supD<< "Generator: " << g << std::endl;
+                     <<supD<< " Generator: " << g << std::endl;
        
         }
         else throw std::logic_error(std::string( "No solution for Chebyshev Sphere" ));
 
-        ex rEx = numeric(supN.get_si(),supD.get_si());
+        ex rEx = GiNaC::numeric(supN.get_si(),supD.get_si());
+
+        mpq_class r_mpq(supN,supD);
+
+        exmap ommap =  DiffContours(g, r_mpq);
+
+        Parma_Polyhedra_Library::restore_pre_PPL_rounding();
+        return  ommap;
 
         Generator_System gs;
         gs.insert(g);
@@ -429,8 +555,8 @@ exmap ConstrAcc::chebyshevSphere()
 //            intPtest[w] = numeric(g.coefficient(varVector[cncn]).get_si(),
 //                                  g.divisor().get_si()) + rEx/(*primeToDivide);
 
-            intPtest[w] = numeric(g.coefficient(varVector[cncn]).get_str().c_str())/
-                numeric(g.divisor().get_str().c_str()) + rEx/(*primeToDivide);
+            intPtest[w] = GiNaC::numeric(g.coefficient(varVector[cncn]).get_str().c_str())/
+                GiNaC::numeric(g.divisor().get_str().c_str()) + rEx/(*primeToDivide);
 
 
             primeToDivide++;
@@ -446,7 +572,7 @@ exmap ConstrAcc::chebyshevSphere()
 //     BOOST_ASSERT_MSG(interior_point(pIn,intPtest),"Not a convex polyhedron interior point");
 
 
-        Parma_Polyhedra_Library::restore_pre_PPL_rounding();
+     
         return intPtest;
     }catch(std::exception &p)
     {
@@ -513,7 +639,7 @@ try
         {
 //                mpz_class 
             
-//            GMP_Integer gmpInt(ex_to<numeric>(linCoeff).to_long());
+//            GMP_Integer gmpInt(ex_to<GiNaC::numeric>(linCoeff).to_long());
             GMP_Integer gmpInt(exToGmp(linCoeff));
             l = sub_mul_assign(l, gmpInt, varVector[dimN]);
             dimN++;
@@ -523,7 +649,7 @@ try
 // Add B_i        
     if(bI.info(info_flags::integer))
     {
-        //       GMP_Integer gmpInt(ex_to<numeric>(bI).to_long());
+        //       GMP_Integer gmpInt(ex_to<GiNaC::numeric>(bI).to_long());
         GMP_Integer gmpInt(exToGmp(bI));
         l -= gmpInt;
     }
@@ -585,7 +711,7 @@ try
         {
 //                mpz_class 
             
-//            GMP_Integer gmpInt(ex_to<numeric>(linCoeff).to_long());
+//            GMP_Integer gmpInt(ex_to<GiNaC::numeric>(linCoeff).to_long());
             GMP_Integer gmpInt(exToGmp(linCoeff));
             l = sub_mul_assign(l, gmpInt, varVector[dimN]);
             dimN++;
@@ -595,7 +721,7 @@ try
 // Add B_i        
     if(bI.info(info_flags::integer))
     {
-        //       GMP_Integer gmpInt(ex_to<numeric>(bI).to_long());
+        //       GMP_Integer gmpInt(ex_to<GiNaC::numeric>(bI).to_long());
         GMP_Integer gmpInt(exToGmp(bI));
         l -= gmpInt;
     }
@@ -635,9 +761,9 @@ bool ConstrAcc::Restrict(const NearestPoleParams& nearestPoleParams)
     cs = cs.subs(get_symbol("eps") == nearestPoleParams.EpsilonValue);
 
     Linear_Expression le = ExToLe(cs);
-    cout << "Lin ex " << le << endl;   
+    cout << "Lin ex " <<cs << " PPL " << le << endl;   
     
-    Constraint constr = le <= 0;
+    Constraint constr = (le < 0);
 
 // Test strict intersection of constraint and existing polyhedron
     if (ph_.relation_with(constr) == Poly_Con_Relation::strictly_intersects())
@@ -645,11 +771,13 @@ bool ConstrAcc::Restrict(const NearestPoleParams& nearestPoleParams)
         Linear_Expression leR = ExToLeMinusA(cs);
         cout << "Lin ex " << leR << endl;   
         
-        Constraint constrR = leR <= 0;
+        Constraint constrR = (leR < 0);
         
         phR_.add_constraint(constrR);
 
-         epsAndWsCurrent_ = chebyshevSphere();
+        ph_.add_constraint(constr);
+
+        epsAndWsCurrent_ = chebyshevSphere();
         
         return true;
     }

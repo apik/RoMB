@@ -373,7 +373,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
           //     cout<<"ui9nt eps : "<<Uint.get_eps().lhs()<<endl;
           // Uint.new_point();
         
-          // MBlst int_lst = MBcontinue(Uint);
+          // MBlst int_lst = MBconinue(Uint);
           //ex int_expr_out = 0;
           //for(MBlst::iterator it = int_lst.begin();it!= int_lst.end();++it)
           // int_expr_out+=expand_and_integrate(*it,1);
@@ -865,6 +865,9 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsC
 {
     try
     {
+
+        cout << "\n\t Get Leading Eps for :\t" << epsCurrent << endl; 
+        
         NearestPoleParams poleParams;
 
         poleParams.isContinued = true;
@@ -872,8 +875,7 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsC
         if(epsCurrent == eps0) 
             throw std::logic_error( string("Continue from EpsI = Eps0") );
         else
-            poleParams.EpsilonValue = 0;
-
+          poleParams.EpsilonValue = eps0;
         lst polesWithEps(mbIn.poles_with_eps());
     
         for(lst::const_iterator pit  = polesWithEps.begin(); pit != polesWithEps.end(); ++pit) 
@@ -881,10 +883,19 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsC
         
             numeric poleValue;
         
-            ex fEps0 = pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == eps0) ;
-            ex fEpsI =  pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == epsCurrent ) ;
+            numeric fEps0 = ex_to<numeric>(pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == eps0));
+            numeric fEpsI = ex_to<numeric>(pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == epsCurrent ));
         
-            // Important FF
+            cout << "Fi\t" << fEpsI <<endl;
+            cout << "F0\t" << fEps0 <<endl;
+
+            
+
+
+// Important FF
+
+            bool hasPole = false;
+
 
             if(fEpsI > fEps0) 
             {
@@ -893,6 +904,15 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsC
 // to disable cycling 
                 if(poleValue == fEpsI)
                     poleValue--;
+                
+
+// MORE ONE SUBS
+                while(poleValue >0 && poleValue > int(ceil(fEps0.to_double())))
+                {
+                    poleValue--;
+                }
+                
+                hasPole = (fEps0 < poleValue) && (poleValue < fEpsI);
                 cout << " fEpsi: " << fEpsI << " and pole: " << poleValue << endl;
             }
             else if(fEpsI < fEps0) 
@@ -900,26 +920,32 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsC
                 poleValue = int(ceil(ex_to<numeric>(fEpsI).to_double()));
                 if(poleValue == fEpsI)
                     poleValue++;
+
+                while(poleValue >0 && poleValue < int(floor(fEps0.to_double())))
+                    poleValue++;
+                
+                hasPole = (fEps0 > poleValue) && (poleValue > fEpsI);
                 cout << " fEpsi: " << fEpsI << " and pole: " << poleValue << endl;
             }
 
-            if (poleValue <= 0) 
+            if (hasPole && (poleValue <= 0)) 
             {
-                //   cout << setw(5) << right << poleValue <<  " --------------->  " 
-                //     << setw(25) << left << *pit << endl;
+                   cout << setw(5) << right << poleValue <<  " --------------->  " 
+                     << setw(25) << left << *pit << endl;
                 numeric eps_pole_sol = ex_to<numeric>(lsolve(pit->subs(this->constraints_.GetWs()) == poleValue,get_symbol("eps") ));
 
-                if( epsCurrent < eps0 ) 
-                {           
-                    if(poleParams.EpsilonValue > eps_pole_sol)
+                cout << "SOlution: " << eps_pole_sol << endl;
+
+                // if( epsCurrent > eps0 )                {           
+                  if(abs(epsCurrent - poleParams.EpsilonValue) > abs(epsCurrent - eps_pole_sol))
                     {
                         poleParams.EpsilonValue = eps_pole_sol;
                         poleParams.PoleValue = poleValue;
                         poleParams.Arg = (*pit);
                         poleParams.isContinued = false;
                     }
-                }
-                else if( epsCurrent > eps0 )            
+                  // }
+                /*  else if( epsCurrent < eps0 )            
                 {
                     if(poleParams.EpsilonValue < eps_pole_sol)
                     {
@@ -929,11 +955,11 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsC
                         poleParams.isContinued = false;
                     }
                 }
-
+                */
             }
         }
     
-    
+        poleParams.Print(); 
         return poleParams;
     }
     catch(std::exception &p)
@@ -990,7 +1016,7 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
 
                 while(mayBeContinued)
                 {
-                    mayBeContinued = false;
+
 
 
 //         Nearest pole               
@@ -999,54 +1025,69 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
 
                     nearestPoleParams.Print();
 
+
 //
 // Place test on reduce HERE
 //
                     
-                    bool isRejected = constraints_.Restrict(nearestPoleParams);
-                    if (isRejected) nRej++;
+                    if(!nearestPoleParams.isContinued) // test on pole existance
+                    {                    
+                        bool isRejected = constraints_.Restrict(nearestPoleParams);
+                        if (isRejected) nRej++;
+                        
+                        ex poleF =  nearestPoleParams.Arg;
+                        
+                        lst w_in_F  = it->has_w(poleF );
                     
-                    ex poleF =  nearestPoleParams.Arg;
-                    
-                    lst w_in_F  = it->has_w(poleF );
-                    
-                    if(w_in_F.nops()>0 && !nearestPoleParams.isContinued && !isRejected) 
-                    {
                         epsSliding = nearestPoleParams.EpsilonValue;
-//                              
-                        //             decide what var to get res
-                        ex var_to_get_res = 0;
-                        for(lst::const_iterator vgit = w_in_F.begin(); vgit != w_in_F.end();++vgit) 
+                        
+//                        mayBeContinued = nearestPoleParams.isContinued;
+                        mayBeContinued = true;
+                    
+                        cout << "EpsSl: " << epsSliding <<endl;
+
+                        cout << "TEST IF: " << endl;
+                        cout << "\t " << w_in_F.nops() << " " << nearestPoleParams.isContinued << " " << isRejected <<endl;
+                    
+                        if(w_in_F.nops()>0 && !nearestPoleParams.isContinued && !isRejected) 
                         {
-                            if(poleF.coeff(*vgit,1) == 1) 
+
+//                              
+                            //             decide what var to get res
+                            ex var_to_get_res = 0;
+                            for(lst::const_iterator vgit = w_in_F.begin(); vgit != w_in_F.end();++vgit) 
                             {
-                                var_to_get_res = *vgit;
-                                break;
+                                if(poleF.coeff(*vgit,1) == 1) 
+                                {
+                                    var_to_get_res = *vgit;
+                                    break;
+                                }
+                                if(poleF.coeff(*vgit,1) == -1)
+                                    var_to_get_res = *vgit;
                             }
-                            if(poleF.coeff(*vgit,1) == -1)
-                                var_to_get_res = *vgit;
-                        }
-                        if( var_to_get_res ==0) var_to_get_res = w_in_F.op(w_in_F.nops()-1);
+                            if( var_to_get_res ==0) var_to_get_res = w_in_F.op(w_in_F.nops()-1);
                         
-                        cout<<" POLE: " << poleF<< "       var to get res   "<<var_to_get_res<<endl;
+                            cout<<" POLE: " << poleF<< "       var to get res   "<<var_to_get_res<<endl;
                         
-                        ex fEps0 = poleF.subs(constraints_.GetWs()).subs(get_symbol("eps") == eps0);
-                        ex fEpsI = poleF.subs(constraints_.GetWs()).subs(get_symbol("eps") == epsSliding);
+                            ex fEps0 = poleF.subs(constraints_.GetWs()).subs(get_symbol("eps") == eps0);
+                            ex fEpsI = poleF.subs(constraints_.GetWs()).subs(get_symbol("eps") == epsSliding);
     
-                        MBintegral res_int = 
-                            it->res(var_to_get_res ==
-                                    lsolve(poleF == nearestPoleParams.PoleValue, var_to_get_res),
-                                    poleF,get_symbol("eps")==epsSliding);
+                            MBintegral res_int = 
+                                it->res(var_to_get_res ==
+                                        lsolve(poleF == nearestPoleParams.PoleValue, var_to_get_res),
+                                        poleF,get_symbol("eps")==epsSliding);
                         
-                        res_int.set_level(1+it->get_level());
-                        res_int*=(2*Pi*I*csgn(poleF.coeff(var_to_get_res))*csgn(fEpsI - fEps0));
+                            res_int.set_level(1+it->get_level());
+                            res_int*=(2*Pi*I*csgn(poleF.coeff(var_to_get_res))*csgn(fEpsI - fEps0));
                         
                                              
-                        R.push_back(res_int);
+                            R.push_back(res_int);
                         
-                        mayBeContinued = true;
-                    }
+                            mayBeContinued = true;
+                        }
                     
+                    }// if may be continued
+                    else mayBeContinued = false;
                 } // WHILE(mayBeContinued)
                 
             }   

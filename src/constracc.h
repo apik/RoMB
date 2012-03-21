@@ -74,6 +74,8 @@ public:
         
     void PrintWs();
 
+    exmap DiffContours(const Generator&, const mpq_class&);
+
     bool Restrict(const NearestPoleParams&);
 
     
