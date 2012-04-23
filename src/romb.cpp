@@ -1018,7 +1018,7 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
                 {
 
 
-
+                  cout << ">> Step in Loop ____________________________________" << endl;
 //         Nearest pole               
 
                     NearestPoleParams nearestPoleParams = GetLeadingEps(*it, ex_to<numeric>(epsSliding), ex_to<numeric>(eps0));
@@ -1031,7 +1031,9 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
 //
                     
                     if(!nearestPoleParams.isContinued) // test on pole existance
-                    {                    
+                    {
+
+                      cout << "\tPOLE MOVED====================================" << endl;                    
                         bool isRejected = constraints_.Restrict(nearestPoleParams);
                         if (isRejected) nRej++;
                         
