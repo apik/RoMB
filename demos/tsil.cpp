@@ -94,7 +94,7 @@ MEGA 5-LOOP BUBBLE with 12 propagators
 //-pow(k1+k3+k4,2)+ms,-pow(k2+k5-k3-k4,2)+ms),lst(pow(p,2)==0),lst(1,1,1,1,1,1,1));
 //l5c1.integrate_map(lst(ms==1),0);      
 
-#define topo 2
+#define topo 1
 
 #if topo==1
 /*

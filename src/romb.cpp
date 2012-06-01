@@ -889,44 +889,19 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsC
             cout << "Fi\t" << fEpsI << " (" << evalf(fEpsI)<< ")" <<endl;
             cout << "F0\t" << fEps0 << " (" << evalf(fEps0)<< ")" <<endl;
 
-            
+	    // direction of movement of Gamma arguement 
+            int dir = csgn(fEps0 - fEpsI);
+
 
 
 // Important FF
 
             bool hasPole = false;
 
-
-            if(fEpsI > fEps0) 
-            {
-                poleValue = int(floor(ex_to<numeric>(fEpsI).to_double()));
-                
-// to disable cycling 
-                if(poleValue == fEpsI)
-                    poleValue--;
-                
-
-// MORE ONE SUBS
-                while(poleValue >0 && poleValue > int(ceil(fEps0.to_double())))
-                {
-                    poleValue--;
-                }
-                
-                hasPole = (fEps0 < poleValue) && (poleValue < fEpsI);
-                cout << " fEpsi: " << fEpsI << " and pole: " << poleValue << endl;
-            }
-            else if(fEpsI < fEps0) 
-            {
-                poleValue = int(ceil(ex_to<numeric>(fEpsI).to_double()));
-                if(poleValue == fEpsI)
-                    poleValue++;
-
-                while(poleValue >0 && poleValue < int(floor(fEps0.to_double())))
-                    poleValue++;
-                
-                hasPole = (fEps0 > poleValue) && (poleValue > fEpsI);
-                cout << " fEpsi: " << fEpsI << " and pole: " << poleValue << endl;
-            }
+	    if ( ( dir > 0 &&  fEpsI > 0 ) || ( (dir < 0) && ( fEpsI > 0) && (fEps0 > 0) )) hasPole = false; 
+	    if ( (dir < 0) && ( fEpsI > 0) && (fEps0 < 0) ) { hasPole = true; poleValue = 0; }
+	    if ( fEpsI < 0  && dir > 0 && ceil(fEpsI.to_double()) < fEps0) { hasPole = true; poleValue = ceil(fEpsI.to_double()); }
+	    if ( fEpsI < 0  && dir < 0 && floor(fEpsI.to_double()) > fEps0) { hasPole = true; poleValue = floor(fEpsI.to_double()); }
 
             if (hasPole && (poleValue <= 0)) 
             {
@@ -936,26 +911,13 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsC
 
                 cout << "SOlution: " << eps_pole_sol << endl;
 
-                // if( epsCurrent > eps0 )                {           
                   if(abs(epsCurrent - poleParams.EpsilonValue) > abs(epsCurrent - eps_pole_sol))
-                    {
-                        poleParams.EpsilonValue = eps_pole_sol;
-                        poleParams.PoleValue = poleValue;
-                        poleParams.Arg = (*pit);
-                        poleParams.isContinued = true;
-                    }
-                  // }
-                /*  else if( epsCurrent < eps0 )            
-                {
-                    if(poleParams.EpsilonValue < eps_pole_sol)
                     {
                         poleParams.EpsilonValue = eps_pole_sol;
                         poleParams.PoleValue = poleValue;
                         poleParams.Arg = (*pit);
                         poleParams.isContinued = false;
                     }
-                }
-                */
             }
         }
     
@@ -1027,6 +989,11 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
                   cout << ">> Step in Loop ____________________________________" << endl;
 //         Nearest pole               
 
+                  cout << ">> Step in Loop _______(sliding eps)____________" << epsSliding << endl;
+
+          cout<< endl<<" Ready for continue?  [Y/n]: ";
+          char in_ch;
+          std::cin>>in_ch;
 
                     NearestPoleParams nearestPoleParams = GetLeadingEps(*it, ex_to<numeric>(epsSliding), ex_to<numeric>(eps0));
 
@@ -1043,8 +1010,10 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
                     {
 
                       cout << "\tPOLE MOVED====================================" << endl;                    
+                      cout << "\tPOLE MOVED========was  "<< constraints_.GetPoint() <<  endl;                    
                         bool isRejected = constraints_.Restrict(nearestPoleParams);
                         if (isRejected) nRej++;
+                      cout << "\tPOLE MOVED=======become ==== " << nRej << " ==========" << constraints_.GetPoint() <<  endl;                    
                         
                         ex poleF =  nearestPoleParams.Arg;
                         
@@ -1065,6 +1034,7 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
                     
                         if(w_in_F.nops()>0 && !nearestPoleParams.isContinued && !isRejected) 
                         {
+
 
 //                              
                             //             decide what var to get res
