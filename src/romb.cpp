@@ -866,7 +866,7 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsC
     try
     {
 
-        cout << "\n\t Get Leading Eps for :\t" << epsCurrent << endl; 
+        cout << "\n\t Get Nearest Eps for CurrentEps:\t" << epsCurrent <<"("<<evalf(epsCurrent)<<")"<< endl; 
         
         NearestPoleParams poleParams;
 
@@ -886,8 +886,8 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsC
             numeric fEps0 = ex_to<numeric>(pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == eps0));
             numeric fEpsI = ex_to<numeric>(pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == epsCurrent ));
         
-            cout << "Fi\t" << fEpsI <<endl;
-            cout << "F0\t" << fEps0 <<endl;
+            cout << "Fi\t" << fEpsI << " (" << evalf(fEpsI)<< ")" <<endl;
+            cout << "F0\t" << fEps0 << " (" << evalf(fEps0)<< ")" <<endl;
 
             
 
@@ -942,7 +942,7 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsC
                         poleParams.EpsilonValue = eps_pole_sol;
                         poleParams.PoleValue = poleValue;
                         poleParams.Arg = (*pit);
-                        poleParams.isContinued = false;
+                        poleParams.isContinued = true;
                     }
                   // }
                 /*  else if( epsCurrent < eps0 )            
@@ -1019,11 +1019,15 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
 
 
 
-//         Nearest pole               
+//         Find nearest pole to continue, return EPS in "EpsilonValue"
+//         and gamma argument in "PoleValue"
+//         if no pole exists - return                  
 
                     NearestPoleParams nearestPoleParams = GetLeadingEps(*it, ex_to<numeric>(epsSliding), ex_to<numeric>(eps0));
 
                     nearestPoleParams.Print();
+
+// IC =false - pole exists and returned.
 
 
 //
@@ -1039,7 +1043,10 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
                         
                         lst w_in_F  = it->has_w(poleF );
                     
-                        epsSliding = nearestPoleParams.EpsilonValue;
+                        //epsSliding = nearestPoleParams.EpsilonValue;
+                        
+                        epsSliding = get_symbol("eps");
+                        epsSliding = epsSliding.subs(constraints_.GetPoint());
                         
 //                        mayBeContinued = nearestPoleParams.isContinued;
                         mayBeContinued = true;

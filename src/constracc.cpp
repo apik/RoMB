@@ -778,7 +778,7 @@ bool ConstrAcc::Restrict(const NearestPoleParams& nearestPoleParams)
         ph_.add_constraint(constr);
 
         epsAndWsCurrent_ = chebyshevSphere();
-        
+        cout << "   CONSTRAINT MAY DISCARDED!!!"<<endl;    
         return true;
     }
     else return false;
