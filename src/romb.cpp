@@ -889,44 +889,19 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsC
             cout << "Fi\t" << fEpsI << " (" << evalf(fEpsI)<< ")" <<endl;
             cout << "F0\t" << fEps0 << " (" << evalf(fEps0)<< ")" <<endl;
 
-            
+	    // direction of movement of Gamma arguement 
+            int dir = csgn(fEps0 - fEpsI);
+
 
 
 // Important FF
 
             bool hasPole = false;
 
-
-            if(fEpsI > fEps0) 
-            {
-                poleValue = int(floor(ex_to<numeric>(fEpsI).to_double()));
-                
-// to disable cycling 
-                if(poleValue == fEpsI)
-                    poleValue--;
-                
-
-// MORE ONE SUBS
-                while(poleValue >0 && poleValue > int(ceil(fEps0.to_double())))
-                {
-                    poleValue--;
-                }
-                
-                hasPole = (fEps0 < poleValue) && (poleValue < fEpsI);
-                cout << " fEpsi: " << fEpsI << " and pole: " << poleValue << endl;
-            }
-            else if(fEpsI < fEps0) 
-            {
-                poleValue = int(ceil(ex_to<numeric>(fEpsI).to_double()));
-                if(poleValue == fEpsI)
-                    poleValue++;
-
-                while(poleValue >0 && poleValue < int(floor(fEps0.to_double())))
-                    poleValue++;
-                
-                hasPole = (fEps0 > poleValue) && (poleValue > fEpsI);
-                cout << " fEpsi: " << fEpsI << " and pole: " << poleValue << endl;
-            }
+	    if ( ( dir > 0 &&  fEpsI > 0 ) || ( (dir < 0) && ( fEpsI > 0) && (fEps0 > 0) )) hasPole = false; 
+	    if ( (dir < 0) && ( fEpsI > 0) && (fEps0 < 0) ) { hasPole = true; poleValue = 0; }
+	    if ( fEpsI < 0  && dir > 0 && ceil(fEpsI.to_double()) < fEps0) { hasPole = true; poleValue = ceil(fEpsI.to_double()); }
+	    if ( fEpsI < 0  && dir < 0 && floor(fEpsI.to_double()) > fEps0) { hasPole = true; poleValue = floor(fEpsI.to_double()); }
 
             if (hasPole && (poleValue <= 0)) 
             {
