@@ -1035,6 +1035,11 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
                         if(w_in_F.nops()>0 && !nearestPoleParams.isContinued && !isRejected) 
                         {
 
+                        // NEW epssliding  
+			cout << " Setting sliding eps : " << endl;
+			nearestPoleParams.Print();
+			epsSliding = nearestPoleParams.EpsilonValue;
+			cout << " Setting sliding eps : " << epsSliding << endl;
 
 //                              
                             //             decide what var to get res
@@ -1066,7 +1071,7 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
                         
                                              
                             R.push_back(res_int);
-                        
+                       	    cout << " R = " << R.size() << endl; 
                             mayBeContinued = true;
                         }
                     

@@ -758,9 +758,9 @@ try
 
 bool ConstrAcc::Restrict(const NearestPoleParams& nearestPoleParams)
 {
-    //ex cs = nearestPoleParams.Arg;
-    ex cs = -csgn(nearestPoleParams.EpsilonValue)*(get_symbol("eps") - nearestPoleParams.EpsilonValue); 
-    //cs = cs.subs(get_symbol("eps") == nearestPoleParams.EpsilonValue);
+    ex cs = nearestPoleParams.Arg;
+    cs = cs.subs(get_symbol("eps") == 0);
+    // cs = cs.subs(get_symbol("eps") == nearestPoleParams.EpsilonValue);
 
     Linear_Expression le = ExToLe(cs);
     cout << "Lin ex " <<cs << " PPL " << le << endl;   
