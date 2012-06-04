@@ -93,8 +93,9 @@ try
         cout <<"================================================" << endl;
         Linear_Expression lWithR = ExToLeMinusA(p);
 
-        cs.insert(l <= 0);
-        csWithR.insert(lWithR <= 0);
+        cs.insert(l < 0);
+        csWithR.insert(lWithR < 0);
+        //csWithR.insert(lWithR <= 0);
         
 
     }
@@ -365,7 +366,7 @@ exmap ConstrAcc::DiffContours(const Generator& generator, const mpq_class& r)
     using namespace boost::numeric;
 
         
-//    cout << "In diff: " << generator  << " R " << r <<endl;
+    cout << "In diff: " << generator  << " R " << r <<endl;
 
     typedef interval<mpq_class> IntervalQ;
     typedef std::multimap<interval<mpq_class>, ex,classcomp> IntervalMap;
@@ -757,8 +758,9 @@ try
 
 bool ConstrAcc::Restrict(const NearestPoleParams& nearestPoleParams)
 {
-    ex cs = nearestPoleParams.Arg;
-    cs = cs.subs(get_symbol("eps") == nearestPoleParams.EpsilonValue);
+    //ex cs = nearestPoleParams.Arg;
+    ex cs = -csgn(nearestPoleParams.EpsilonValue)*(get_symbol("eps") - nearestPoleParams.EpsilonValue); 
+    //cs = cs.subs(get_symbol("eps") == nearestPoleParams.EpsilonValue);
 
     Linear_Expression le = ExToLe(cs);
     cout << "Lin ex " <<cs << " PPL " << le << endl;   
@@ -771,14 +773,28 @@ bool ConstrAcc::Restrict(const NearestPoleParams& nearestPoleParams)
         Linear_Expression leR = ExToLeMinusA(cs);
         cout << "Lin ex " << leR << endl;   
         
+    //    Constraint constrR = (leR < 0);
         Constraint constrR = (leR < 0);
         
+        cout << ph_ << "   BEFORE CONSTRAINT ADD!!"<<endl;    
+        ph_.add_constraint(constr);
+        cout << ph_ << "   AFTER ADD!!"<<endl;    
+
         phR_.add_constraint(constrR);
 
-        ph_.add_constraint(constr);
 
         epsAndWsCurrent_ = chebyshevSphere();
-        cout << "   CONSTRAINT MAY DISCARDED!!!"<<endl;    
+
+    BOOST_FOREACH(ex we, wsAndEps_)
+    {
+//        ws_.append(we);
+
+        if(we != get_symbol("eps"))
+            WsCurrent_[we] = epsAndWsCurrent_[we]; 
+    }
+
+
+        cout << phR_ << "   CONSTRAINT MAY DISCARDED!!!"<<endl;    
         return true;
     }
     else return false;
