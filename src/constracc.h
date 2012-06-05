@@ -63,6 +63,7 @@ public:
     ConstrAcc();
     
     ConstrAcc(const MBintegral::p_lst_type&, const MBintegral::w_lst_type&);
+    bool ZeroEpsConstrAcc(const MBintegral::p_lst_type&, const MBintegral::w_lst_type&);
 
     ConstrAcc(const MBintegral&);
 
