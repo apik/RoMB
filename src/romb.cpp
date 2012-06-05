@@ -437,7 +437,7 @@ RoMB_loop_by_loop:: RoMB_loop_by_loop(
       else if (e.info(info_flags::polynomial))
       {
           stringstream str;
-          str << e;
+          str << "(" << e << ")";
           return get_symbol(str.str());
       }
 
@@ -886,6 +886,7 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, GiNaC::numer
             GiNaC::numeric fEps0 = ex_to<GiNaC::numeric>(pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == eps0));
             GiNaC::numeric fEpsI = ex_to<GiNaC::numeric>(pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == epsCurrent ));
         
+            cout << " F\t" << *pit << endl;
             cout << "Fi\t" << fEpsI << " (" << evalf(fEpsI)<< ")" <<endl;
             cout << "F0\t" << fEps0 << " (" << evalf(fEps0)<< ")" <<endl;
 
@@ -902,7 +903,9 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, GiNaC::numer
 	    if ( (dir < 0) && ( fEpsI > 0) && (fEps0 < 0) ) { hasPole = true; poleValue = 0; }
 	    if ( fEpsI < 0  && dir > 0 && ceil(fEpsI.to_double()) < fEps0) { hasPole = true; poleValue = int(ceil(fEpsI.to_double())); }
 	    if ( fEpsI < 0  && dir < 0 && floor(fEpsI.to_double()) > fEps0) { hasPole = true; poleValue = int(floor(fEpsI.to_double())); }
-
+	    
+	    // EVIL HACK: initial point is singular
+	    if (ceil(fEpsI.to_double()) == fEpsI) hasPole = false;
             if (hasPole && (poleValue <= 0)) 
             {
                    cout << setw(5) << right << poleValue <<  " --------------->  " 
@@ -950,10 +953,10 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
             
             // integral from residues
             MBlst R;
-            
             for(MBlst::iterator it = O.begin();it!=O.end();++it)
             {
                 C.push_back(*it);
+                cout << "*************INTEGRAL!************" << endl;
 
 
 //         Eps starting value
@@ -991,9 +994,9 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
 
                   cout << ">> Step in Loop _______(sliding eps)____________" << epsSliding << endl;
 
-          cout<< endl<<" Ready for continue?  [Y/n]: ";
-          char in_ch;
-          std::cin>>in_ch;
+//          cout<< endl<<" Ready for continue?  [Y/n]: ";
+//         char in_ch;
+//        std::cin>>in_ch;
 
                     NearestPoleParams nearestPoleParams = GetLeadingEps(*it, ex_to<GiNaC::numeric>(epsSliding), ex_to<GiNaC::numeric>(eps0));
 
