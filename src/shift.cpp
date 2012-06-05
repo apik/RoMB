@@ -577,10 +577,11 @@ try
       double x_in = ex_to<numeric>(w_x).to_double();
       gsl_vector_set (x, h,x_in );
     }
-  //  T = gsl_multimin_fdfminimizer_conjugate_fr;
-  T = gsl_multimin_fdfminimizer_steepest_descent;
+  cout << "---------------> " << wl.nops() << " <------ " << endl;
+    T = gsl_multimin_fdfminimizer_conjugate_fr;
+  //T = gsl_multimin_fdfminimizer_steepest_descent;
   s = gsl_multimin_fdfminimizer_alloc (T, wl.nops());
-  //cout << "Starting minim proc"<<endl;      
+  cout << "Starting minim proc"<<endl;      
   //gsl_multimin_function_fdf my_func;
   //int a = 6;
 
@@ -592,7 +593,7 @@ try
     {
       iter++;
       status = gsl_multimin_fdfminimizer_iterate (s);
-     
+
       if (status)
         break;
      
@@ -610,6 +611,7 @@ try
             } 
           printf(" %10.5f\n",s->f);
         }
+      	else  cout << "GSL Failed : " << iter << endl;
     }
   while (status == GSL_CONTINUE && iter < ITER_MAX);
      
@@ -617,7 +619,10 @@ try
   gsl_vector_free (x);
 
   lst newpl;
-  
+
+  // EVIL HACK
+  if (status == 27) return sm;  
+
   for(int jk = 0; jk < pl.nops(); jk++)
     {      
       newpl.append(pl.op(jk).subs(sc));
