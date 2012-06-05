@@ -974,6 +974,7 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
                 lst polesWithEps(it->poles_with_eps());
 
                 bool mayBeContinued = true;
+		bool startPointFound = false;
 
 
 //         Iterate over all residues 
@@ -1011,13 +1012,14 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
                     
                     if(!nearestPoleParams.isContinued) // test on pole existance
                     {
-
+bool isRejected = false;
+                        if (! startPointFound) {
                       cout << "\tPOLE MOVED====================================" << endl;                    
                       cout << "\tPOLE MOVED========was  "<< constraints_.GetPoint() <<  endl;                    
-                        bool isRejected = constraints_.Restrict(nearestPoleParams);
-                        if (isRejected) nRej++;
-                      cout << "\tPOLE MOVED=======become ==== " << nRej << " ==========" << constraints_.GetPoint() <<  endl;                    
-                        
+				isRejected = constraints_.Restrict(nearestPoleParams);
+			if (isRejected) nRej++;
+                      		cout << "\tPOLE MOVED=======become ==== " << nRej << " ==========" << constraints_.GetPoint() <<  endl;                    
+                       	} 
                         ex poleF =  nearestPoleParams.Arg;
                         
                         lst w_in_F  = it->has_w(poleF );
@@ -1037,6 +1039,7 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
                     
                         if(w_in_F.nops()>0 && !nearestPoleParams.isContinued && !isRejected) 
                         {
+
 
                         // NEW epssliding  
 			cout << " Setting sliding eps : " << endl;
@@ -1063,6 +1066,8 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
                         
                             ex fEps0 = poleF.subs(constraints_.GetWs()).subs(get_symbol("eps") == eps0);
                             ex fEpsI = poleF.subs(constraints_.GetWs()).subs(get_symbol("eps") == epsSliding);
+
+			    startPointFound = true;
     
                             MBintegral res_int = 
                                 it->res(var_to_get_res ==
