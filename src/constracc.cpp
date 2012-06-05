@@ -47,6 +47,9 @@ ConstrAcc::ConstrAcc(const MBintegral::p_lst_type& constr_lst,
 try
 {
 
+if (!ZeroEpsConstrAcc(constr_lst, w_lst_in)) { 
+	cout << "ZERO SEARCH FAILED" << endl;
+
   BOOST_FOREACH(ex we,w_lst_in)
     {
         ws_.append(we);
@@ -104,6 +107,7 @@ try
     phR_ = NNC_Polyhedron(csWithR);
 
 
+    if (ph_.is_empty()) { cout << "Empty Polyhedron? " << ph_.is_empty() << " vs " << phR_.is_empty() << endl; assert(false); }
 
 
 /*
@@ -136,10 +140,119 @@ try
             WsCurrent_[we] = epsAndWsCurrent_[we]; 
     }
 
-
+}
     }catch(std::exception &p)
     {
         throw std::logic_error(std::string("In function \"ConstrAcc\":\n |___> ")+p.what());
+    }
+}
+
+bool ConstrAcc::ZeroEpsConstrAcc(const MBintegral::p_lst_type& constr_lst,
+    	                 const MBintegral::w_lst_type& w_lst_in)
+{
+try
+{
+
+  BOOST_FOREACH(ex we,w_lst_in)
+    {
+        ws_.append(we);
+  
+    }
+
+
+
+/* 
+ *
+ *   DANGER!!! eps by hand!!!
+ *   No eps in w_lst_in
+ *
+ *
+ */ 
+ 
+
+
+        wsAndEps_ = w_lst_in;
+
+
+// push only w's and eps
+
+    size_t varN = 0;
+    BOOST_FOREACH(ex w, wsAndEps_)
+    {
+        Variable vNew(varN);
+        varVector.push_back(vNew);
+        varN++;
+    }
+    
+    
+// Sphere radius
+    
+    R_ = new Variable(varN);
+
+    Constraint_System cs,csWithR;
+    
+    BOOST_FOREACH(ex p, constr_lst)
+    {
+        
+        Linear_Expression l = ExToLe(p.subs(get_symbol("eps")==0));
+        cout <<"===================(zero)=============================" << endl;
+        Linear_Expression lWithR = ExToLeMinusA(p.subs(get_symbol("eps")==0));
+
+        cs.insert(l < 0);
+        csWithR.insert(lWithR < 0);
+        //csWithR.insert(lWithR <= 0);
+        
+
+    }
+    cout << " System created  (zero)" << cs << endl;
+    ph_ = NNC_Polyhedron(cs);
+    phR_ = NNC_Polyhedron(csWithR);
+
+
+    if (ph_.is_empty()) { 
+	    cout << "Empty Polyhedron (eps = 0) ? " << endl; 
+	    //clean up
+	    varVector.clear();
+	    ws_.remove_all();
+	    return false; 
+    }
+
+
+/*
+  ==============================================================================
+  =                                                                            =
+  =                                                                            =
+  =                                                                            =
+  ==============================================================================
+*/
+
+//    epsAndWsCurrent_ = chebyshevSphere(wsAndEps, constr_lst);
+
+    epsAndWsCurrent_ = chebyshevSphere();
+
+    epsAndWsCurrent_[get_symbol("eps")]=0;
+
+    cout << "test (zero)" << epsAndWsCurrent_ << endl;
+    PrintPoint();
+
+    
+    BOOST_FOREACH(ex ce,constr_lst)
+    {
+        constraints_.append(ce);
+    }
+    BOOST_FOREACH(ex we,w_lst_in)
+    {
+//        ws_.append(we);
+
+        if(we != get_symbol("eps"))
+            WsCurrent_[we] = epsAndWsCurrent_[we]; 
+    }
+
+    return true;
+
+    }catch(std::exception &p)
+    {
+        throw std::logic_error(std::string("In function \"ZeroConstrAcc\":\n |___> ")+p.what());
     }
 }
 
@@ -770,6 +883,7 @@ bool ConstrAcc::Restrict(const NearestPoleParams& nearestPoleParams)
     
     Constraint constr = (le < 0);
 
+    cout << "NEW CONSTRAINT LOOKS LIKE:" << constr << endl;
 // Test strict intersection of constraint and existing polyhedron
     if (ph_.relation_with(constr) == Poly_Con_Relation::strictly_intersects())
     {
