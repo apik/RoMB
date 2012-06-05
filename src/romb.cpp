@@ -886,8 +886,7 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, GiNaC::numer
             GiNaC::numeric fEps0 = ex_to<GiNaC::numeric>(pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == eps0));
             GiNaC::numeric fEpsI = ex_to<GiNaC::numeric>(pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == epsCurrent ));
         
-	    //if (evalf(fEpsI) > 0) cout << "OK"; else exit(1);
-            cout << "Fi\t" << *pit << "=" << fEpsI << " (" << evalf(fEpsI)<< ")" <<endl;
+            cout << "Fi\t" << fEpsI << " (" << evalf(fEpsI)<< ")" <<endl;
             cout << "F0\t" << fEps0 << " (" << evalf(fEps0)<< ")" <<endl;
 
 	    // direction of movement of Gamma arguement 
@@ -951,7 +950,7 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
             
             // integral from residues
             MBlst R;
-            cout << "START: O = R" << O.size() << endl; 
+            
             for(MBlst::iterator it = O.begin();it!=O.end();++it)
             {
                 C.push_back(*it);
@@ -992,11 +991,9 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
 
                   cout << ">> Step in Loop _______(sliding eps)____________" << epsSliding << endl;
 
-/*
           cout<< endl<<" Ready for continue?  [Y/n]: ";
           char in_ch;
           std::cin>>in_ch;
- */
 
                     NearestPoleParams nearestPoleParams = GetLeadingEps(*it, ex_to<GiNaC::numeric>(epsSliding), ex_to<GiNaC::numeric>(eps0));
 

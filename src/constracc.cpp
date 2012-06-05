@@ -361,12 +361,14 @@ struct classcomp {
 };
 
 
-exmap ConstrAcc::DiffContours(const Generator& generator, const mpq_class& r)
+exmap ConstrAcc::DiffContours(const Generator& generator, const mpq_class& ri)
 {
     using namespace boost::numeric;
 
-        
-    cout << "In diff: " << generator  << " R " << r <<endl;
+    mpz_class dim(generator.space_dimension() - 1);
+    mpq_class r = ri/(sqrt(dim) + 1);
+      
+    cout << "In diff: " << generator << " of (dim - 1) = " << sqrt(dim) << " R " << ri << "->" << r <<endl;
 
     typedef interval<mpq_class> IntervalQ;
     typedef std::multimap<interval<mpq_class>, ex,classcomp> IntervalMap;
@@ -758,7 +760,8 @@ try
 
 bool ConstrAcc::Restrict(const NearestPoleParams& nearestPoleParams)
 {
-    ex cs = nearestPoleParams.Arg;
+    // all the contraints are defined as A < 0 
+    ex cs = - nearestPoleParams.Arg;
     cs = cs.subs(get_symbol("eps") == 0);
     // cs = cs.subs(get_symbol("eps") == nearestPoleParams.EpsilonValue);
 
