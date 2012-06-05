@@ -55,7 +55,7 @@ public:
   MBlst MBcontinue(MBintegral rootint,ex eps0 = 0);
 
 // utils
-  NearestPoleParams GetLeadingEps(MBintegral, numeric, numeric eps0 = 0);
+  NearestPoleParams GetLeadingEps(MBintegral, GiNaC::numeric, GiNaC::numeric eps0 = 0);
 };
 
 

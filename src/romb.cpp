@@ -1,8 +1,8 @@
 #include "romb.h"
 #include "utils.h"
 #include "shift.h"
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
+//#include <boost/filesystem/operations.hpp>
+//#include <boost/filesystem/path.hpp>
 
 extern "C"
 {
@@ -722,8 +722,8 @@ std::pair<ex,ex> RoMB_loop_by_loop::expand_and_integrate_map(ex int_in,MBintegra
 
                 
                     RoMB::FUNCP_CUBA2 fp_real;
-                    std::string int_c_f(boost::filesystem::current_path().string());
-                    int_c_f+="/int_c_f";
+                    //std::string int_c_f(boost::filesystem::current_path().string());
+                    //  int_c_f+="/int_c_f";
                     cout<<"\n\n\n"<<evalf(int_expr)<<"\n\n\n\n"<<endl;
 
                     print_mathematica_ex(evalf(int_expr));
@@ -861,7 +861,7 @@ std::pair<ex,ex> RoMB_loop_by_loop::expand_and_integrate_map(ex int_in,MBintegra
 }
 
 
-NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsCurrent, numeric eps0)
+NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, GiNaC::numeric epsCurrent, GiNaC::numeric eps0)
 {
     try
     {
@@ -881,12 +881,13 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsC
         for(lst::const_iterator pit  = polesWithEps.begin(); pit != polesWithEps.end(); ++pit) 
         {
         
-            numeric poleValue;
+            GiNaC::numeric poleValue;
         
-            numeric fEps0 = ex_to<numeric>(pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == eps0));
-            numeric fEpsI = ex_to<numeric>(pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == epsCurrent ));
+            GiNaC::numeric fEps0 = ex_to<GiNaC::numeric>(pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == eps0));
+            GiNaC::numeric fEpsI = ex_to<GiNaC::numeric>(pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == epsCurrent ));
         
-            cout << "Fi\t" << fEpsI << " (" << evalf(fEpsI)<< ")" <<endl;
+	    //if (evalf(fEpsI) > 0) cout << "OK"; else exit(1);
+            cout << "Fi\t" << *pit << "=" << fEpsI << " (" << evalf(fEpsI)<< ")" <<endl;
             cout << "F0\t" << fEps0 << " (" << evalf(fEps0)<< ")" <<endl;
 
 	    // direction of movement of Gamma arguement 
@@ -900,14 +901,14 @@ NearestPoleParams RoMB_loop_by_loop::GetLeadingEps(MBintegral mbIn, numeric epsC
 
 	    if ( ( dir > 0 &&  fEpsI > 0 ) || ( (dir < 0) && ( fEpsI > 0) && (fEps0 > 0) )) hasPole = false; 
 	    if ( (dir < 0) && ( fEpsI > 0) && (fEps0 < 0) ) { hasPole = true; poleValue = 0; }
-	    if ( fEpsI < 0  && dir > 0 && ceil(fEpsI.to_double()) < fEps0) { hasPole = true; poleValue = ceil(fEpsI.to_double()); }
-	    if ( fEpsI < 0  && dir < 0 && floor(fEpsI.to_double()) > fEps0) { hasPole = true; poleValue = floor(fEpsI.to_double()); }
+	    if ( fEpsI < 0  && dir > 0 && ceil(fEpsI.to_double()) < fEps0) { hasPole = true; poleValue = int(ceil(fEpsI.to_double())); }
+	    if ( fEpsI < 0  && dir < 0 && floor(fEpsI.to_double()) > fEps0) { hasPole = true; poleValue = int(floor(fEpsI.to_double())); }
 
             if (hasPole && (poleValue <= 0)) 
             {
                    cout << setw(5) << right << poleValue <<  " --------------->  " 
                      << setw(25) << left << *pit << endl;
-                numeric eps_pole_sol = ex_to<numeric>(lsolve(pit->subs(this->constraints_.GetWs()) == poleValue,get_symbol("eps") ));
+                GiNaC::numeric eps_pole_sol = ex_to<GiNaC::numeric>(lsolve(pit->subs(this->constraints_.GetWs()) == poleValue,get_symbol("eps") ));
 
                 cout << "SOlution: " << eps_pole_sol << endl;
 
@@ -950,7 +951,7 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
             
             // integral from residues
             MBlst R;
-            
+            cout << "START: O = R" << O.size() << endl; 
             for(MBlst::iterator it = O.begin();it!=O.end();++it)
             {
                 C.push_back(*it);
@@ -991,11 +992,13 @@ MBlst RoMB_loop_by_loop::MBcontinue(MBintegral rootint,ex eps0)
 
                   cout << ">> Step in Loop _______(sliding eps)____________" << epsSliding << endl;
 
+/*
           cout<< endl<<" Ready for continue?  [Y/n]: ";
           char in_ch;
           std::cin>>in_ch;
+ */
 
-                    NearestPoleParams nearestPoleParams = GetLeadingEps(*it, ex_to<numeric>(epsSliding), ex_to<numeric>(eps0));
+                    NearestPoleParams nearestPoleParams = GetLeadingEps(*it, ex_to<GiNaC::numeric>(epsSliding), ex_to<GiNaC::numeric>(eps0));
 
                     nearestPoleParams.Print();
 
@@ -1179,8 +1182,8 @@ MBtree RoMB_loop_by_loop::MBcontinue_tree(MBintegral rootint,ex eps0)
                             ex fEps0 = pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == eps0) ;
                             ex fEpsI =  pit->subs( this->constraints_.GetWs() ).subs( get_symbol("eps") == epsSliding ) ;
 
-                            if(fEpsI > fEps0) poleValue = int(floor(ex_to<numeric>(fEpsI).to_double()));
-                            else if(fEpsI < fEps0) poleValue = int(ceil(ex_to<numeric>(fEpsI).to_double()));
+                            if(fEpsI > fEps0) poleValue = int(floor(ex_to<GiNaC::numeric>(fEpsI).to_double()));
+                            else if(fEpsI < fEps0) poleValue = int(ceil(ex_to<GiNaC::numeric>(fEpsI).to_double()));
                             if (poleValue <= 0) 
                             {
                                 cout << setw(5) << right << poleValue <<  " --------------->  " 
@@ -1219,7 +1222,7 @@ MBtree RoMB_loop_by_loop::MBcontinue_tree(MBintegral rootint,ex eps0)
 //                                   cout<<endl<<endl<<endl<<"ASDASDASDASDSD "<<*pit<<" "<<ca.test_single(pit->subs(get_symbol("eps") == 0))<<endl<<endl<<endl;
                                 
 //                                cout<<endl<<"LEVEL "<<it->get_level()<<" Epsilon continue from eps_i = "<<eps_i<<" to "<<eps_prime<<endl<<endl;
-//                                BOOST_ASSERT_MSG(abs(ex_to<numeric>(eps_i).to_double())>=abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
+//                                BOOST_ASSERT_MSG(abs(ex_to<GiNaC::numeric>(eps_i).to_double())>=abs(ex_to<numeric>(eps_prime).to_double()), "Bad continuation");
                                 
                                 //             decide what var to get res
                                 ex var_to_get_res = 0;

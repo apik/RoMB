@@ -25,7 +25,7 @@
 MBintegral::MBintegral(
                        UFXmap fx_in,
                        lst nu,
-                       numeric l,
+                       GiNaC::numeric l,
                        bool subs_U, 
                        unsigned int displacement) :tree_level(0),res_pole(0),opt_flag(false) // lst nu is a list of powers of propagators and l is a number of loops
 {
@@ -673,12 +673,12 @@ bool compExmapSecond(exmap::value_type a, exmap::value_type b)
 
 
 
-class CompExmapFirst : public std::binary_function<numeric,numeric,bool>
+class CompExmapFirst : public std::binary_function<GiNaC::numeric,GiNaC::numeric,bool>
 {
 public:
-    bool operator()(const numeric& lh, const numeric& rh)
+    bool operator()(const GiNaC::numeric& lh, const GiNaC::numeric& rh)
         {
-//            if(is_a<numeric>(lh) && is_a<numeric>(rh))
+//            if(is_a<GiNaC::numeric>(lh) && is_a<GiNaC::numeric>(rh))
                 return (lh < rh);
                 //           else
                 //  return lh.compare(rh);
